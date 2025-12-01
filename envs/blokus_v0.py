@@ -136,8 +136,10 @@ class BlokusEnv(AECEnv):
             dtype=np.float32
         )
         
-    def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None) -> None:
+    def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None, **kwargs) -> None:
         """Reset the environment."""
+        # Accept seed and options as both positional and keyword arguments for compatibility
+        # Also accept **kwargs for compatibility with wrappers that pass additional arguments
         if seed is not None:
             np.random.seed(seed)
             
@@ -436,12 +438,13 @@ def env(render_mode: Optional[str] = None, max_episode_steps: int = 1000):
 
 
 # Gymnasium compatibility wrapper
-class GymnasiumBlokusWrapper:
+class GymnasiumBlokusWrapper(gym.Env):
     """
     Wrapper to make Blokus environment compatible with Gymnasium/Stable-Baselines3.
     """
     
     def __init__(self, env: BlokusEnv):
+        super().__init__()
         self.env = env
         
         # Single agent wrapper - focuses on one agent
@@ -463,9 +466,12 @@ class GymnasiumBlokusWrapper:
         """Return the unwrapped environment (required by Stable-Baselines3)."""
         return self.env
         
-    def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None):
+    def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None, **kwargs):
         """Reset environment."""
-        self.env.reset(seed=seed, options=options)
+        # Accept **kwargs for compatibility with wrappers that pass additional arguments
+        # Call underlying env's reset with seed and options
+        # BlokusEnv.reset() now accepts **kwargs, so any remaining kwargs will be ignored
+        self.env.reset(seed=seed, options=options, **kwargs)
         
         obs = self.env.observe(self.agent_name)
         info = self.env.infos[self.agent_name]

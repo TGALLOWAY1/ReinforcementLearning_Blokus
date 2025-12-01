@@ -1,6 +1,6 @@
 // Shared game constants to avoid duplication
 
-export const API_BASE = 'http://localhost:8000';
+export const API_BASE = '';
 export const WS_BASE = 'ws://localhost:8000';
 
 // Piece definitions with their shapes
@@ -25,7 +25,7 @@ export const PIECE_SHAPES: { [key: number]: number[][] } = {
   18: [[1, 0, 0], [1, 0, 0], [1, 1, 1]], // Pentomino V
   19: [[1, 0, 0], [1, 1, 0], [0, 1, 1]], // Pentomino W
   20: [[0, 1, 0], [1, 1, 1], [0, 1, 0]], // Pentomino X
-  21: [[1, 1, 1, 1], [0, 1, 0, 0]] // Pentomino Y
+  21: [[1, 0], [1, 1], [1, 0], [1, 0]] // Pentomino Y
 };
 
 export const PIECE_NAMES: { [key: number]: string } = {
@@ -54,17 +54,15 @@ export const PIECE_NAMES: { [key: number]: string } = {
 
 // Neon color palette for dark research aesthetic
 export const PLAYER_COLORS = {
-  red: '#FF4D4D',       // neon.red
-  blue: '#00F0FF',      // neon.blue  
-  green: '#00FF9D',     // neon.green
-  yellow: '#FFE600',    // neon.yellow
-  empty: 'transparent', // Transparent to show dark background
-  hover: '#3E3E42',     // charcoal-600 for hover
-  grid: '#3E3E42',      // charcoal-600 for grid lines
-  preview: '#00F0FF',   // neon.blue for piece preview border
-  previewBg: 'rgba(0, 240, 255, 0.2)'  // 20% opacity neon blue for preview fill
+  red: '#FF4D4D',
+  blue: '#00F0FF',
+  green: '#00FF9D',
+  yellow: '#FFE600',
+  empty: 'transparent',
+  grid: '#3E3E42',
+  preview: '#00F0FF',
 };
 
 export const BOARD_SIZE = 20;
-export const CELL_SIZE = 20;
+export const CELL_SIZE = 24;
 export const PIECE_SIZE = 12;

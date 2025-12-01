@@ -52,8 +52,8 @@ from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
 
-from envs.blokus_v0 import make_gymnasium_env
 from training.config import TrainingConfig, create_arg_parser, parse_args_to_config
+from training.env_factory import make_training_env
 from training.seeds import set_seed
 from training.run_logger import create_training_run_logger, TrainingRunLogger
 from training.checkpoints import (
@@ -78,25 +78,41 @@ _mask_fn_logger = logging.getLogger(__name__ + ".mask_fn_diagnostics")
 
 def mask_fn(env):
     """
-    Helper function to extract the legal action mask from the environment.
+    Unified mask function that works for both single env and VecEnv.
     
     This function is called by ActionMasker wrapper to get the action mask for MaskablePPO.
     
     Args:
-        env: The GymnasiumBlokusWrapper environment (ActionMasker passes the unwrapped env)
+        env: Either:
+            - ActionMasker-wrapped GymnasiumBlokusWrapper (single env)
+            - ActionMasker-wrapped VecEnv (vectorized envs)
         
     Returns:
-        The legal action mask array (boolean numpy array of shape (action_space.n,))
+        - For single env: np.ndarray of shape (action_space.n,)
+        - For VecEnv: np.ndarray of shape (num_envs, action_space.n)
     """
-    # Access the underlying BlokusEnv: env (GymnasiumBlokusWrapper) -> env.env (BlokusEnv)
-    blokus_env = env.env
-    agent_name = env.agent_name
+    # Detect VecEnv by checking for num_envs attribute
+    if hasattr(env, 'num_envs'):
+        return _mask_fn_vecenv(env)
+    else:
+        return _mask_fn_single(env)
+
+
+def _extract_mask_from_wrapped_env(wrapped_env, blokus_env, agent_name, action_space_n):
+    """
+    Helper function to extract mask from a wrapped environment.
     
-    # DIAGNOSTIC: Track call count for limiting logs
-    if not hasattr(mask_fn, '_call_count'):
-        mask_fn._call_count = 0
-    mask_fn._call_count += 1
+    Handles edge cases: terminated agents, empty masks, shape validation.
     
+    Args:
+        wrapped_env: GymnasiumBlokusWrapper instance
+        blokus_env: Underlying BlokusEnv instance
+        agent_name: Agent name string (e.g., "player_0")
+        action_space_n: Expected action space size
+        
+    Returns:
+        Boolean numpy array of shape (action_space_n,)
+    """
     # Check if agent is already terminated - if so, return a safe mask
     if agent_name in blokus_env.terminations and blokus_env.terminations[agent_name]:
         if MASK_DEBUG_LOGGING:
@@ -105,7 +121,7 @@ def mask_fn(env):
             )
         # Agent is terminated, return a mask with at least one action enabled
         # This prevents errors when the policy tries to sample from a terminated state
-        mask = np.zeros(env.action_space.n, dtype=np.bool_)
+        mask = np.zeros(action_space_n, dtype=np.bool_)
         mask[0] = True  # Enable first action as a safe fallback
         if MASK_DEBUG_LOGGING:
             _mask_fn_logger.debug(
@@ -127,40 +143,16 @@ def mask_fn(env):
     # Convert to numpy boolean array
     mask = np.asarray(mask, dtype=np.bool_)
     
-    # DIAGNOSTIC: Log mask properties
-    mask_sum = mask.sum()
-    should_log = MASK_DEBUG_LOGGING and (
-        mask_fn._call_count <= 20 or  # Log first 20 calls
-        mask_sum == 0 or  # Always log when mask is empty
-        mask.shape[0] != env.action_space.n  # Always log shape mismatches
-    )
-    
-    if should_log:
-        _mask_fn_logger.info(
-            f"mask_fn({agent_name}) call #{mask_fn._call_count}: "
-            f"mask.shape={mask.shape}, "
-            f"mask.dtype={mask.dtype}, "
-            f"mask.sum()={mask_sum}, "
-            f"action_space.n={env.action_space.n}, "
-            f"env.infos[{agent_name}]['legal_moves_count']={blokus_env.infos[agent_name].get('legal_moves_count', 'N/A')}"
-        )
-        if mask_sum > 0:
-            # Log sample of legal action indices
-            legal_indices = np.where(mask)[0]
-            sample_size = min(10, len(legal_indices))
-            _mask_fn_logger.debug(
-                f"mask_fn({agent_name}): Sample legal action indices: {legal_indices[:sample_size].tolist()}"
-            )
-    
     # Ensure mask has correct shape
-    if mask.shape[0] != env.action_space.n:
+    if mask.shape[0] != action_space_n:
         _mask_fn_logger.error(
             f"mask_fn({agent_name}): SHAPE MISMATCH - "
-            f"mask.shape={mask.shape} != action_space.n={env.action_space.n}"
+            f"mask.shape={mask.shape} != action_space.n={action_space_n}"
         )
-        raise ValueError(f"Mask shape {mask.shape} doesn't match action space {env.action_space.n}")
+        raise ValueError(f"Mask shape {mask.shape} doesn't match action space {action_space_n}")
     
     # CRITICAL: Handle case where no legal actions are available
+    mask_sum = mask.sum()
     if mask_sum == 0:
         # Agent has no legal moves - this will break MaskablePPO's MaskableCategorical
         _mask_fn_logger.error(
@@ -171,9 +163,128 @@ def mask_fn(env):
         )
         # For now, we'll still return the empty mask to see the error
         # (This is diagnostic only - we'll fix behavior in next step)
-        return mask
     
     return mask
+
+
+def _mask_fn_single(env):
+    """
+    Extract mask from single environment (existing logic, preserved for backward compatibility).
+    
+    Unwrapping chain: env (ActionMasker) -> env.env (GymnasiumBlokusWrapper) -> env.env.env (BlokusEnv)
+    But ActionMasker passes the unwrapped env, so: env (GymnasiumBlokusWrapper) -> env.env (BlokusEnv)
+    
+    Args:
+        env: GymnasiumBlokusWrapper instance (unwrapped by ActionMasker)
+        
+    Returns:
+        Boolean numpy array of shape (action_space.n,)
+    """
+    # Access the underlying BlokusEnv: env (GymnasiumBlokusWrapper) -> env.env (BlokusEnv)
+    blokus_env = env.env
+    agent_name = env.agent_name
+    action_space_n = env.action_space.n
+    
+    # DIAGNOSTIC: Track call count for limiting logs
+    if not hasattr(mask_fn, '_call_count'):
+        mask_fn._call_count = 0
+    mask_fn._call_count += 1
+    
+    # Extract mask using helper function
+    mask = _extract_mask_from_wrapped_env(env, blokus_env, agent_name, action_space_n)
+    
+    # DIAGNOSTIC: Log mask properties
+    mask_sum = mask.sum()
+    should_log = MASK_DEBUG_LOGGING and (
+        mask_fn._call_count <= 20 or  # Log first 20 calls
+        mask_sum == 0 or  # Always log when mask is empty
+        mask.shape[0] != action_space_n  # Always log shape mismatches
+    )
+    
+    if should_log:
+        _mask_fn_logger.info(
+            f"mask_fn({agent_name}) [SINGLE-ENV] call #{mask_fn._call_count}: "
+            f"mask.shape={mask.shape}, "
+            f"mask.dtype={mask.dtype}, "
+            f"mask.sum()={mask_sum}, "
+            f"action_space.n={action_space_n}, "
+            f"env.infos[{agent_name}]['legal_moves_count']={blokus_env.infos[agent_name].get('legal_moves_count', 'N/A')}"
+        )
+        if mask_sum > 0:
+            # Log sample of legal action indices
+            legal_indices = np.where(mask)[0]
+            sample_size = min(10, len(legal_indices))
+            _mask_fn_logger.debug(
+                f"mask_fn({agent_name}): Sample legal action indices: {legal_indices[:sample_size].tolist()}"
+            )
+    
+    return mask
+
+
+def _mask_fn_vecenv(env):
+    """
+    Extract masks from vectorized environment.
+    
+    When ActionMasker wraps a VecEnv, it passes the unwrapped VecEnv to mask_fn.
+    Unwrapping chain for each sub-env:
+    - env (VecEnv, unwrapped by ActionMasker) -> env.envs[i] (GymnasiumBlokusWrapper)
+    - wrapped_env (GymnasiumBlokusWrapper) -> wrapped_env.env (BlokusEnv)
+    
+    Args:
+        env: VecEnv instance (unwrapped by ActionMasker before calling mask_fn)
+        
+    Returns:
+        Boolean numpy array of shape (num_envs, action_space.n)
+    """
+    num_envs = env.num_envs
+    action_space_n = env.action_space.n
+    
+    # DIAGNOSTIC: Track call count for limiting logs
+    if not hasattr(mask_fn, '_call_count'):
+        mask_fn._call_count = 0
+    mask_fn._call_count += 1
+    
+    if MASK_DEBUG_LOGGING and mask_fn._call_count <= 5:
+        _mask_fn_logger.info(
+            f"mask_fn [VECENV] call #{mask_fn._call_count}: "
+            f"num_envs={num_envs}, action_space.n={action_space_n}"
+        )
+    
+    masks = []
+    for i in range(num_envs):
+        # Get sub-environment from VecEnv
+        # Each sub-env in env.envs is a GymnasiumBlokusWrapper (not wrapped by ActionMasker)
+        wrapped_env = env.envs[i]
+        
+        # Extract underlying BlokusEnv and agent name
+        # Unwrapping: wrapped_env (GymnasiumBlokusWrapper) -> wrapped_env.env (BlokusEnv)
+        blokus_env = wrapped_env.env
+        agent_name = wrapped_env.agent_name
+        
+        # Extract mask using helper function (reuses single-env logic)
+        mask = _extract_mask_from_wrapped_env(wrapped_env, blokus_env, agent_name, action_space_n)
+        masks.append(mask)
+    
+    # Stack masks into batch: shape (num_envs, action_space.n)
+    batched_mask = np.stack(masks, axis=0)
+    
+    # Validate batched mask shape
+    assert batched_mask.shape == (num_envs, action_space_n), (
+        f"Batched mask shape mismatch: expected ({num_envs}, {action_space_n}), "
+        f"got {batched_mask.shape}"
+    )
+    
+    # DIAGNOSTIC: Log batched mask properties
+    if MASK_DEBUG_LOGGING and mask_fn._call_count <= 5:
+        mask_sums = [m.sum() for m in masks]
+        _mask_fn_logger.info(
+            f"mask_fn [VECENV] batched mask: "
+            f"shape={batched_mask.shape}, "
+            f"mask_sums={mask_sums}, "
+            f"min={min(mask_sums)}, max={max(mask_sums)}"
+        )
+    
+    return batched_mask
 
 
 class TrainingCallback(BaseCallback):
@@ -186,88 +297,154 @@ class TrainingCallback(BaseCallback):
         config: TrainingConfig,
         run_logger: Optional[TrainingRunLogger] = None,
         model: Optional[Any] = None,
-        verbose: int = 0
+        verbose: int = 0,
+        num_envs: Optional[int] = None
     ):
         super().__init__(verbose)
         self.config = config
         self.run_logger = run_logger
         self.model = model
-        self.episode_count = 0
+        
+        # Determine number of environments
+        # Priority: explicit num_envs > detect from model.env > default to 1
+        if num_envs is not None:
+            self.num_envs = num_envs
+        elif model is not None and hasattr(model.env, 'num_envs'):
+            self.num_envs = model.env.num_envs
+        else:
+            self.num_envs = 1
+        
+        # Per-environment tracking (dicts keyed by env_id: 0 to num_envs-1)
+        self.env_episode_rewards = {i: [] for i in range(self.num_envs)}
+        self.env_episode_lengths = {i: [] for i in range(self.num_envs)}
+        self.env_current_reward = {i: 0.0 for i in range(self.num_envs)}
+        self.env_current_length = {i: 0 for i in range(self.num_envs)}
+        self.env_episode_count = {i: 0 for i in range(self.num_envs)}
+        
+        # Global step tracking (increments once per SB3 step, not per env)
         self.step_count = 0
-        self.episode_rewards = []
-        self.episode_lengths = []
-        self.current_episode_reward = 0.0
-        self.current_episode_length = 0
+        
+        # Last step info (for debugging, uses first env's data)
         self.last_obs = None
         self.last_action = None
         self.last_reward = None
         self.last_done = None
         self.run_id = run_logger.run_id if run_logger else None
+    
+    @property
+    def episode_count(self) -> int:
+        """Backward compatibility: total episodes across all envs."""
+        return sum(self.env_episode_count.values())
+    
+    @episode_count.setter
+    def episode_count(self, value: int):
+        """Backward compatibility: set episode count (distributes to first env)."""
+        # When resuming, we set the episode count on the first env
+        # This maintains compatibility with existing resume logic
+        if self.num_envs > 0:
+            self.env_episode_count[0] = value
+    
+    @property
+    def episode_rewards(self) -> List[float]:
+        """Backward compatibility: all episode rewards flattened across all envs."""
+        return [r for rewards in self.env_episode_rewards.values() for r in rewards]
+    
+    @property
+    def episode_lengths(self) -> List[int]:
+        """Backward compatibility: all episode lengths flattened across all envs."""
+        return [l for lengths in self.env_episode_lengths.values() for l in lengths]
+    
+    @property
+    def current_episode_reward(self) -> float:
+        """Backward compatibility: current episode reward (first env only)."""
+        return self.env_current_reward[0] if self.num_envs > 0 else 0.0
+    
+    @property
+    def current_episode_length(self) -> int:
+        """Backward compatibility: current episode length (first env only)."""
+        return self.env_current_length[0] if self.num_envs > 0 else 0
         
     def _on_step(self) -> bool:
         """
         Called at each step during training.
         
+        Processes all environments in the batch (for VecEnv) or single environment.
+        
         Returns:
             True to continue training, False to stop
         """
-        # Track step
-        self.step_count += 1
-        self.current_episode_length += 1
-        
         # Get current info from SB3 callback locals
-        # SB3 provides these as lists (for vectorized envs), but we use single env
+        # SB3 provides these as lists (for vectorized envs) or single values (for single env)
         rewards = self.locals.get("rewards", [])
         dones = self.locals.get("dones", [])
         infos = self.locals.get("infos", [])
         obs = self.locals.get("obs", None)
         actions = self.locals.get("actions", [])
         
-        # Extract values (handle both list and single value)
-        reward = rewards[0] if rewards else 0.0
-        done = dones[0] if dones else False
-        info = infos[0] if infos else {}
-        action = actions[0] if actions else None
+        # Process all environments in batch
+        for env_id in range(self.num_envs):
+            # Extract values for this environment (handle both list and single value)
+            reward = rewards[env_id] if env_id < len(rewards) else (rewards[0] if rewards else 0.0)
+            done = dones[env_id] if env_id < len(dones) else (dones[0] if dones else False)
+            info = infos[env_id] if env_id < len(infos) else (infos[0] if infos else {})
+            action = actions[env_id] if env_id < len(actions) else (actions[0] if actions else None)
+            
+            # Update per-env tracking
+            self.env_current_reward[env_id] += reward
+            self.env_current_length[env_id] += 1
+            
+            # Store last step info from first env (for backward compatibility)
+            if env_id == 0:
+                self.last_obs = obs
+                self.last_action = action
+                self.last_reward = reward
+                self.last_done = done
+            
+            # Sanity checks (per env)
+            if self.config.enable_sanity_checks:
+                self._sanity_check(reward, obs, action, info)
+            
+            # Detailed logging in smoke-test mode (only for first env to avoid spam)
+            if env_id == 0 and self.config.log_action_details and self.episode_count < 3 and self.env_current_length[env_id] <= 10:
+                self._log_step_details(reward, done, action, info)
+            
+            # Check episode termination (per env)
+            if done:
+                self._on_episode_end(env_id)
+            
+            # Check step limit per episode (per env)
+            if self.env_current_length[env_id] >= self.config.max_steps_per_episode:
+                logger.warning(
+                    f"Episode {self.env_episode_count[env_id] + 1} (env {env_id}) reached max_steps_per_episode "
+                    f"({self.config.max_steps_per_episode}), truncating"
+                )
+                self._on_episode_end(env_id)
         
-        self.current_episode_reward += reward
-        self.last_obs = obs
-        self.last_action = action
-        self.last_reward = reward
-        self.last_done = done
+        # Step count increments once per SB3 step (not per env)
+        self.step_count += 1
         
-        # Sanity checks
-        if self.config.enable_sanity_checks:
-            self._sanity_check(reward, obs, action, info)
-        
-        # Detailed logging in smoke-test mode
-        if self.config.log_action_details and self.episode_count < 3 and self.current_episode_length <= 10:
-            self._log_step_details(reward, done, action, info)
-        
-        # Check episode termination
-        if done:
-            self._on_episode_end()
-        
-        # Check episode limit
-        if self.config.max_episodes is not None and self.episode_count >= self.config.max_episodes:
+        # Check episode limit (aggregate across all envs)
+        total_episodes = self.episode_count
+        if self.config.max_episodes is not None and total_episodes >= self.config.max_episodes:
             logger.info(f"Reached max_episodes limit ({self.config.max_episodes}), stopping training")
             return False
         
-        # Check step limit per episode
-        if self.current_episode_length >= self.config.max_steps_per_episode:
-            logger.warning(
-                f"Episode {self.episode_count + 1} reached max_steps_per_episode "
-                f"({self.config.max_steps_per_episode}), truncating"
-            )
-            self._on_episode_end()
-            return True
-        
         return True
     
-    def _on_episode_end(self):
-        """Handle episode end."""
-        self.episode_count += 1
-        self.episode_rewards.append(self.current_episode_reward)
-        self.episode_lengths.append(self.current_episode_length)
+    def _on_episode_end(self, env_id: int = 0):
+        """
+        Handle episode end for a specific environment.
+        
+        Args:
+            env_id: Environment ID (0 to num_envs-1)
+        """
+        # Update per-env episode count
+        self.env_episode_count[env_id] += 1
+        episode_num = self.env_episode_count[env_id]
+        
+        # Store episode metrics
+        self.env_episode_rewards[env_id].append(self.env_current_reward[env_id])
+        self.env_episode_lengths[env_id].append(self.env_current_length[env_id])
         
         # Log to MongoDB if logger is available
         if self.run_logger:
@@ -275,42 +452,46 @@ class TrainingCallback(BaseCallback):
             # TODO: Implement proper win detection based on game outcome
             win = None  # Will be None for now since we don't have game outcome in callback
             self.run_logger.log_episode(
-                episode=self.episode_count,
-                total_reward=self.current_episode_reward,
-                steps=self.current_episode_length,
+                episode=episode_num,
+                total_reward=self.env_current_reward[env_id],
+                steps=self.env_current_length[env_id],
                 win=win
             )
         
-        if self.config.mode == "smoke" or self.config.logging_verbosity >= 1:
+        # Log episode completion (only for first env or if verbose/multi-env)
+        if env_id == 0 or (self.config.mode == "smoke" or self.config.logging_verbosity >= 1):
+            env_suffix = f" (env {env_id})" if self.num_envs > 1 else ""
             logger.info(
-                f"Episode {self.episode_count} completed: "
-                f"reward={self.current_episode_reward:.2f}, "
-                f"length={self.current_episode_length}"
+                f"Episode {episode_num}{env_suffix} completed: "
+                f"reward={self.env_current_reward[env_id]:.2f}, "
+                f"length={self.env_current_length[env_id]}"
             )
         
-        # Save checkpoint if interval is reached
+        # Save checkpoint if interval is reached (based on aggregate episode count)
+        total_episodes = self.episode_count
         if (self.model and 
             self.config.checkpoint_interval_episodes and 
-            self.episode_count % self.config.checkpoint_interval_episodes == 0):
+            total_episodes % self.config.checkpoint_interval_episodes == 0 and
+            env_id == 0):  # Only save checkpoint once per interval (use first env as trigger)
             try:
                 checkpoint_path = get_checkpoint_path(
                     checkpoint_dir=self.config.checkpoint_dir,
                     run_id=self.run_id or "unknown",
-                    episode=self.episode_count,
+                    episode=total_episodes,
                     agent_id="ppo_agent"
                 )
                 
                 save_checkpoint(
                     model=self.model,
                     checkpoint_path=checkpoint_path,
-                    episode=self.episode_count,
+                    episode=total_episodes,
                     config=self.config.to_dict(),
                     run_id=self.run_id
                 )
                 
                 # Log checkpoint to MongoDB
                 if self.run_logger:
-                    self.run_logger.log_checkpoint(self.episode_count, checkpoint_path)
+                    self.run_logger.log_checkpoint(total_episodes, checkpoint_path)
                 
                 # Cleanup old checkpoints
                 if self.run_id:
@@ -321,22 +502,27 @@ class TrainingCallback(BaseCallback):
                         agent_id="ppo_agent"
                     )
                 
-                logger.info(f"Saved checkpoint at episode {self.episode_count}")
+                logger.info(f"Saved checkpoint at episode {total_episodes}")
             except Exception as e:
                 logger.error(f"Failed to save checkpoint: {e}")
         
-        # Reset episode tracking
-        self.current_episode_reward = 0.0
-        self.current_episode_length = 0
+        # Reset per-env episode tracking
+        self.env_current_reward[env_id] = 0.0
+        self.env_current_length[env_id] = 0
         
-        # Log episode statistics periodically
-        if self.episode_count % 10 == 0 and self.episode_count > 0:
-            avg_reward = np.mean(self.episode_rewards[-10:])
-            avg_length = np.mean(self.episode_lengths[-10:])
-            logger.info(
-                f"Last 10 episodes - Avg reward: {avg_reward:.2f}, "
-                f"Avg length: {avg_length:.1f}"
-            )
+        # Log episode statistics periodically (aggregate across all envs)
+        total_episodes = self.episode_count
+        if total_episodes % 10 == 0 and total_episodes > 0:
+            # Get last 10 episodes across all envs
+            all_rewards = self.episode_rewards
+            all_lengths = self.episode_lengths
+            if len(all_rewards) >= 10:
+                avg_reward = np.mean(all_rewards[-10:])
+                avg_length = np.mean(all_lengths[-10:])
+                logger.info(
+                    f"Last 10 episodes (across all envs) - Avg reward: {avg_reward:.2f}, "
+                    f"Avg length: {avg_length:.1f}"
+                )
     
     def _sanity_check(self, reward: float, obs: Any, action: Any, info: Dict):
         """Perform sanity checks on training data."""
@@ -379,12 +565,15 @@ class TrainingCallback(BaseCallback):
             logger.debug(f"  Pieces remaining: {info['pieces_remaining']}")
 
 
-def train(config: TrainingConfig) -> None:
+def train(config: TrainingConfig) -> Optional[TrainingCallback]:
     """
     Train a MaskablePPO agent on the Blokus environment.
     
     Args:
         config: Training configuration object
+        
+    Returns:
+        TrainingCallback instance (for testing/inspection), or None if training failed
     """
     # Set up logging level
     if config.logging_verbosity == 0:
@@ -478,20 +667,9 @@ def train(config: TrainingConfig) -> None:
         log=True
     )
     
-    # Initialize the environment with max_episode_steps
-    env = make_gymnasium_env(
-        render_mode=None,
-        max_episode_steps=config.max_steps_per_episode
-    )
-    
-    # Set environment seed if specified
-    if config.env_seed is not None:
-        env.reset(seed=config.env_seed)
-    else:
-        env.reset()
-    
-    # Wrap environment with ActionMasker
-    env = ActionMasker(env, mask_fn)
+    # Initialize the environment using factory (supports single-env and VecEnv)
+    # Pass mask_fn to avoid circular import (env_factory no longer imports from trainer)
+    env = make_training_env(config, mask_fn)
     
     # Create checkpoint directory
     os.makedirs(config.checkpoint_dir, exist_ok=True)
@@ -571,14 +749,18 @@ def train(config: TrainingConfig) -> None:
         model = MaskablePPO(**model_kwargs)
     
     # Create training callback
+    # num_envs is determined from config or detected from model.env
+    # This enables per-env tracking for VecEnv while maintaining single-env compatibility
     callback = TrainingCallback(
         config, 
         run_logger=run_logger, 
         model=model,
-        verbose=config.logging_verbosity
+        verbose=config.logging_verbosity,
+        num_envs=config.num_envs  # Pass num_envs explicitly for clarity
     )
     
     # Set initial episode count if resuming
+    # This sets the episode count on the first env (for backward compatibility)
     if start_episode > 0:
         callback.episode_count = start_episode
     
@@ -728,18 +910,38 @@ def train(config: TrainingConfig) -> None:
         else:
             logger.warning("Continuing despite error (not in smoke-test mode)")
     
-    # Log final statistics
-    if callback.episode_count > 0:
+    # Log final statistics (aggregate across all environments)
+    total_episodes = callback.episode_count
+    if total_episodes > 0:
         logger.info("=" * 80)
         logger.info("Training Summary")
         logger.info("=" * 80)
-        logger.info(f"Total episodes: {callback.episode_count}")
+        logger.info(f"Total episodes: {total_episodes}")
         logger.info(f"Total steps: {callback.step_count}")
-        if callback.episode_rewards:
-            logger.info(f"Average reward: {np.mean(callback.episode_rewards):.2f}")
-            logger.info(f"Average episode length: {np.mean(callback.episode_lengths):.1f}")
-            logger.info(f"Best episode reward: {np.max(callback.episode_rewards):.2f}")
-            logger.info(f"Worst episode reward: {np.min(callback.episode_rewards):.2f}")
+        
+        # Aggregate episode rewards and lengths across all envs
+        all_episode_rewards = callback.episode_rewards
+        all_episode_lengths = callback.episode_lengths
+        
+        if all_episode_rewards:
+            logger.info(f"Average reward: {np.mean(all_episode_rewards):.2f}")
+            logger.info(f"Average episode length: {np.mean(all_episode_lengths):.1f}")
+            logger.info(f"Best episode reward: {np.max(all_episode_rewards):.2f}")
+            logger.info(f"Worst episode reward: {np.min(all_episode_rewards):.2f}")
+            
+            # Optionally show per-env stats if using multiple envs
+            if callback.num_envs > 1:
+                logger.info("Per-environment statistics:")
+                for env_id in range(callback.num_envs):
+                    env_rewards = callback.env_episode_rewards[env_id]
+                    if env_rewards:
+                        logger.info(
+                            f"  Env {env_id}: {len(env_rewards)} episodes, "
+                            f"avg reward: {np.mean(env_rewards):.2f}, "
+                            f"best: {np.max(env_rewards):.2f}, "
+                            f"worst: {np.min(env_rewards):.2f}"
+                        )
+        
         logger.info("=" * 80)
     
     # Save final model checkpoint
@@ -786,6 +988,9 @@ def train(config: TrainingConfig) -> None:
         logger.info(f"Training config saved to {config_path}")
     except Exception as e:
         logger.warning(f"Failed to save config: {e}")
+    
+    # Return callback for testing/inspection
+    return callback
 
 
 def main():

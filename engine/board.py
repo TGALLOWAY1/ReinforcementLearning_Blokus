@@ -120,13 +120,23 @@ class Board:
         1. First move must cover player's start corner
         2. Pieces of same color must touch only at corners
         3. No edge-to-edge adjacency with same color
+        
+        OPTIMIZED: Uses direct grid access to avoid Position object overhead.
         """
         if not piece_positions:
             return False
         
-        # Check all positions are valid and empty
+        player_value = player.value
+        grid = self.grid  # Direct reference for faster access
+        
+        # Fast bounds and overlap check using direct grid access
         for pos in piece_positions:
-            if not self.is_valid_position(pos) or not self.is_empty(pos):
+            r, c = pos.row, pos.col
+            # Bounds check
+            if r < 0 or r >= self.SIZE or c < 0 or c >= self.SIZE:
+                return False
+            # Overlap check - direct grid access
+            if grid[r, c] != 0:
                 return False
         
         # Rule 1: First move must cover player's start corner
@@ -135,8 +145,8 @@ class Board:
             if start_corner not in piece_positions:
                 return False
         
-        # Rule 2 & 3: Adjacency rules
-        if not self._check_adjacency_rules(piece_positions, player):
+        # Rule 2 & 3: Adjacency rules (optimized)
+        if not self._check_adjacency_rules_fast(piece_positions, player_value, grid):
             return False
         
         return True
@@ -147,25 +157,43 @@ class Board:
         
         - Pieces of same color must touch only at corners
         - No edge-to-edge adjacency with same color
+        
+        DEPRECATED: Use _check_adjacency_rules_fast for better performance.
         """
+        return self._check_adjacency_rules_fast(piece_positions, player.value, self.grid)
+    
+    def _check_adjacency_rules_fast(self, piece_positions: List[Position], player_value: int, grid: np.ndarray) -> bool:
+        """
+        Optimized adjacency rules check using direct grid access.
+        
+        - Pieces of same color must touch only at corners
+        - No edge-to-edge adjacency with same color
+        """
+        has_corner_connection = False
+        
         # Check each position in the piece
         for pos in piece_positions:
-            # Check edge adjacency (not allowed with same color)
-            edge_adjacent = self.get_edge_adjacent_positions(pos)
-            for adj_pos in edge_adjacent:
-                if self.get_player_at(adj_pos) == player:
-                    return False
+            r, c = pos.row, pos.col
             
-            # Check corner adjacency (allowed with same color)
-            corner_adjacent = self.get_corner_adjacent_positions(pos)
-            for adj_pos in corner_adjacent:
-                if self.get_player_at(adj_pos) == player:
-                    # This is allowed - corner touching
-                    continue
+            # Check edge adjacency (not allowed with same color) - direct grid access
+            # Top, bottom, left, right
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                    if grid[nr, nc] == player_value:
+                        return False  # Edge adjacency not allowed
+            
+            # Check corner adjacency (allowed with same color) - direct grid access
+            # Diagonals
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                    if grid[nr, nc] == player_value:
+                        has_corner_connection = True  # Corner connection found
         
-        # Additional check: piece must be connected to existing pieces via corners
-        if not self.player_first_move[player]:
-            if not self._is_connected_via_corners(piece_positions, player):
+        # Additional check: piece must be connected to existing pieces via corners (if not first move)
+        if not self.player_first_move[Player(player_value)]:
+            if not has_corner_connection:
                 return False
         
         return True
@@ -173,17 +201,25 @@ class Board:
     def _is_connected_via_corners(self, piece_positions: List[Position], player: Player) -> bool:
         """
         Check if the piece is connected to existing pieces of the same color via corners.
+        
+        DEPRECATED: This is now handled in _check_adjacency_rules_fast for better performance.
         """
         # For first move, this is handled by the start corner rule
         if self.player_first_move[player]:
             return True
         
+        player_value = player.value
+        grid = self.grid
+        
         # Check if any position in the piece touches an existing piece at a corner
         for pos in piece_positions:
-            corner_adjacent = self.get_corner_adjacent_positions(pos)
-            for adj_pos in corner_adjacent:
-                if self.get_player_at(adj_pos) == player:
-                    return True
+            r, c = pos.row, pos.col
+            # Check diagonals - direct grid access
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                    if grid[nr, nc] == player_value:
+                        return True
         
         return False
     
@@ -191,14 +227,17 @@ class Board:
         """
         Place a piece on the board.
         
+        OPTIMIZED: Uses direct grid access for faster placement.
+        
         Returns True if placement was successful, False otherwise.
         """
         if not self.can_place_piece(piece_positions, player):
             return False
         
-        # Place the piece
+        # Place the piece using direct grid access (faster than set_cell)
+        player_value = player.value
         for pos in piece_positions:
-            self.set_cell(pos, player.value)
+            self.grid[pos.row, pos.col] = player_value
         
         # Record the piece as used
         self.player_pieces_used[player].add(piece_id)

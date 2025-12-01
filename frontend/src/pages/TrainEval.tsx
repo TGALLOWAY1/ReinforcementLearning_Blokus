@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const TrainEval: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -13,6 +16,12 @@ export const TrainEval: React.FC = () => {
                 Monitor agent performance and training progress
               </p>
             </div>
+            <button
+              onClick={() => navigate('/training')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              View Training History
+            </button>
           </div>
         </div>
       </div>

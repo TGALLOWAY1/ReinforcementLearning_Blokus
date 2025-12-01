@@ -88,7 +88,7 @@ class PieceGenerator:
         pieces.append(Piece(10, "Tetromino Z", np.array([[1, 1, 0], [0, 1, 1]]), 4))
         
         # Pentomino F (F shape)
-        pieces.append(Piece(11, "Pentomino F", np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]), 5))
+        pieces.append(Piece(11, "Pentomino F", np.array([[0, 1, 1], [1, 1, 0], [0, 1, 0]]), 5))
         
         # Pentomino I (5 squares in line)
         pieces.append(Piece(12, "Pentomino I", np.array([[1, 1, 1, 1, 1]]), 5))

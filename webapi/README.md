@@ -9,6 +9,93 @@ A comprehensive web API for the Blokus RL project with REST endpoints and WebSoc
 - **Turn Loop**: Automatic agent moves with human player support via WebSocket
 - **Multiple Agent Types**: Random, Heuristic, MCTS, and Human players
 - **Pydantic Schemas**: Type-safe request/response models
+- **MongoDB Persistence**: Centralized database layer for training runs, evaluation results, and game data
+
+## MongoDB Setup
+
+The API includes a MongoDB persistence layer for storing training runs, evaluation results, and other game data.
+
+### Configuration
+
+MongoDB connection is configured via environment variables:
+
+- `MONGODB_URI`: MongoDB connection string (default: `mongodb://localhost:27017`)
+- `MONGODB_DB_NAME`: Database name (default: `blokus_rl`)
+
+**Example local connection:**
+```bash
+export MONGODB_URI="mongodb://localhost:27017"
+export MONGODB_DB_NAME="blokus_rl"
+```
+
+**Example production connection:**
+```bash
+export MONGODB_URI="mongodb://username:password@host:port/database?authSource=admin"
+export MONGODB_DB_NAME="blokus_rl"
+```
+
+### Connection Module
+
+The MongoDB connection is managed in `webapi/db/mongo.py`:
+- Singleton connection pattern (connects once at startup)
+- Async Motor driver for FastAPI compatibility
+- Automatic connection handling in FastAPI lifespan
+- Graceful shutdown on server stop
+
+### Models
+
+The following MongoDB models are defined in `webapi/db/models.py`:
+
+- **TrainingRun**: Stores RL training session data
+  - Fields: `run_id`, `agent_id`, `algorithm`, `config`, `status`, `metrics`, `checkpoint_paths`, etc.
+- **EvaluationRun**: Stores model evaluation results
+  - Fields: `training_run_id`, `checkpoint_path`, `opponent_type`, `win_rate`, `avg_reward`, etc.
+
+### Health Check
+
+Test MongoDB connectivity:
+```http
+GET /api/health/db
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "db": "connected",
+  "database": "blokus_rl"
+}
+```
+
+### Usage in Code
+
+```python
+from db.mongo import get_database
+from db.models import TrainingRun
+
+# Get database instance
+db = get_database()
+
+# Access collections
+training_runs = db.training_runs
+evaluation_runs = db.evaluation_runs
+
+# Example: Insert a training run
+training_run = TrainingRun(
+    run_id="550e8400-e29b-41d4-a716-446655440000",
+    agent_id="ppo_agent",
+    algorithm="PPO",
+    config={"learning_rate": 3e-4},
+    status="running"
+)
+result = await training_runs.insert_one(training_run.dict(by_alias=True))
+```
+
+### TODO: Future Integration
+
+- [ ] Hook TrainingRun creation & updates into the RL training loop
+- [ ] Implement EvaluationRun logging when running evaluation scripts
+- [ ] Add Training History UI to display stored training runs
 
 ## Quick Start
 

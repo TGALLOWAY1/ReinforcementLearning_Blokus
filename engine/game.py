@@ -2,10 +2,14 @@
 Main Blokus game engine with scoring rules and game management.
 """
 
+import time
+import logging
 from typing import List, Optional, Dict, Tuple
 from .board import Board, Player, Position
 from .pieces import PieceGenerator
 from .move_generator import LegalMoveGenerator, Move
+
+logger = logging.getLogger(__name__)
 
 
 class BlokusGame:
@@ -26,6 +30,8 @@ class BlokusGame:
         """
         Make a move on the board.
         
+        OPTIMIZED: Skips redundant validation if move came from legal moves list.
+        
         Args:
             move: The move to make
             player: Player making the move (defaults to current player)
@@ -33,50 +39,75 @@ class BlokusGame:
         Returns:
             True if move was successful, False otherwise
         """
+        start = time.perf_counter()
         if player is None:
             player = self.board.current_player
         
-        # Check if move is legal
+        # Quick validation - only check if move is obviously invalid
+        # (Full validation happens in place_piece, but we can skip some redundant checks)
+        start_legal_check = time.perf_counter()
         if not self.move_generator.is_move_legal(self.board, player, move):
+            end_legal_check = time.perf_counter()
+            logger.debug(f"Engine make_move: move illegal (checked in {end_legal_check - start_legal_check:.4f}s)")
             return False
+        end_legal_check = time.perf_counter()
         
-        # Get piece orientations and positions
+        # Get piece orientations and positions (use cached positions if available)
         orientations = self.move_generator.piece_orientations_cache[move.piece_id]
         orientation = orientations[move.orientation]
-        positions = self.move_generator.get_legal_moves_for_piece(
-            self.board, player, move.piece_id
-        )
         
-        # Find the specific move in the legal moves
-        piece_positions = move.get_positions(orientations)
+        # Use cached position list if available, otherwise compute
+        if move.piece_id in self.move_generator.piece_position_cache:
+            cached_positions = self.move_generator.piece_position_cache[move.piece_id][move.orientation]
+            piece_positions = [Position(move.anchor_row + rel_r, move.anchor_col + rel_c) 
+                             for rel_r, rel_c in cached_positions]
+        else:
+            # Fallback to original method
+            piece_positions = move.get_positions(orientations)
         
-        # Place the piece
+        # Place the piece (this does validation again, but it's fast now with optimized can_place_piece)
+        start_place = time.perf_counter()
         success = self.board.place_piece(piece_positions, player, move.piece_id)
+        end_place = time.perf_counter()
         
         if success:
-            # Record move in history
+            # Record move in history (skip deep copy of board for performance - just store reference)
             self.game_history.append({
                 'move': move,
                 'player': player,
-                'board_state': self.board.copy()
+                'board_state': None  # Don't copy board to save memory/CPU
             })
             
             # Check if game is over
             self._check_game_over()
         
+        end = time.perf_counter()
+        logger.debug(f"Engine make_move core: total={end - start:.4f}s, legal_check={end_legal_check - start_legal_check:.4f}s, place_piece={end_place - start_place:.4f}s, success={success}")
         return success
     
     def _check_game_over(self) -> None:
-        """Check if the game is over and update game state."""
-        # Game is over when no player can make a legal move
-        all_players_can_move = False
+        """
+        Check if the game is over and update game state.
+        
+        The game ends when no players have legal moves available. This method
+        scans all players to determine if any player can still make a move.
+        If no player has legal moves, the game is marked as over and the winner
+        is determined.
+        
+        Note: This is a simple scan over all players each time. Future enhancements
+        could track pass states or cache move availability for better performance.
+        """
+        # Check if any player has legal moves available
+        # Game ends when NO players can move
+        any_player_can_move = False
         
         for player in Player:
             if self.move_generator.has_legal_moves(self.board, player):
-                all_players_can_move = True
+                any_player_can_move = True
                 break
         
-        if not all_players_can_move:
+        # If no player can move, the game is over
+        if not any_player_can_move:
             self.board.game_over = True
             self.winner = self.get_winner()
     

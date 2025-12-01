@@ -1,0 +1,18 @@
+# Full training mode configuration
+# Production training with longer runs
+
+mode: full
+max_episodes: null  # Unlimited, use total_timesteps instead
+max_steps_per_episode: 1000
+total_timesteps: 1000000
+n_steps: 2048
+learning_rate: 3e-4
+batch_size: 64
+logging_verbosity: 1  # INFO level
+random_seed: 42
+checkpoint_dir: checkpoints
+tensorboard_log_dir: ./logs
+checkpoint_interval: 100  # Save checkpoint every 100 episodes
+enable_sanity_checks: true
+log_action_details: false
+
