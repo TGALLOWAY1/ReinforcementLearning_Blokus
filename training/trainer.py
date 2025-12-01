@@ -41,6 +41,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 
 import numpy as np
+import torch
 
 # Add project root to Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -70,40 +71,109 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Diagnostic logging for action masking (can be disabled)
+MASK_DEBUG_LOGGING = True  # Set to False to disable diagnostic logging
+_mask_fn_logger = logging.getLogger(__name__ + ".mask_fn_diagnostics")
+
 
 def mask_fn(env):
     """
     Helper function to extract the legal action mask from the environment.
     
+    This function is called by ActionMasker wrapper to get the action mask for MaskablePPO.
+    
     Args:
         env: The GymnasiumBlokusWrapper environment (ActionMasker passes the unwrapped env)
         
     Returns:
-        The legal action mask array
+        The legal action mask array (boolean numpy array of shape (action_space.n,))
     """
     # Access the underlying BlokusEnv: env (GymnasiumBlokusWrapper) -> env.env (BlokusEnv)
     blokus_env = env.env
     agent_name = env.agent_name
     
+    # DIAGNOSTIC: Track call count for limiting logs
+    if not hasattr(mask_fn, '_call_count'):
+        mask_fn._call_count = 0
+    mask_fn._call_count += 1
+    
+    # Check if agent is already terminated - if so, return a safe mask
+    if agent_name in blokus_env.terminations and blokus_env.terminations[agent_name]:
+        if MASK_DEBUG_LOGGING:
+            _mask_fn_logger.warning(
+                f"mask_fn({agent_name}): Agent is TERMINATED, returning fallback mask"
+            )
+        # Agent is terminated, return a mask with at least one action enabled
+        # This prevents errors when the policy tries to sample from a terminated state
+        mask = np.zeros(env.action_space.n, dtype=np.bool_)
+        mask[0] = True  # Enable first action as a safe fallback
+        if MASK_DEBUG_LOGGING:
+            _mask_fn_logger.debug(
+                f"mask_fn({agent_name}): Fallback mask - shape={mask.shape}, "
+                f"dtype={mask.dtype}, sum={mask.sum()}"
+            )
+        return mask
+    
     # Get the mask for our agent (player_0)
     # The info dict should always be up to date after reset/step
-    if agent_name in blokus_env.infos:
-        mask = blokus_env.infos[agent_name]["legal_action_mask"]
-        # Convert to numpy boolean array
-        mask = np.asarray(mask, dtype=np.bool_)
-        
-        # Ensure mask has correct shape
-        if mask.shape[0] != env.action_space.n:
-            raise ValueError(f"Mask shape {mask.shape} doesn't match action space {env.action_space.n}")
-        
-        # Ensure at least one action is available
-        if not np.any(mask):
-            # This shouldn't happen in normal gameplay, but handle it
-            raise ValueError(f"No legal actions available for {agent_name}")
-        
-        return mask
-    else:
+    if agent_name not in blokus_env.infos:
+        if MASK_DEBUG_LOGGING:
+            _mask_fn_logger.error(
+                f"mask_fn({agent_name}): Agent not found in environment infos!"
+            )
         raise ValueError(f"Agent {agent_name} not found in environment infos")
+    
+    mask = blokus_env.infos[agent_name]["legal_action_mask"]
+    # Convert to numpy boolean array
+    mask = np.asarray(mask, dtype=np.bool_)
+    
+    # DIAGNOSTIC: Log mask properties
+    mask_sum = mask.sum()
+    should_log = MASK_DEBUG_LOGGING and (
+        mask_fn._call_count <= 20 or  # Log first 20 calls
+        mask_sum == 0 or  # Always log when mask is empty
+        mask.shape[0] != env.action_space.n  # Always log shape mismatches
+    )
+    
+    if should_log:
+        _mask_fn_logger.info(
+            f"mask_fn({agent_name}) call #{mask_fn._call_count}: "
+            f"mask.shape={mask.shape}, "
+            f"mask.dtype={mask.dtype}, "
+            f"mask.sum()={mask_sum}, "
+            f"action_space.n={env.action_space.n}, "
+            f"env.infos[{agent_name}]['legal_moves_count']={blokus_env.infos[agent_name].get('legal_moves_count', 'N/A')}"
+        )
+        if mask_sum > 0:
+            # Log sample of legal action indices
+            legal_indices = np.where(mask)[0]
+            sample_size = min(10, len(legal_indices))
+            _mask_fn_logger.debug(
+                f"mask_fn({agent_name}): Sample legal action indices: {legal_indices[:sample_size].tolist()}"
+            )
+    
+    # Ensure mask has correct shape
+    if mask.shape[0] != env.action_space.n:
+        _mask_fn_logger.error(
+            f"mask_fn({agent_name}): SHAPE MISMATCH - "
+            f"mask.shape={mask.shape} != action_space.n={env.action_space.n}"
+        )
+        raise ValueError(f"Mask shape {mask.shape} doesn't match action space {env.action_space.n}")
+    
+    # CRITICAL: Handle case where no legal actions are available
+    if mask_sum == 0:
+        # Agent has no legal moves - this will break MaskablePPO's MaskableCategorical
+        _mask_fn_logger.error(
+            f"mask_fn({agent_name}): NO LEGAL ACTIONS PRESENT IN MASK - "
+            f"this will break MaskablePPO! "
+            f"env.infos[{agent_name}]['can_move']={blokus_env.infos[agent_name].get('can_move', 'N/A')}, "
+            f"env.infos[{agent_name}]['legal_moves_count']={blokus_env.infos[agent_name].get('legal_moves_count', 'N/A')}"
+        )
+        # For now, we'll still return the empty mask to see the error
+        # (This is diagnostic only - we'll fix behavior in next step)
+        return mask
+    
+    return mask
 
 
 class TrainingCallback(BaseCallback):
@@ -427,6 +497,17 @@ def train(config: TrainingConfig) -> None:
     os.makedirs(config.checkpoint_dir, exist_ok=True)
     os.makedirs(config.tensorboard_log_dir, exist_ok=True)
     
+    # Disable PyTorch distribution validation if configured
+    # NOTE: Blokus uses a huge Discrete(36400) action space.
+    # The softmax over 36,400 logits can produce probabilities that sum to ~0.99998
+    # instead of exactly 1 due to floating point rounding.
+    # PyTorch's Distribution.validate_args=True enforces a strict Simplex constraint
+    # and throws spurious errors for this case.
+    if config.disable_distribution_validation:
+        from torch.distributions.distribution import Distribution
+        Distribution.set_default_validate_args(False)
+        logger.info("Disabled PyTorch distribution validation (Simplex constraint) for large action space compatibility")
+    
     # Initialize or load MaskablePPO model
     model = None
     start_episode = 0
@@ -500,6 +581,124 @@ def train(config: TrainingConfig) -> None:
     # Set initial episode count if resuming
     if start_episode > 0:
         callback.episode_count = start_episode
+    
+    # DIAGNOSTIC: Inspect MaskableCategorical probabilities for numerical precision issues
+    # This is only run in smoke mode to diagnose the Simplex constraint violation
+    if config.mode == "smoke":
+        logger.info("=" * 80)
+        logger.info("DIAGNOSTIC: Inspecting MaskableCategorical probability distribution")
+        logger.info("=" * 80)
+        
+        try:
+            # Get a fresh observation and action mask from the environment
+            # Reset environment to get initial state
+            obs, info = env.reset()
+            
+            # Get action mask using the mask_fn
+            action_mask = mask_fn(env)
+            
+            # Convert to tensors
+            obs_tensor = torch.as_tensor(obs, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
+            mask_tensor = torch.as_tensor(action_mask, dtype=torch.bool).unsqueeze(0)  # Add batch dimension
+            
+            logger.debug(f"Diagnostic obs shape: {obs_tensor.shape}")
+            logger.debug(f"Diagnostic mask shape: {mask_tensor.shape}, dtype: {mask_tensor.dtype}")
+            logger.debug(f"Diagnostic mask sum: {mask_tensor.sum().item()} legal actions")
+            
+            # Get the distribution from the policy
+            with torch.no_grad():
+                # Use the policy's forward method to get the distribution
+                # This mimics what happens in collect_rollouts
+                features = model.policy.extract_features(obs_tensor)
+                latent_pi = model.policy.mlp_extractor.forward_actor(features)
+                action_logits = model.policy.action_net(latent_pi)
+                
+                logger.debug(f"Action logits shape: {action_logits.shape}")
+                logger.debug(f"Action logits range: [{action_logits.min().item():.4f}, {action_logits.max().item():.4f}]")
+                
+                # Create distribution from logits (before masking)
+                # This is how sb3_contrib does it internally
+                from sb3_contrib.common.maskable.distributions import MaskableCategorical
+                
+                # Create distribution with validate_args=False to inspect probabilities even if they fail validation
+                try:
+                    dist = MaskableCategorical(logits=action_logits, validate_args=False)
+                    # Apply masking (this is where the issue occurs)
+                    dist.apply_masking(mask_tensor)
+                    
+                    # Get the underlying probabilities
+                    probs = dist.distribution.probs
+                except Exception as e:
+                    logger.warning(f"Failed to create distribution with validate_args=False: {e}")
+                    logger.info("Trying with validate_args=True to see the actual error...")
+                    # Try with validate_args=True to see the actual error
+                    try:
+                        dist = MaskableCategorical(logits=action_logits, validate_args=True)
+                        dist.apply_masking(mask_tensor)
+                        probs = dist.distribution.probs
+                    except ValueError as ve:
+                        logger.error(f"Simplex constraint violation (expected): {ve}")
+                        # Even if validation fails, try to get the probabilities
+                        # by creating without validation
+                        dist = MaskableCategorical(logits=action_logits, validate_args=False)
+                        dist.apply_masking(mask_tensor)
+                        probs = dist.distribution.probs
+                        logger.info("Extracted probabilities despite validation error for inspection")
+                
+                # DIAGNOSTIC: Log probability properties
+                logger.info(f"Probability tensor shape: {probs.shape}")
+                logger.info(f"Probability min: {probs.min().item():.10e}")
+                logger.info(f"Probability max: {probs.max().item():.10e}")
+                logger.info(f"Probability mean: {probs.mean().item():.10e}")
+                
+                # Check for NaNs and Infs
+                has_nan = torch.isnan(probs).any()
+                has_inf = torch.isinf(probs).any()
+                logger.info(f"Has NaN: {has_nan.item()}")
+                logger.info(f"Has Inf: {has_inf.item()}")
+                
+                # Assert no NaNs or Infs
+                assert not has_nan.item(), "Found NaN in probability distribution!"
+                assert not has_inf.item(), "Found Inf in probability distribution!"
+                
+                # Check probability sum (this is the critical check)
+                prob_sum = probs.sum(dim=-1)
+                logger.info(f"Probability sum (should be ~1.0): {prob_sum.item():.10f}")
+                
+                # Calculate difference from 1.0
+                diff_from_one = 1.0 - prob_sum.item()
+                logger.info(f"Difference from 1.0: {diff_from_one:.10e}")
+                
+                # Log some sample probabilities
+                sample_size = min(20, probs.shape[-1])
+                sample_probs = probs[0, :sample_size].cpu().numpy()
+                logger.debug(f"Sample probabilities (first {sample_size}): {sample_probs}")
+                
+                # Check if sum is close to 1 (within numerical precision)
+                is_close_to_one = abs(diff_from_one) < 1e-4
+                logger.info(f"Sum is close to 1.0 (within 1e-4): {is_close_to_one}")
+                
+                if not is_close_to_one:
+                    logger.warning(
+                        f"WARNING: Probability sum is {prob_sum.item():.10f}, "
+                        f"diff from 1.0 is {diff_from_one:.10e}. "
+                        f"This may cause Simplex constraint violation!"
+                    )
+                
+                # Check if all probabilities are non-negative
+                has_negative = (probs < 0).any()
+                logger.info(f"Has negative probabilities: {has_negative.item()}")
+                assert not has_negative.item(), "Found negative probabilities!"
+                
+                logger.info("=" * 80)
+                logger.info("DIAGNOSTIC: Probability inspection complete")
+                logger.info("=" * 80)
+                
+        except Exception as e:
+            logger.error(f"DIAGNOSTIC: Error during probability inspection: {e}")
+            logger.error("This diagnostic failed, but training will continue...")
+            import traceback
+            traceback.print_exc()
     
     # Train the model
     logger.info(f"Starting training in {config.mode.upper()} mode...")

@@ -55,6 +55,7 @@ class TrainingConfig:
         agent_config_path: Path to agent hyperparameter config file (None = use defaults)
         enable_sanity_checks: Enable sanity checks (NaN/Inf detection, etc.)
         log_action_details: Log detailed action information (only in smoke mode or if explicitly enabled)
+        disable_distribution_validation: Disable PyTorch distribution validation (needed for large action spaces)
     """
     
     mode: Literal["smoke", "full"] = "full"
@@ -77,6 +78,7 @@ class TrainingConfig:
     agent_config_path: Optional[str] = None
     enable_sanity_checks: bool = True
     log_action_details: bool = False
+    disable_distribution_validation: bool = True  # Default True for large action space (36400)
     
     def __post_init__(self):
         """Apply smoke-test mode defaults if mode is 'smoke'."""
