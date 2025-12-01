@@ -28,6 +28,8 @@ This project provides a full-stack implementation of Blokus with:
 - **MCTS Agent**: Monte Carlo Tree Search with transposition tables
 - **Fast MCTS Agent**: Optimized MCTS for real-time gameplay
 
+<img width="2816" height="1536" alt="BlokusRL" src="https://github.com/user-attachments/assets/93e85cd8-c5fe-4785-ae13-810327a1aa07" />
+
 ### RL Environment
 - **PettingZoo AEC** environment for multi-agent RL
 - **Gymnasium compatibility** for single-agent training
@@ -296,8 +298,6 @@ blokus_rl/
 - **MoveGenerator**: Efficient legal move generation with caching
 
 ### Agents (`agents/`)
-
-<img width="714" height="219" alt="image" src="https://github.com/user-attachments/assets/7c5501c9-03b5-45dd-9bb3-c321e28fd02c" />
 
 All agents implement a common interface:
 ```python
