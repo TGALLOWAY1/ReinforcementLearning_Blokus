@@ -8,6 +8,10 @@ pydantic
 orjson
 websockets
 stable-baselines3
+sb3-contrib
+shimmy
+tqdm
+tensorboard
 torch
 pytest
 pytest-asyncio

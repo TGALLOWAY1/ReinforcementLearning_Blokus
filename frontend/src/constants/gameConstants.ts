@@ -52,17 +52,17 @@ export const PIECE_NAMES: { [key: number]: string } = {
   21: 'Pentomino Y'
 };
 
-// Modern color-blind friendly palette
+// Neon color palette for dark research aesthetic
 export const PLAYER_COLORS = {
-  red: '#EF4444',       // Modern red
-  blue: '#3B82F6',      // Modern blue  
-  green: '#10B981',     // Modern green
-  yellow: '#F59E0B',    // Modern amber
-  empty: '#F8FAFC',     // Slate-50
-  hover: '#E2E8F0',     // Slate-200
-  grid: '#CBD5E1',      // Slate-300
-  preview: '#3B82F6',   // Blue for piece preview
-  previewBg: '#DBEAFE'  // Blue-100 for preview background
+  red: '#FF4D4D',       // neon.red
+  blue: '#00F0FF',      // neon.blue  
+  green: '#00FF9D',     // neon.green
+  yellow: '#FFE600',    // neon.yellow
+  empty: 'transparent', // Transparent to show dark background
+  hover: '#3E3E42',     // charcoal-600 for hover
+  grid: '#3E3E42',      // charcoal-600 for grid lines
+  preview: '#00F0FF',   // neon.blue for piece preview border
+  previewBg: 'rgba(0, 240, 255, 0.2)'  // 20% opacity neon blue for preview fill
 };
 
 export const BOARD_SIZE = 20;

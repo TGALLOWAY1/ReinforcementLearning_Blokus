@@ -287,6 +287,14 @@ class GameManager:
         current_schema_player = self._engine_to_schema_player(current_engine_player)
         legal_moves = self.get_legal_moves(session.game_id, current_schema_player)
         
+        # Calculate heatmap: map legal_moves to 20x20 grid (1 = legal, 0 = illegal)
+        heatmap = [[0.0 for _ in range(20)] for _ in range(20)]
+        for legal_move in legal_moves:
+            # Mark all positions of this legal move as 1.0
+            for position in legal_move.positions:
+                if 0 <= position.row < 20 and 0 <= position.col < 20:
+                    heatmap[position.row][position.col] = 1.0
+        
         # Check game over
         game_over = session.game.is_game_over()
         winner = None
@@ -303,7 +311,8 @@ class GameManager:
             legal_moves=legal_moves,
             game_over=game_over,
             winner=winner,
-            last_move=None  # TODO: Track last move
+            last_move=None,  # TODO: Track last move
+            heatmap=heatmap
         )
         
     def _engine_to_schema_player(self, engine_player: EnginePlayer) -> SchemaPlayer:
