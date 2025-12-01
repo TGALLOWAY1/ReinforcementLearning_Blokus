@@ -28,7 +28,7 @@ This project provides a full-stack implementation of Blokus with:
 - **MCTS Agent**: Monte Carlo Tree Search with transposition tables
 - **Fast MCTS Agent**: Optimized MCTS for real-time gameplay
 
-<img width="2816" height="1536" alt="BlokusRL" src="https://github.com/user-attachments/assets/93e85cd8-c5fe-4785-ae13-810327a1aa07" />
+<img width="712" height="213" alt="image" src="https://github.com/user-attachments/assets/32be3357-c4cf-4b89-8954-90f6c6a8b075" />
 
 ### RL Environment
 - **PettingZoo AEC** environment for multi-agent RL
