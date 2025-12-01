@@ -1,0 +1,42 @@
+{
+  "RandomAgent": {
+    "type": "random",
+    "seed": 42,
+    "description": "Random agent that picks uniformly from legal actions"
+  },
+  "HeuristicAgent": {
+    "type": "heuristic",
+    "seed": 43,
+    "weights": {
+      "piece_size": 1.0,
+      "corner_creation": 2.0,
+      "edge_avoidance": -1.5,
+      "center_preference": 0.5
+    },
+    "description": "Heuristic agent with strategic preferences"
+  },
+  "MCTSAgent_Fast": {
+    "type": "mcts",
+    "iterations": 200,
+    "exploration_constant": 1.414,
+    "use_transposition_table": true,
+    "seed": 44,
+    "description": "Fast MCTS agent with 200 iterations"
+  },
+  "MCTSAgent_Strong": {
+    "type": "mcts",
+    "iterations": 1000,
+    "exploration_constant": 1.414,
+    "use_transposition_table": true,
+    "seed": 45,
+    "description": "Strong MCTS agent with 1000 iterations"
+  },
+  "MCTSAgent_TimeLimited": {
+    "type": "mcts",
+    "time_limit": 5.0,
+    "exploration_constant": 1.414,
+    "use_transposition_table": true,
+    "seed": 46,
+    "description": "Time-limited MCTS agent with 5 second limit"
+  }
+}

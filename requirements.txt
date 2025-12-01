@@ -1,0 +1,15 @@
+pettingzoo
+gymnasium
+numpy
+numba
+fastapi
+uvicorn[standard]
+pydantic
+orjson
+websockets
+stable-baselines3
+torch
+pytest
+pytest-asyncio
+ruff
+mypy
