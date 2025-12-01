@@ -1,4 +1,4 @@
-# Blokus RL - Reinforcement Learning Environment for Blokus
+# Reinforcement Learning Environment for Blokus
 
 A comprehensive reinforcement learning research environment for the Blokus board game, featuring a complete game engine, multiple AI agents, web interface, and PettingZoo/Gymnasium compatibility.
 
