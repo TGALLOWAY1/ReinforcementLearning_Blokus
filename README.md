@@ -347,7 +347,120 @@ The environment is compatible with:
 - **PettingZoo**: Use `env()` directly for multi-agent training
 - **Custom training**: See `training/trainer.py` for examples
 
-Example with Stable-Baselines3:
+### Quick Start: Smoke Test
+
+Before running long training jobs, verify everything works with a smoke test:
+
+```bash
+# Quick verification run (5 episodes, detailed logging)
+python training/trainer.py --mode smoke
+
+# Or use a config file
+python training/trainer.py --config training/config_smoke.yaml
+```
+
+### Full Training
+
+Once smoke test passes, run full training:
+
+```bash
+# Full training run
+python training/trainer.py --mode full --total-timesteps 1000000
+
+# Or use a config file
+python training/trainer.py --config training/config_full.yaml
+```
+
+### Training Features
+
+The training system includes:
+- **Smoke-test mode**: Quick verification with small episode counts and detailed logging
+- **Full mode**: Production training with optimized settings
+- **Config files**: YAML/JSON configuration support
+- **Seed control**: Reproducible training runs
+- **Sanity checks**: Automatic detection of NaN/Inf values and other issues
+- **Checkpointing**: Periodic checkpoint saving with resume capability
+- **Training History**: Automatic logging of all training runs to MongoDB with web interface
+
+See `training/README.md` for complete documentation.
+
+### Training History
+
+All training runs are automatically logged to MongoDB and can be viewed in the web interface:
+
+1. **Start a training run** (runs are automatically logged)
+2. **View Training History**: Navigate to `/training` in the web app
+3. **View Run Details**: Click any run to see metrics, charts, and configuration
+
+Features:
+- **List view**: Filter by agent, status, view key metrics
+- **Detail view**: Charts (reward over time, win rate), statistics, full configuration
+- **Checkpoints**: View all saved checkpoints with resume commands
+- **API access**: REST endpoints for programmatic access
+
+See `docs/training-history.md` for complete documentation.
+
+### Checkpointing and Resume
+
+The training system includes automatic checkpointing:
+
+- **Periodic checkpoints**: Save checkpoints every N episodes (default: 50)
+- **Automatic cleanup**: Keep only the most recent N checkpoints (default: 3)
+- **Resume training**: Continue from any saved checkpoint
+- **UI integration**: View checkpoints and copy resume commands from web interface
+
+Example:
+```bash
+# Start training with checkpointing
+python training/trainer.py --mode full --checkpoint-interval-episodes 50
+
+# Resume from checkpoint
+python training/trainer.py --resume-from-checkpoint checkpoints/ppo_agent/run123/ep000100.zip
+```
+
+See `docs/checkpoints.md` for complete checkpointing documentation.
+
+### Hyperparameter Configuration and Sweeps
+
+The system supports structured hyperparameter management:
+
+- **Agent configs**: Versioned hyperparameter files in `config/agents/`
+- **Config includes**: Learning rate, gamma, network architecture, PPO parameters
+- **Quick sweeps**: Test multiple configs with short runs before long training
+- **UI integration**: View config names and hyperparameters in Training History
+
+Example:
+```bash
+# Use specific agent config
+python training/trainer.py --agent-config config/agents/ppo_agent_v1.yaml
+
+# Run hyperparameter sweep
+python training/run_sweep.py config/agents/ppo_agent_sweep_*.yaml --episodes 100
+```
+
+See `docs/hyperparams.md` for complete hyperparameter documentation.
+
+### Evaluation and Baselines
+
+The system includes evaluation protocols to assess trained agents:
+
+- **Baseline Agents**: RandomAgent and HeuristicAgent for comparison
+- **Evaluation Script**: Test trained checkpoints against baselines
+- **Metrics**: Win rate, average reward, game length
+- **UI Integration**: View evaluation results in Training History
+
+Example:
+```bash
+# Evaluate a checkpoint
+python training/evaluate_agent.py checkpoints/ppo_agent/run123/ep000100.zip --num-games 100
+```
+
+See `docs/evaluation.md` for complete evaluation documentation.
+
+### Example with Stable-Baselines3 (Direct)
+
+For custom training scripts:
+
 ```python
 from envs.blokus_v0 import make_gymnasium_env
 from stable_baselines3 import PPO

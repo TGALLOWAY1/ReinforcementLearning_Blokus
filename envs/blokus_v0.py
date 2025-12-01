@@ -1,5 +1,21 @@
 """
 PettingZoo AEC environment for Blokus game.
+
+ACTION INDEXING SCHEME:
+- Action space: Discrete with size ~36,400 (calculated as: 21 pieces × orientations × 20×20 board positions)
+- Action encoding: Flattened mapping from (piece_id, orientation, anchor_row, anchor_col) to a single discrete action index
+  - piece_id: 1-21 (Blokus pieces)
+  - orientation: 0 to len(orientations)-1 for each piece (varies by piece, up to 8)
+  - anchor_row, anchor_col: 0-19 (20×20 board positions)
+- Action mapping: Created in _setup_action_space() as action_to_move and move_to_action dictionaries
+
+MASK CONSTRUCTION:
+- Legal action mask is constructed in _get_info() method
+- Mask is a boolean numpy array of shape (action_space_size,) where:
+  - True = legal action (action_id corresponds to a valid move)
+  - False = illegal action
+- Mask is stored in env.infos[agent]["legal_action_mask"]
+- When no legal moves exist, mask will be all False (this is a problem for MaskablePPO)
 """
 
 import numpy as np
@@ -10,11 +26,16 @@ from pettingzoo.utils import wrappers
 from pettingzoo.utils.agent_selector import agent_selector
 from typing import Dict, List, Optional, Tuple, Any, Union
 import warnings
+import logging
 
 from engine.board import Board, Player, Position
 from engine.pieces import PieceGenerator
 from engine.move_generator import LegalMoveGenerator, Move
 from engine.game import BlokusGame
+
+# Diagnostic logging for action masking (can be disabled)
+MASK_DEBUG_LOGGING = True  # Set to False to disable diagnostic logging
+_mask_logger = logging.getLogger(__name__ + ".mask_diagnostics")
 
 
 class BlokusEnv(AECEnv):
@@ -191,10 +212,47 @@ class BlokusEnv(AECEnv):
         legal_moves = self.move_generator.get_legal_moves(self.game.board, player)
         legal_action_mask = np.zeros(self.action_space_size, dtype=bool)
         
+        # DIAGNOSTIC: Log when no legal moves are found
+        if len(legal_moves) == 0:
+            if MASK_DEBUG_LOGGING:
+                _mask_logger.warning(
+                    f"BlokusEnv: NO LEGAL MOVES for {agent} (player {player.name}) "
+                    f"at step {self.step_count}. "
+                    f"Mask will be all False - this will break MaskablePPO!"
+                )
+        
+        # Build the mask by marking legal actions as True
+        mapped_count = 0
         for move in legal_moves:
             action_id = self.move_to_action.get((move.piece_id, move.orientation, move.anchor_row, move.anchor_col))
             if action_id is not None:
                 legal_action_mask[action_id] = True
+                mapped_count += 1
+        
+        # DIAGNOSTIC: Log mask properties (only for first few calls or when issues detected)
+        if MASK_DEBUG_LOGGING:
+            mask_sum = legal_action_mask.sum()
+            if mask_sum == 0 or (self.step_count < 10):  # Always log first 10 steps, or when mask is empty
+                _mask_logger.info(
+                    f"BlokusEnv._get_info({agent}): "
+                    f"legal_moves={len(legal_moves)}, "
+                    f"mapped_to_mask={mapped_count}, "
+                    f"mask.sum()={mask_sum}, "
+                    f"mask.shape={legal_action_mask.shape}, "
+                    f"mask.dtype={legal_action_mask.dtype}, "
+                    f"action_space_size={self.action_space_size}"
+                )
+                if mask_sum > 0:
+                    # Log sample of legal action indices
+                    legal_indices = np.where(legal_action_mask)[0]
+                    sample_size = min(10, len(legal_indices))
+                    _mask_logger.debug(
+                        f"Sample legal action indices: {legal_indices[:sample_size].tolist()}"
+                    )
+                if len(legal_moves) != mapped_count:
+                    _mask_logger.warning(
+                        f"Mismatch: {len(legal_moves)} legal moves but only {mapped_count} mapped to action space"
+                    )
                 
         return {
             "legal_action_mask": legal_action_mask,
@@ -394,6 +452,16 @@ class GymnasiumBlokusWrapper:
         
         # Observation space
         self.observation_space = env.observation_space
+        
+        # Gymnasium required attributes
+        self.metadata = env.metadata
+        self.render_mode = env.render_mode
+        self.spec = None  # Optional, but some wrappers expect it
+    
+    @property
+    def unwrapped(self):
+        """Return the unwrapped environment (required by Stable-Baselines3)."""
+        return self.env
         
     def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None):
         """Reset environment."""

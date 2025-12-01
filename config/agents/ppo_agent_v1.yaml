@@ -1,0 +1,37 @@
+# PPO Agent Configuration v1
+# Base configuration for MaskablePPO agent
+
+agent_id: ppo_agent
+name: PPO Agent v1
+algorithm: MaskablePPO
+version: 1
+
+# Core hyperparameters
+learning_rate: 3.0e-4
+gamma: 0.99
+n_steps: 2048
+batch_size: 64
+n_epochs: 10
+
+# Network architecture
+network:
+  policy: MlpPolicy
+  net_arch:
+    - 256
+    - 256
+  activation_fn: tanh
+
+# PPO-specific parameters
+ppo:
+  clip_range: 0.2
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+
+# Exploration (not used in PPO, but kept for consistency)
+exploration:
+  type: none  # PPO uses entropy bonus, not epsilon-greedy
+
+# Description
+description: "Base PPO agent with standard hyperparameters"
+

@@ -1,0 +1,38 @@
+# PPO Agent Configuration - Low Learning Rate
+# For hyperparameter sweeps
+
+agent_id: ppo_agent
+name: PPO Agent (LR Low)
+algorithm: MaskablePPO
+version: 1
+sweep_variant: lr_low
+
+# Core hyperparameters
+learning_rate: 1.0e-4  # Lower learning rate
+gamma: 0.99
+n_steps: 2048
+batch_size: 64
+n_epochs: 10
+
+# Network architecture
+network:
+  policy: MlpPolicy
+  net_arch:
+    - 256
+    - 256
+  activation_fn: tanh
+
+# PPO-specific parameters
+ppo:
+  clip_range: 0.2
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+
+# Exploration
+exploration:
+  type: none
+
+# Description
+description: "PPO agent with low learning rate (1e-4) for sweep testing"
+
