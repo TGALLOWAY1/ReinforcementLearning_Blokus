@@ -2,6 +2,8 @@
 
 A comprehensive reinforcement learning research environment for the Blokus board game, featuring a complete game engine, multiple AI agents, web interface, and PettingZoo/Gymnasium compatibility.
 
+<img width="2816" height="1536" alt="BlokusRL" src="https://github.com/user-attachments/assets/93e85cd8-c5fe-4785-ae13-810327a1aa07" />
+
 ## 🎯 Overview
 
 This project provides a full-stack implementation of Blokus with:
