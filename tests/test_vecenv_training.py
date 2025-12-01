@@ -13,6 +13,23 @@ These are smoke tests with minimal training budgets to verify:
 - Action masking works for all envs
 - Episode tracking works per-environment
 - Training completes without errors
+
+NOTE: In multi-env mode, each single env is wrapped with ActionMasker.
+The VecEnv itself is NOT wrapped with ActionMasker to avoid seed/reset
+incompatibility between Gymnasium.Wrapper and DummyVecEnv.
+
+Expected manual test commands:
+    # Test DummyVecEnv
+    PYTHONPATH=. pytest tests/test_vecenv_training.py::test_multi_env_dummy_vecenv -v
+    
+    # Test SubprocVecEnv (requires SKIP_SUBPROC_TESTS=false)
+    PYTHONPATH=. SKIP_SUBPROC_TESTS=false pytest tests/test_vecenv_training.py::test_multi_env_subproc_vecenv -v
+    
+    # Run all VecEnv tests
+    PYTHONPATH=. pytest tests/test_vecenv_training.py -v
+    
+Both DummyVecEnv and SubprocVecEnv tests should pass when the environment is properly configured.
+SubprocVecEnv tests may be flaky in CI environments, hence the SKIP_SUBPROC_TESTS guard.
 """
 
 import os
@@ -187,6 +204,7 @@ def test_multi_env_subproc_vecenv():
         # Assertions (same as DummyVecEnv test)
         assert callback is not None, "Training should return a callback"
         assert callback.num_envs == 2, "Should have exactly 2 environments"
+        assert callback.episode_count > 0, "Should complete at least one episode"
         assert callback.episode_count > callback.num_envs, (
             f"Should complete more episodes ({callback.episode_count}) than num_envs ({callback.num_envs})"
         )
@@ -197,9 +215,30 @@ def test_multi_env_subproc_vecenv():
             assert len(callback.env_episode_rewards[env_id]) > 0, (
                 f"Env {env_id} should have episode rewards"
             )
+            assert len(callback.env_episode_lengths[env_id]) > 0, (
+                f"Env {env_id} should have episode lengths"
+            )
             assert callback.env_episode_count[env_id] > 0, (
                 f"Env {env_id} should have completed at least one episode"
             )
+        
+        # Verify aggregate statistics
+        total_episodes = sum(callback.env_episode_count.values())
+        assert total_episodes == callback.episode_count, (
+            "Aggregate episode count should match sum of per-env counts"
+        )
+        assert len(callback.episode_rewards) == total_episodes, (
+            "Aggregated rewards should match total episodes"
+        )
+        assert len(callback.episode_lengths) == total_episodes, (
+            "Aggregated lengths should match total episodes"
+        )
+        
+        # Verify both envs contributed episodes
+        episodes_per_env = [callback.env_episode_count[i] for i in range(callback.num_envs)]
+        assert all(count > 0 for count in episodes_per_env), (
+            "All environments should have completed at least one episode"
+        )
 
 
 if __name__ == "__main__":

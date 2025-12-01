@@ -441,6 +441,12 @@ def env(render_mode: Optional[str] = None, max_episode_steps: int = 1000):
 class GymnasiumBlokusWrapper(gym.Env):
     """
     Wrapper to make Blokus environment compatible with Gymnasium/Stable-Baselines3.
+    
+    This wrapper is fully Gymnasium-compatible:
+    - Inherits from gymnasium.Env (required for SB3's _patch_env to recognize it)
+    - reset() signature matches gymnasium.Env.reset() with keyword-only arguments
+    - step() returns correct 5-tuple (obs, reward, terminated, truncated, info)
+    - Compatible with SB3's automatic Monitor wrapping and VecEnv reset behavior
     """
     
     def __init__(self, env: BlokusEnv):
@@ -466,9 +472,22 @@ class GymnasiumBlokusWrapper(gym.Env):
         """Return the unwrapped environment (required by Stable-Baselines3)."""
         return self.env
         
-    def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None, **kwargs):
-        """Reset environment."""
-        # Accept **kwargs for compatibility with wrappers that pass additional arguments
+    def reset(self, *, seed: Optional[int] = None, options: Optional[Dict] = None, **kwargs):
+        """
+        Reset environment.
+        
+        This method is fully Gymnasium-compatible and works with SB3's Monitor wrapper.
+        The signature matches gymnasium.Env.reset() with keyword-only arguments (*).
+        
+        Args:
+            seed: Optional seed for environment reset
+            options: Optional dictionary of reset options
+            **kwargs: Additional keyword arguments (for compatibility with wrappers)
+        
+        Returns:
+            Tuple of (observation, info) as required by Gymnasium API
+        """
+        # Accept seed and options as keyword arguments (matching gymnasium.Wrapper.reset() behavior)
         # Call underlying env's reset with seed and options
         # BlokusEnv.reset() now accepts **kwargs, so any remaining kwargs will be ignored
         self.env.reset(seed=seed, options=options, **kwargs)
@@ -479,7 +498,18 @@ class GymnasiumBlokusWrapper(gym.Env):
         return obs, info
         
     def step(self, action: int):
-        """Execute step."""
+        """
+        Execute step.
+        
+        Returns the correct 5-tuple as required by Gymnasium API:
+        (observation, reward, terminated, truncated, info)
+        
+        Args:
+            action: Action to execute
+        
+        Returns:
+            Tuple of (observation, reward, terminated, truncated, info)
+        """
         # Execute action for current agent
         self.env.step(action)
         
@@ -510,3 +540,58 @@ def make_gymnasium_env(render_mode: Optional[str] = None, max_episode_steps: int
     """
     blokus_env = env(render_mode=render_mode, max_episode_steps=max_episode_steps)
     return GymnasiumBlokusWrapper(blokus_env)
+
+
+# Diagnostic helper for testing Monitor compatibility
+# This can be called manually for debugging, but is not used in production code
+def _test_monitor_reset_compat():
+    """
+    Diagnostic test to verify Monitor + GymnasiumBlokusWrapper reset compatibility.
+    
+    This function tests that SB3's Monitor wrapper can successfully call reset()
+    on GymnasiumBlokusWrapper with keyword arguments, as it does in VecEnv mode.
+    
+    Usage:
+        from envs.blokus_v0 import _test_monitor_reset_compat
+        _test_monitor_reset_compat()
+    """
+    try:
+        from stable_baselines3.common.monitor import Monitor
+        
+        # Create a base environment
+        base_env = make_gymnasium_env(render_mode=None, max_episode_steps=50)
+        print(f"✓ Created GymnasiumBlokusWrapper: {type(base_env)}")
+        
+        # Wrap with Monitor (as SB3 does automatically)
+        monitored_env = Monitor(base_env)
+        print(f"✓ Wrapped with Monitor: {type(monitored_env)}")
+        
+        # Test reset with seed (as DummyVecEnv does)
+        obs, info = monitored_env.reset(seed=42)
+        print(f"✓ Monitor.reset(seed=42) succeeded")
+        print(f"  - obs type: {type(obs)}, shape: {obs.shape if hasattr(obs, 'shape') else 'N/A'}")
+        print(f"  - info type: {type(info)}, keys: {list(info.keys()) if isinstance(info, dict) else 'N/A'}")
+        
+        # Test reset with seed and options
+        obs2, info2 = monitored_env.reset(seed=123, options={})
+        print(f"✓ Monitor.reset(seed=123, options={{}}) succeeded")
+        
+        # Test step
+        obs3, reward, terminated, truncated, info3 = monitored_env.step(0)
+        print(f"✓ Monitor.step(0) succeeded")
+        print(f"  - reward: {reward}, terminated: {terminated}, truncated: {truncated}")
+        
+        print("\n✅ All Monitor compatibility tests passed!")
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Monitor compatibility test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+if __name__ == "__main__":
+    # Allow running diagnostic test directly
+    print("Running Monitor compatibility diagnostic test...")
+    _test_monitor_reset_compat()
