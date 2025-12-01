@@ -64,38 +64,39 @@ export const PieceTray: React.FC<PieceTrayProps> = ({
   }, [setOrientation, orientation]);
 
   return (
-    <div className="space-y-6">
-      {/* Header with modern styling */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-bold text-slate-800 flex items-center space-x-2">
-            <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
-            <span>Your Pieces</span>
-            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-sm font-medium">
-              {availablePieces.length}
-            </span>
+    <div className="h-full w-full flex flex-col">
+      {/* Header */}
+      <div className="px-3 py-2 border-b border-charcoal-700 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+            Pieces
           </h3>
-          {selectedPiece && (
-            <p className="text-sm text-slate-600 mt-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-              <span className="font-medium">Selected:</span> {PIECE_NAMES[selectedPiece]} • 
-              <span className="font-medium ml-1">Orientation:</span> {orientation}
-            </p>
-          )}
+          <span className="text-xs text-gray-400 bg-charcoal-800 px-2 py-0.5 rounded">
+            {availablePieces.length}
+          </span>
         </div>
-        <div className="flex items-center space-x-4 text-xs text-slate-500">
-          <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
-            <kbd className="px-2 py-1 bg-white border border-slate-200 rounded text-xs font-mono shadow-sm">R</kbd>
-            <span className="font-medium">Rotate</span>
+        {selectedPiece && (
+          <div className="text-xs text-gray-400">
+            {PIECE_NAMES[selectedPiece]} • {orientation}
           </div>
-          <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
-            <kbd className="px-2 py-1 bg-white border border-slate-200 rounded text-xs font-mono shadow-sm">F</kbd>
-            <span className="font-medium">Flip</span>
-          </div>
+        )}
+      </div>
+
+      {/* Controls hint */}
+      <div className="px-3 py-1.5 border-b border-charcoal-700 flex items-center justify-center space-x-4 text-xs text-gray-500">
+        <div className="flex items-center space-x-1">
+          <kbd className="px-1.5 py-0.5 bg-charcoal-800 border border-charcoal-700 rounded text-xs font-mono">R</kbd>
+          <span>Rotate</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <kbd className="px-1.5 py-0.5 bg-charcoal-800 border border-charcoal-700 rounded text-xs font-mono">F</kbd>
+          <span>Flip</span>
         </div>
       </div>
       
-      {/* Pieces grid with modern tile styling */}
-      <div className="grid grid-cols-6 gap-2 max-h-96 overflow-y-auto pr-2">
+      {/* Scrollable pieces grid */}
+      <div className="flex-1 overflow-y-auto p-2">
+        <div className="grid grid-cols-3 gap-2">
         {availablePieces.map(pieceId => {
           const shape = getPieceShape(pieceId, orientation);
           const isSelected = selectedPiece === pieceId;
@@ -110,15 +111,13 @@ export const PieceTray: React.FC<PieceTrayProps> = ({
             <div
               key={pieceId}
               className={`
-                group relative p-3 rounded-xl cursor-pointer transition-all duration-300 transform
+                group relative bg-charcoal-800 border rounded-md p-2 cursor-pointer transition-all overflow-hidden
                 ${isSelected 
-                  ? 'bg-gradient-to-br from-blue-50 to-blue-100 ring-2 ring-blue-400 shadow-lg shadow-blue-200/50 scale-105' 
+                  ? 'border-neon-blue ring-2 ring-neon-blue ring-opacity-50' 
                   : isPieceUsed
-                  ? 'bg-gradient-to-br from-red-50 to-red-100 ring-2 ring-red-300 opacity-60 cursor-not-allowed'
-                  : 'bg-white hover:bg-gradient-to-br hover:from-slate-50 hover:to-slate-100 hover:shadow-lg hover:shadow-slate-200/50 hover:scale-105'
+                  ? 'border-charcoal-600 opacity-50 cursor-not-allowed'
+                  : 'border-charcoal-700 hover:border-charcoal-600 hover:bg-charcoal-750'
                 }
-                ${!availablePieces.includes(pieceId) ? 'opacity-50 cursor-not-allowed' : ''}
-                active:scale-95
               `}
               onClick={() => {
                 if (isPieceUsed) {
@@ -129,70 +128,61 @@ export const PieceTray: React.FC<PieceTrayProps> = ({
                 onPieceSelect(pieceId);
               }}
             >
-              {/* Piece name tooltip */}
-              <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                {PIECE_NAMES[pieceId]}
-                {isPieceUsed && <span className="text-red-300 ml-1">(Used)</span>}
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
-              </div>
-              
               {/* Used piece indicator */}
               {isPieceUsed && (
-                <div className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">
+                <div className="absolute top-1 right-1 text-neon-red text-xs font-bold z-10">
                   ✕
                 </div>
               )}
               
-              {/* Piece visual with enhanced styling */}
-              <div className="flex justify-center items-center h-16 mb-2">
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <svg
-                    width={Math.min(shape[0]?.length * PIECE_SIZE, 48)}
-                    height={Math.min(shape.length * PIECE_SIZE, 48)}
-                    viewBox={`0 0 ${shape[0]?.length * PIECE_SIZE} ${shape.length * PIECE_SIZE}`}
-                    className="drop-shadow-sm"
-                  >
-                    {shape.map((row, rowIndex) =>
-                      row.map((cell, colIndex) => (
-                        cell === 1 && (
-                          <rect
-                            key={`${rowIndex}-${colIndex}`}
-                            x={colIndex * PIECE_SIZE}
-                            y={rowIndex * PIECE_SIZE}
-                            width={PIECE_SIZE}
-                            height={PIECE_SIZE}
-                            fill={isSelected ? '#3B82F6' : '#64748B'}
-                            rx="2"
-                            className="transition-all duration-200"
-                          />
-                        )
-                      ))
-                    )}
-                  </svg>
-                </div>
+              {/* Piece visual */}
+              <div className="flex justify-center items-center mb-1.5 min-h-[48px]">
+                <svg
+                  width={Math.min(shape[0]?.length * PIECE_SIZE, 40)}
+                  height={Math.min(shape.length * PIECE_SIZE, 40)}
+                  viewBox={`0 0 ${shape[0]?.length * PIECE_SIZE} ${shape.length * PIECE_SIZE}`}
+                  className="max-w-full max-h-full"
+                >
+                  {shape.map((row, rowIndex) =>
+                    row.map((cell, colIndex) => (
+                      cell === 1 && (
+                        <rect
+                          key={`${rowIndex}-${colIndex}`}
+                          x={colIndex * PIECE_SIZE}
+                          y={rowIndex * PIECE_SIZE}
+                          width={PIECE_SIZE}
+                          height={PIECE_SIZE}
+                          fill={isSelected ? '#00F0FF' : isPieceUsed ? '#64748B' : '#94A3B8'}
+                          rx="1"
+                          className="transition-colors duration-200"
+                        />
+                      )
+                    ))
+                  )}
+                </svg>
               </div>
               
-              {/* Piece ID indicator with modern styling */}
-              <div className="text-xs text-center text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-full">
+              {/* Piece ID */}
+              <div className="text-xs text-center text-gray-400 font-mono">
                 #{pieceId}
               </div>
               
               {/* Selection indicator */}
               {isSelected && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+                <div className="absolute top-0 right-0 w-2 h-2 bg-neon-blue rounded-full border border-charcoal-900"></div>
               )}
             </div>
           );
         })}
-      </div>
-      
-      {availablePieces.length === 0 && (
-        <div className="text-center text-slate-500 py-16">
-          <div className="text-6xl mb-4">🧩</div>
-          <p className="text-lg font-medium">All pieces have been used!</p>
-          <p className="text-sm mt-2">Great job completing the game!</p>
         </div>
-      )}
+        
+        {availablePieces.length === 0 && (
+          <div className="text-center text-gray-500 py-16">
+            <div className="text-4xl mb-4">🧩</div>
+            <p className="text-sm font-medium text-gray-400">All pieces used</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
