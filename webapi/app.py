@@ -1,10 +1,15 @@
 """
 FastAPI application for Blokus RL Web API
+
+Framework: FastAPI (Python async web framework)
+MongoDB Module: webapi.db.mongo (provides centralized MongoDB connection)
 """
 
 import asyncio
 import json
 import uuid
+import time
+import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
@@ -13,6 +18,14 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s: %(message)s',
+    datefmt='%H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 import sys
 import os
@@ -29,6 +42,9 @@ from schemas.game_state import (
     GameConfig, GameState, GameStatus, Player, AgentType, Move, StateUpdate,
     MoveRequest, MoveResponse, GameCreateResponse, AgentInfo, ErrorResponse
 )
+# MongoDB connection module (webapi/db/mongo.py)
+from webapi.db.mongo import connect_to_mongo, close_mongo_connection, get_database
+from webapi.db.models import TrainingRun, EvaluationRun
 
 
 class GameManager:
@@ -66,6 +82,7 @@ class GameManager:
         if config.auto_start:
             self._start_game(game_id)
         
+        logger.info(f"Game created: {game_id}")
         return game_id
     
     def _initialize_agents(self, game_id: str, config: GameConfig):
@@ -105,14 +122,14 @@ class GameManager:
     
     async def _run_turn_loop(self, game_id: str):
         """Run the turn loop for automatic agent moves."""
-        print(f"🔄 Starting turn loop for game {game_id}")
+        logger.info(f"Starting turn loop for game {game_id}")
         while game_id in self.games and self.games[game_id]['status'] == GameStatus.IN_PROGRESS:
             try:
                 game_data = self.games[game_id]
                 game = game_data['game']
                 
                 if game.is_game_over():
-                    print(f"🏁 Game {game_id} is over")
+                    logger.info(f"Game {game_id} is over")
                     await self._end_game(game_id)
                     break
                 
@@ -120,77 +137,118 @@ class GameManager:
                 agents = self.agent_instances.get(game_id, {})
                 agent = agents.get(current_player)
                 
-                print(f"🎮 Current player: {current_player}, Agent: {type(agent).__name__ if agent else 'None'}")
+                logger.debug(f"Current player: {current_player.name}, Agent: {type(agent).__name__ if agent else 'None'}")
                 
                 if agent is not None:
                     # Agent move
-                    print(f"🤖 Making agent move for {current_player}")
                     await self._make_agent_move(game_id, current_player, agent)
                 else:
                     # Human player - wait for WebSocket move
-                    print(f"👤 Waiting for human move from {current_player}")
+                    logger.debug(f"Waiting for human move from {current_player.name}")
                     await self._broadcast_game_state(game_id, "waiting_for_human_move")
                     await asyncio.sleep(0.5)  # Longer delay for human players to reduce CPU usage
                 
             except Exception as e:
-                print(f"❌ Error in turn loop for game {game_id}: {e}")
+                logger.error(f"Error in turn loop for game {game_id}: {e}")
                 import traceback
                 traceback.print_exc()
                 await self._broadcast_error(game_id, str(e))
                 break
     
     async def _make_agent_move(self, game_id: str, player: EnginePlayer, agent: Any):
-        """Make a move for an agent."""
+        """
+        Make a move for an agent.
+        
+        Behavior:
+        - If agent has no legal moves, the turn is passed automatically.
+        - If agent times out or raises an exception, the turn is passed (safer than random fallback).
+        - Only if agent successfully returned a move will it be placed on the board.
+        
+        This ensures predictable, debuggable behavior when agents fail.
+        """
+        start_total = time.perf_counter()
         try:
-            print(f"🤖 Making agent move for {player} in game {game_id}")
+            logger.info(f"AGENT MOVE START: game_id={game_id}, player={player.name}, agent={type(agent).__name__}")
             game_data = self.games[game_id]
             game = game_data['game']
             
             # Get legal moves
+            start_legal = time.perf_counter()
             legal_moves = game.get_legal_moves(player)
-            print(f"📋 Found {len(legal_moves)} legal moves for {player}")
+            end_legal = time.perf_counter()
+            legal_time = end_legal - start_legal
+            logger.info(f"AGENT MOVE legal_moves: {len(legal_moves)} moves found in {legal_time:.4f}s for player={player.name}")
             
             if not legal_moves:
                 # Player cannot move, skip turn
-                print(f"⏭️ No legal moves for {player}, skipping turn")
+                logger.info(f"AGENT MOVE: No legal moves for {player.name}, skipping turn")
                 game.board._update_current_player()
                 await self._broadcast_game_state(game_id, "player_skipped")
                 return
             
             # Get agent's move with timeout
-            print(f"🎯 Agent {type(agent).__name__} selecting move...")
+            start_agent = time.perf_counter()
             try:
                 # Run agent selection with a timeout
                 move = await asyncio.wait_for(
                     asyncio.get_event_loop().run_in_executor(
                         None, agent.select_action, game.board, player, legal_moves
                     ),
-                    timeout=2.0  # 2 second timeout (reduced from 10)
+                    timeout=5.0  # 5 second timeout
                 )
-                print(f"🎲 Agent selected move: {move}")
+                end_agent = time.perf_counter()
+                agent_time = end_agent - start_agent
+                logger.info(f"AGENT MOVE agent_selection: move={move} selected in {agent_time:.4f}s")
             except asyncio.TimeoutError:
-                print(f"⏰ Agent {type(agent).__name__} timed out, selecting random move")
-                # Fallback to random move if agent times out
-                import random
-                move = random.choice(legal_moves)
-                print(f"🎲 Random fallback move: {move}")
+                # Agent timed out - pass turn instead of making random move
+                logger.warning(f"AGENT MOVE: Agent {type(agent).__name__} timed out after 5 seconds in game {game_id} for player {player.name}")
+                game.board._update_current_player()
+                await self._broadcast_game_state(game_id, "player_skipped_timeout")
+                return
             except Exception as e:
-                print(f"❌ Agent error, using random fallback: {e}")
-                import random
-                move = random.choice(legal_moves)
-                print(f"🎲 Error fallback move: {move}")
+                # Agent raised exception - pass turn instead of making random move
+                logger.error(f"AGENT MOVE: Agent {type(agent).__name__} raised exception in game {game_id} for player {player.name}: {e}")
+                import traceback
+                traceback.print_exc()
+                game.board._update_current_player()
+                await self._broadcast_game_state(game_id, "player_skipped_error")
+                return
             
-            # Make the move
+            # Make the move (only reached if agent successfully returned a move)
+            start_apply = time.perf_counter()
             success = game.make_move(move, player)
-            print(f"✅ Move successful: {success}")
+            end_apply = time.perf_counter()
+            apply_time = end_apply - start_apply
+            logger.info(f"AGENT MOVE apply: success={success} in {apply_time:.4f}s")
             
             if success:
-                await self._broadcast_game_state(game_id, "move_made")
+                # Log the move details
+                player_name = self._convert_player_back(player).value
+                logger.info(f"Player {player_name} placed a piece at {move.anchor_row},{move.anchor_col} (piece_id={move.piece_id}, orientation={move.orientation})")
+                
+                # Prepare move information for broadcast
+                last_move = {
+                    "piece_id": move.piece_id,
+                    "orientation": move.orientation,
+                    "anchor_row": move.anchor_row,
+                    "anchor_col": move.anchor_col,
+                    "player": player_name
+                }
+                
+                start_broadcast = time.perf_counter()
+                await self._broadcast_game_state(game_id, "move_made", last_move=last_move)
+                end_broadcast = time.perf_counter()
+                broadcast_time = end_broadcast - start_broadcast
+                
+                end_total = time.perf_counter()
+                total_time = end_total - start_total
+                logger.info(f"AGENT MOVE timing: total={total_time:.4f}s, legal={legal_time:.4f}s, agent={agent_time:.4f}s, apply={apply_time:.4f}s, broadcast={broadcast_time:.4f}s")
             else:
+                logger.warning(f"AGENT MOVE: Invalid move from agent {type(agent).__name__} for player {player.name}")
                 await self._broadcast_error(game_id, "Invalid move from agent")
                 
         except Exception as e:
-            print(f"❌ Agent error for {player}: {str(e)}")
+            logger.error(f"AGENT MOVE ERROR: {str(e)} for player {player.name}")
             import traceback
             traceback.print_exc()
             await self._broadcast_error(game_id, f"Agent error: {str(e)}")
@@ -243,10 +301,80 @@ class GameManager:
                 game_state=self._get_game_state(game_id)
             )
     
+    async def _process_human_pass(self, game_id: str, player: Player) -> MoveResponse:
+        """
+        Process a human player's pass (skip turn).
+        
+        Args:
+            game_id: Game identifier
+            player: Player requesting to pass
+            
+        Returns:
+            MoveResponse indicating success or failure
+        """
+        try:
+            logger.info(f"Processing human pass for {player.value}")
+            
+            # Get game data
+            if game_id not in self.games:
+                return MoveResponse(success=False, message="Game not found", game_over=False)
+            
+            game_data = self.games[game_id]
+            game = game_data['game']
+            
+            # Convert schema player to engine player
+            engine_player = self._convert_player(player)
+            
+            # Verify it's the player's turn
+            current_player = game.get_current_player()
+            if current_player != engine_player:
+                return MoveResponse(
+                    success=False, 
+                    message=f"It's not {player.value}'s turn", 
+                    game_over=False
+                )
+            
+            # Optionally check if player has legal moves (log warning if they do)
+            legal_moves = game.get_legal_moves(engine_player)
+            if legal_moves:
+                logger.warning(f"Player {player.value} is passing but has {len(legal_moves)} legal moves available")
+            
+            # Advance to next player (same logic as agent skip)
+            game.board._update_current_player()
+            logger.info(f"Turn advanced to {game.get_current_player().name}")
+            
+            # Update game data
+            game_data['updated_at'] = datetime.now()
+            
+            # Broadcast the updated game state
+            await self._broadcast_game_state(game_id, "player_passed")
+            
+            # Check if game is over
+            game_over = game.is_game_over()
+            if game_over:
+                await self._end_game(game_id)
+            
+            return MoveResponse(
+                success=True,
+                message="Turn passed successfully",
+                game_state=self._get_game_state(game_id)
+            )
+                
+        except Exception as e:
+            logger.error(f"Error in pass processing: {e}")
+            return MoveResponse(
+                success=False,
+                message=f"Error passing turn: {str(e)}",
+                game_over=False
+            )
+    
     async def _process_human_move_immediately(self, game_id: str, move_request: MoveRequest) -> MoveResponse:
         """Process human move immediately without waiting for turn loop."""
+        start_total = time.perf_counter()
         try:
-            print(f"⚡ Processing human move immediately for {move_request.player}")
+            # Log incoming move with raw data
+            move_data = move_request.move
+            logger.info(f"HUMAN MOVE START: game_id={game_id}, player={move_request.player}, raw_move={move_data.dict() if hasattr(move_data, 'dict') else {'piece_id': move_data.piece_id, 'orientation': move_data.orientation, 'anchor_row': move_data.anchor_row, 'anchor_col': move_data.anchor_col}}")
             
             # Get game data
             if game_id not in self.games:
@@ -258,29 +386,101 @@ class GameManager:
             # Convert schema player to engine player
             engine_player = self._convert_player(move_request.player)
             
-            # Verify it's the player's turn
+            # Pre-check 1: Verify it's the player's turn
             current_player = game.get_current_player()
             if current_player != engine_player:
+                logger.warning(f"HUMAN MOVE: Not player's turn. Current={current_player.name}, Requested={engine_player.name}")
                 return MoveResponse(
                     success=False, 
-                    message=f"It's not {move_request.player}'s turn", 
+                    message="It is not your turn.", 
                     game_over=False
                 )
             
             # Create move object
-            move_data = move_request.move
-            engine_move = EngineMove(move_data.piece_id, move_data.orientation, move_data.anchor_row, move_data.anchor_col)
+            piece_id = move_data.piece_id
+            orientation = move_data.orientation
+            anchor_row = move_data.anchor_row
+            anchor_col = move_data.anchor_col
+            
+            # Pre-check 2: Piece already used
+            if piece_id in game.board.player_pieces_used[engine_player]:
+                logger.warning(f"HUMAN MOVE: Piece {piece_id} already used by {engine_player.name}")
+                return MoveResponse(
+                    success=False,
+                    message="This piece has already been used.",
+                    game_state=self._get_game_state(game_id)
+                )
+            
+            # Pre-check 3: Invalid orientation index
+            if piece_id not in game.move_generator.piece_orientations_cache:
+                logger.warning(f"HUMAN MOVE: Invalid piece_id {piece_id}")
+                return MoveResponse(
+                    success=False,
+                    message="Invalid piece ID.",
+                    game_state=self._get_game_state(game_id)
+                )
+            
+            orientations = game.move_generator.piece_orientations_cache[piece_id]
+            if orientation < 0 or orientation >= len(orientations):
+                logger.warning(f"HUMAN MOVE: Invalid orientation {orientation} for piece {piece_id} (max={len(orientations)-1})")
+                return MoveResponse(
+                    success=False,
+                    message="Invalid orientation for this piece.",
+                    game_state=self._get_game_state(game_id)
+                )
+            
+            # Pre-check 4: Out of bounds
+            from engine.pieces import PiecePlacement
+            orientation_shape = orientations[orientation]
+            if not PiecePlacement.can_place_piece_at(
+                (game.board.SIZE, game.board.SIZE),
+                orientation_shape,
+                anchor_row,
+                anchor_col
+            ):
+                logger.warning(f"HUMAN MOVE: Out of bounds - piece_id={piece_id}, anchor=({anchor_row},{anchor_col})")
+                return MoveResponse(
+                    success=False,
+                    message="Move is out of bounds.",
+                    game_state=self._get_game_state(game_id)
+                )
+            
+            # Create engine move object
+            engine_move = EngineMove(piece_id, orientation, anchor_row, anchor_col)
             
             # Make the move immediately
+            start_make_move = time.perf_counter()
             success = game.make_move(engine_move, engine_player)
-            print(f"⚡ Human move result: {success}")
+            end_make_move = time.perf_counter()
+            make_move_time = end_make_move - start_make_move
+            logger.info(f"HUMAN MOVE make_move: success={success} in {make_move_time:.4f}s")
             
             if success:
+                # Log the move details
+                player_name = move_request.player.value if hasattr(move_request.player, 'value') else str(move_request.player)
+                logger.info(f"Player {player_name} placed a piece at {anchor_row},{anchor_col} (piece_id={piece_id}, orientation={orientation})")
+                
+                # Prepare move information for broadcast
+                last_move = {
+                    "piece_id": piece_id,
+                    "orientation": orientation,
+                    "anchor_row": anchor_row,
+                    "anchor_col": anchor_col,
+                    "player": player_name
+                }
+                
                 # Update game data
                 game_data['updated_at'] = datetime.now()
                 
                 # Broadcast the updated game state immediately
-                await self._broadcast_game_state(game_id, "move_made")
+                start_broadcast = time.perf_counter()
+                await self._broadcast_game_state(game_id, "move_made", last_move=last_move)
+                end_broadcast = time.perf_counter()
+                broadcast_time = end_broadcast - start_broadcast
+                
+                end_total = time.perf_counter()
+                total_time = end_total - start_total
+                logger.info(f"HUMAN MOVE timing: total={total_time:.4f}s, make_move={make_move_time:.4f}s, broadcast={broadcast_time:.4f}s")
                 
                 # Check if game is over
                 game_over = game.is_game_over()
@@ -297,14 +497,18 @@ class GameManager:
                     game_state=self._get_game_state(game_id)
                 )
             else:
+                # Move failed after all pre-checks passed - must be a Blokus placement rule violation
+                logger.warning(f"HUMAN MOVE: Move violates Blokus rules - piece_id={piece_id}, anchor=({anchor_row},{anchor_col})")
                 return MoveResponse(
                     success=False,
-                    message="Invalid move",
+                    message="Move violates Blokus placement rules (overlap, edge contact, or missing corner connection).",
                     game_state=self._get_game_state(game_id)
                 )
                 
         except Exception as e:
-            print(f"❌ Error in immediate move processing: {e}")
+            logger.error(f"HUMAN MOVE ERROR: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return MoveResponse(
                 success=False,
                 message=f"Error making move: {str(e)}",
@@ -336,31 +540,37 @@ class GameManager:
         for player in EnginePlayer:
             pieces_used[player.name] = list(game.board.player_pieces_used[player])
         
-        # Get legal moves
+        # Get legal moves (optimized: reuse move_generator from game)
         legal_moves = []
         engine_moves = []
+        heatmap = [[0.0 for _ in range(20)] for _ in range(20)]  # Initialize empty heatmap
         if not game.is_game_over():
             engine_moves = game.get_legal_moves()
             legal_moves = [self._convert_move_back(move) for move in engine_moves]
-        
-        # Calculate heatmap: map legal_moves to 20x20 grid (1 = legal, 0 = illegal)
-        heatmap = [[0.0 for _ in range(20)] for _ in range(20)]
-        if engine_moves:
-            from engine.move_generator import LegalMoveGenerator
-            move_generator = LegalMoveGenerator()
+            
+            # Calculate heatmap: map legal_moves to 20x20 grid (1 = legal, 0 = illegal)
+            # OPTIMIZED: Use cached move_generator and cached positions
+            move_generator = game.move_generator
             for engine_move in engine_moves:
-                # Get positions this move would occupy
-                orientations = move_generator.piece_orientations_cache[engine_move.piece_id]
-                orientation = orientations[engine_move.orientation]
-                
-                # Mark all positions of this legal move as 1.0
-                for i in range(orientation.shape[0]):
-                    for j in range(orientation.shape[1]):
-                        if orientation[i, j] == 1:
-                            row = engine_move.anchor_row + i
-                            col = engine_move.anchor_col + j
-                            if 0 <= row < 20 and 0 <= col < 20:
-                                heatmap[row][col] = 1.0
+                # Use cached positions if available
+                if engine_move.piece_id in move_generator.piece_position_cache:
+                    cached_positions = move_generator.piece_position_cache[engine_move.piece_id][engine_move.orientation]
+                    for rel_r, rel_c in cached_positions:
+                        row = engine_move.anchor_row + rel_r
+                        col = engine_move.anchor_col + rel_c
+                        if 0 <= row < 20 and 0 <= col < 20:
+                            heatmap[row][col] = 1.0
+                else:
+                    # Fallback to original method
+                    orientations = move_generator.piece_orientations_cache[engine_move.piece_id]
+                    orientation = orientations[engine_move.orientation]
+                    for i in range(orientation.shape[0]):
+                        for j in range(orientation.shape[1]):
+                            if orientation[i, j] == 1:
+                                row = engine_move.anchor_row + i
+                                col = engine_move.anchor_col + j
+                                if 0 <= row < 20 and 0 <= col < 20:
+                                    heatmap[row][col] = 1.0
         
         return GameState(
             game_id=game_id,
@@ -378,16 +588,23 @@ class GameManager:
             heatmap=heatmap
         )
     
-    async def _broadcast_game_state(self, game_id: str, update_type: str):
+    async def _broadcast_game_state(self, game_id: str, update_type: str, last_move: Optional[Dict[str, Any]] = None):
         """Broadcast game state to all WebSocket connections."""
         if game_id not in self.websocket_connections:
             return
         
         game_state = self._get_game_state(game_id)
+        data = {"game_state": game_state.dict()}
+        
+        # Include last move information if provided
+        if last_move:
+            data["move"] = last_move
+            data["player"] = last_move.get("player")
+        
         update = StateUpdate(
             type=update_type,
             game_id=game_id,
-            data={"game_state": game_state.dict()}
+            data=data
         )
         
         message = update.json()
@@ -496,12 +713,27 @@ game_manager = GameManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager."""
+    """
+    Application lifespan manager.
+    
+    Handles startup and shutdown tasks:
+    - Startup: Connect to MongoDB
+    - Shutdown: Close MongoDB connection gracefully
+    """
     # Startup
-    print("Starting Blokus RL Web API...")
+    logger.info("Starting Blokus RL Web API...")
+    try:
+        await connect_to_mongo()
+        logger.info("MongoDB connection established")
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB during startup: {e}")
+        logger.warning("Server will start without MongoDB connection. Some features may be unavailable.")
+    
     yield
+    
     # Shutdown
-    print("Shutting down Blokus RL Web API...")
+    logger.info("Shutting down Blokus RL Web API...")
+    await close_mongo_connection()
 
 
 # Create FastAPI app
@@ -515,7 +747,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -550,9 +782,52 @@ async def root():
         "endpoints": {
             "agents": "/api/agents",
             "games": "/api/games",
-            "websocket": "/ws/games/{game_id}"
+            "websocket": "/ws/games/{game_id}",
+            "health": "/api/health/db"
         }
     }
+
+
+@app.get("/api/health/db")
+async def health_check_db():
+    """
+    Database health check endpoint.
+    
+    Tests MongoDB connectivity by performing a simple ping operation.
+    Returns connection status without exposing sensitive information.
+    """
+    try:
+        db = get_database()
+        # Perform a simple ping to test connectivity
+        await db.command("ping")
+        return {
+            "ok": True,
+            "db": "connected",
+            "database": db.name
+        }
+    except RuntimeError as e:
+        # Database not initialized
+        logger.error(f"Database health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "ok": False,
+                "error": "Database not initialized",
+                "message": "MongoDB connection was not established during startup"
+            }
+        )
+    except Exception as e:
+        # Connection error
+        logger.error(f"Database health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "ok": False,
+                "error": "Database connection failed",
+                "message": "Unable to connect to MongoDB"
+            }
+        )
+
 
 @app.get("/api/games/{game_id}", response_model=GameState)
 async def get_game(game_id: str):
@@ -581,6 +856,187 @@ async def list_games():
     return games
 
 
+# Training Runs API Endpoints
+
+@app.get("/api/training-runs")
+async def list_training_runs(
+    agent_id: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50
+):
+    """
+    List training runs with optional filtering.
+    
+    Args:
+        agent_id: Filter by agent ID
+        status: Filter by status (running, completed, stopped, failed)
+        limit: Maximum number of runs to return (default: 50)
+        
+    Returns:
+        List of training runs sorted by start_time descending
+    """
+    try:
+        db = get_database()
+        collection = db.training_runs
+        
+        # Build query
+        query = {}
+        if agent_id:
+            query["agent_id"] = agent_id
+        if status:
+            query["status"] = status
+        
+        # Fetch runs sorted by start_time descending
+        cursor = collection.find(query).sort("start_time", -1).limit(limit)
+        runs = await cursor.to_list(length=limit)
+        
+        # Convert ObjectId to string for JSON serialization
+        for run in runs:
+            if "_id" in run:
+                run["id"] = str(run["_id"])
+                del run["_id"]
+            # Convert datetime to ISO format strings
+            if "start_time" in run and isinstance(run["start_time"], datetime):
+                run["start_time"] = run["start_time"].isoformat()
+            if "end_time" in run and isinstance(run["end_time"], datetime):
+                run["end_time"] = run["end_time"].isoformat()
+        
+        return runs
+    except RuntimeError as e:
+        logger.error(f"Database not available: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Database not available"
+        )
+    except Exception as e:
+        logger.error(f"Error listing training runs: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error listing training runs: {str(e)}"
+        )
+
+
+@app.get("/api/training-runs/{run_id}")
+async def get_training_run(run_id: str):
+    """
+    Get details of a specific training run.
+    
+    Args:
+        run_id: Training run ID (UUID)
+        
+    Returns:
+        Training run details including metrics
+    """
+    try:
+        db = get_database()
+        collection = db.training_runs
+        
+        run = await collection.find_one({"run_id": run_id})
+        
+        if not run:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Training run {run_id} not found"
+            )
+        
+        # Convert ObjectId to string
+        if "_id" in run:
+            run["id"] = str(run["_id"])
+            del run["_id"]
+        
+        # Convert datetime to ISO format strings
+        if "start_time" in run and isinstance(run["start_time"], datetime):
+            run["start_time"] = run["start_time"].isoformat()
+        if "end_time" in run and isinstance(run["end_time"], datetime):
+            run["end_time"] = run["end_time"].isoformat()
+        
+        return run
+    except HTTPException:
+        raise
+    except RuntimeError as e:
+        logger.error(f"Database not available: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Database not available"
+        )
+    except Exception as e:
+        logger.error(f"Error getting training run: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting training run: {str(e)}"
+        )
+
+
+@app.get("/api/training-runs/agents/list")
+async def list_agents():
+    """
+    Get list of distinct agent IDs from training runs.
+    
+    Returns:
+        List of unique agent IDs
+    """
+    try:
+        db = get_database()
+        collection = db.training_runs
+        
+        # Get distinct agent IDs
+        agent_ids = await collection.distinct("agent_id")
+        
+        return {"agent_ids": agent_ids}
+    except RuntimeError as e:
+        logger.error(f"Database not available: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Database not available"
+        )
+    except Exception as e:
+        logger.error(f"Error listing agents: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error listing agents: {str(e)}"
+        )
+
+
+@app.get("/api/training-runs/{run_id}/evaluations")
+async def get_training_run_evaluations(run_id: str):
+    """
+    Get evaluation results for a specific training run.
+    
+    Args:
+        run_id: Training run ID
+        
+    Returns:
+        List of evaluation runs for this training run
+    """
+    try:
+        db = get_database()
+        collection = db.evaluation_runs
+        
+        evaluations = await collection.find({"training_run_id": run_id}).sort("created_at", -1).to_list(length=100)
+        
+        # Convert ObjectId to string and datetime to ISO format
+        for eval_run in evaluations:
+            if "_id" in eval_run:
+                eval_run["id"] = str(eval_run["_id"])
+                del eval_run["_id"]
+            if "created_at" in eval_run and isinstance(eval_run["created_at"], datetime):
+                eval_run["created_at"] = eval_run["created_at"].isoformat()
+        
+        return evaluations
+    except RuntimeError as e:
+        logger.error(f"Database not available: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Database not available"
+        )
+    except Exception as e:
+        logger.error(f"Error getting evaluations: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting evaluations: {str(e)}"
+        )
+
+
 # WebSocket Endpoint
 
 @app.websocket("/ws/games/{game_id}")
@@ -601,6 +1057,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
     
     # Add connection
     game_manager.add_websocket_connection(game_id, websocket)
+    logger.info(f"Connected to game {game_id}")
     
     # Send initial game state
     game_state = game_manager.get_game_state(game_id)
@@ -610,6 +1067,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
         data={"game_state": game_state.dict()}
     )
     await websocket.send_text(initial_update.json())
+    logger.info("Game state updated")
     
     try:
         while True:
@@ -619,32 +1077,66 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             
             # Handle different message types
             if message.get("type") == "move":
-                print(f"🎮 Received move message for game {game_id}: {message}")
+                logger.info(f"Received move message for game {game_id}: {json.dumps(message)}")
                 move_data = message.get("data")
                 if move_data:
                     try:
-                        print(f"📝 Creating MoveRequest from data: {move_data}")
+                        logger.info(f"Creating MoveRequest from data: {json.dumps(move_data)}")
                         move_request = MoveRequest(**move_data)
-                        print(f"✅ MoveRequest created: {move_request}")
+                        logger.info(f"MoveRequest created: player={move_request.player}, move={move_request.move.dict() if hasattr(move_request.move, 'dict') else move_request.move}")
                         
                         # Process move immediately without waiting for turn loop
                         response = await game_manager._process_human_move_immediately(game_id, move_request)
-                        print(f"📤 Sending response: {response}")
+                        logger.info(f"Sending move response: success={response.success}")
                         await websocket.send_text(response.json())
                     except Exception as e:
-                        print(f"❌ Error processing move: {e}")
+                        logger.error(f"Error processing move: {e}")
+                        import traceback
+                        traceback.print_exc()
                         error_response = MoveResponse(
                             success=False,
                             message=f"Invalid move data: {str(e)}",
                             game_over=False
                         )
-                        print(f"📤 Sending error response: {error_response}")
                         await websocket.send_text(error_response.json())
                 else:
-                    print("❌ No move data in message")
+                    logger.warning("No move data in message")
                     error_response = MoveResponse(
                         success=False,
                         message="No move data provided",
+                        game_over=False
+                    )
+                    await websocket.send_text(error_response.json())
+            
+            elif message.get("type") == "pass":
+                logger.info(f"Received pass message for game {game_id}: {json.dumps(message)}")
+                pass_data = message.get("data")
+                if pass_data and "player" in pass_data:
+                    try:
+                        # Extract player from data
+                        player_str = pass_data.get("player")
+                        # Convert to Player enum
+                        player = Player(player_str)
+                        
+                        # Process pass immediately
+                        response = await game_manager._process_human_pass(game_id, player)
+                        logger.info(f"Sending pass response: success={response.success}")
+                        await websocket.send_text(response.json())
+                    except Exception as e:
+                        logger.error(f"Error processing pass: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        error_response = MoveResponse(
+                            success=False,
+                            message=f"Invalid pass data: {str(e)}",
+                            game_over=False
+                        )
+                        await websocket.send_text(error_response.json())
+                else:
+                    logger.warning("No player data in pass message")
+                    error_response = MoveResponse(
+                        success=False,
+                        message="No player data provided",
                         game_over=False
                     )
                     await websocket.send_text(error_response.json())
