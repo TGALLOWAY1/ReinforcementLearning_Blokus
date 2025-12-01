@@ -4,9 +4,6 @@ A comprehensive reinforcement learning research environment for the Blokus board
 
 <img width="1795" height="865" alt="image" src="https://github.com/user-attachments/assets/751e771f-ce00-45b8-8289-6086f760cd7d" />
 
-
-<img width="2816" height="1536" alt="BlokusRL" src="https://github.com/user-attachments/assets/93e85cd8-c5fe-4785-ae13-810327a1aa07" />
-
 ## 🎯 Overview
 
 This project provides a full-stack implementation of Blokus with:
@@ -300,6 +297,8 @@ blokus_rl/
 
 ### Agents (`agents/`)
 
+<img width="714" height="219" alt="image" src="https://github.com/user-attachments/assets/7c5501c9-03b5-45dd-9bb3-c321e28fd02c" />
+
 All agents implement a common interface:
 ```python
 def select_action(board: Board, player: Player, legal_moves: List[Move]) -> Move
@@ -442,3 +441,8 @@ This project is part of a reinforcement learning research environment.
 **Version**: 0.1.0  
 **Python**: 3.9+  
 **Node.js**: 16+
+
+
+Old Mockups 
+<img width="2816" height="1536" alt="BlokusRL" src="https://github.com/user-attachments/assets/93e85cd8-c5fe-4785-ae13-810327a1aa07" />
+
