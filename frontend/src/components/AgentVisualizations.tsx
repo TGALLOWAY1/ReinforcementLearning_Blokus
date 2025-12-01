@@ -1,29 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { BOARD_SIZE, CELL_SIZE, PIECE_NAMES, PIECE_SIZE } from '../constants/gameConstants';
-import { getPieceShape } from '../utils/pieceUtils';
+import { BOARD_SIZE, CELL_SIZE } from '../constants/gameConstants';
 
 interface AgentVisualizationsProps {
-  onPieceSelect?: (pieceId: number) => void;
   selectedPiece?: number | null;
   pieceOrientation?: number;
   setPieceOrientation?: (orientation: number) => void;
 }
 
-type TabType = 'policy' | 'value' | 'tree' | 'pieces';
+type TabType = 'policy' | 'value' | 'tree';
 
-export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
-  onPieceSelect,
-  selectedPiece,
-  pieceOrientation = 0,
-  setPieceOrientation
-}) => {
-  const [activeTab, setActiveTab] = useState<TabType>('policy');
+// Policy View Component (extracted for standalone use)
+export const PolicyView: React.FC = () => {
   const { gameState } = useGameStore();
-  const [localOrientation, setLocalOrientation] = useState(0);
-  
-  const orientation = pieceOrientation !== undefined ? pieceOrientation : localOrientation;
-  const setOrientation = setPieceOrientation || setLocalOrientation;
 
   // Generate random policy grid for demo if no data exists
   const generateRandomPolicy = (): number[][] => {
@@ -44,13 +33,142 @@ export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
   const maxValue = Math.max(...allValues);
   const range = maxValue - minValue || 1;
 
+  // Ensure we always have exactly 20×20 cells
+  const rows = Array.from({ length: BOARD_SIZE }, (_, r) => r);
+  const cols = Array.from({ length: BOARD_SIZE }, (_, c) => c);
+
+  const getPolicyValueForCell = (row: number, col: number): number => {
+    // Ensure we have data for this cell
+    if (currentPolicyGrid[row] && currentPolicyGrid[row][col] !== undefined) {
+      return currentPolicyGrid[row][col];
+    }
+    return 0;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="w-full max-w-full">
+        <div
+          className="grid gap-[1px] bg-charcoal-800"
+          style={{
+            gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
+            aspectRatio: '1 / 1', // Ensure square grid
+          }}
+        >
+          {rows.map((r) =>
+            cols.map((c) => {
+              const value = getPolicyValueForCell(r, c);
+              
+              if (isBinaryHeatmap) {
+                // Binary heatmap: 1.0 = legal (red), 0.0 = illegal (transparent/blue)
+                if (value === 1.0) {
+                  return (
+                    <div
+                      key={`${r}-${c}`}
+                      className="aspect-square bg-neon-red bg-opacity-60 border border-charcoal-700"
+                    />
+                  );
+                } else {
+                  return (
+                    <div
+                      key={`${r}-${c}`}
+                      className="aspect-square bg-neon-blue bg-opacity-10 border border-charcoal-700"
+                    />
+                  );
+                }
+              } else {
+                // Continuous policy: normalize and map to colors
+                const normalized = (value - minValue) / range;
+                const opacity = normalized;
+                const isHighProb = normalized > 0.5;
+                
+                return (
+                  <div
+                    key={`${r}-${c}`}
+                    className="aspect-square border border-charcoal-700"
+                    style={{
+                      backgroundColor: isHighProb
+                        ? `rgba(255, 77, 77, ${opacity})` // neon.red with opacity
+                        : `rgba(0, 240, 255, ${1 - opacity})`, // neon.blue with inverse opacity
+                    }}
+                  />
+                );
+              }
+            })
+          )}
+        </div>
+      </div>
+      <div className="text-xs text-gray-400 space-y-1">
+        {isBinaryHeatmap ? (
+          <>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-neon-red"></div>
+              <span>Legal Move Position</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-neon-blue opacity-30"></div>
+              <span>Illegal Position</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-neon-red"></div>
+              <span>High Probability</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-neon-blue"></div>
+              <span>Low Probability</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Value View Component (extracted for standalone use)
+export const ValueView: React.FC = () => {
   // Value function data (dummy for now)
   const winProbability = 0.68; // 68% win probability
 
-  // Pieces data
-  const currentPlayer = gameState?.current_player;
-  const piecesUsed = gameState?.pieces_used?.[currentPlayer || ''] || [];
-  const availablePieces = Array.from({length: 21}, (_, i) => i + 1).filter(pieceId => !piecesUsed.includes(pieceId));
+  return (
+    <div className="space-y-3">
+      <div className="bg-charcoal-800 border border-charcoal-700 p-4">
+        <div className="text-xs text-gray-400 mb-2">Win Probability</div>
+        <div className="relative h-32 bg-charcoal-900 border border-charcoal-700">
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-neon-green to-neon-blue transition-all duration-500"
+            style={{
+              height: `${winProbability * 100}%`,
+            }}
+          >
+            <div className="absolute -top-6 left-0 right-0 text-center">
+              <span className="text-sm font-mono text-neon-green">
+                {(winProbability * 100).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="text-xs text-gray-400">
+        Estimated win probability for current game state
+      </div>
+    </div>
+  );
+};
+
+export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
+  selectedPiece,
+  pieceOrientation = 0,
+  setPieceOrientation
+}) => {
+  const [activeTab, setActiveTab] = useState<TabType>('policy');
+  const [localOrientation, setLocalOrientation] = useState(0);
+  
+  const orientation = pieceOrientation !== undefined ? pieceOrientation : localOrientation;
+  const setOrientation = setPieceOrientation || setLocalOrientation;
 
   // Keyboard handlers for piece rotation/flip
   useEffect(() => {
@@ -84,7 +202,6 @@ export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
     { id: 'policy', label: 'Policy' },
     { id: 'value', label: 'Value' },
     { id: 'tree', label: 'Tree' },
-    { id: 'pieces', label: 'Pieces' },
   ];
 
   return (
@@ -109,155 +226,11 @@ export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === 'policy' && (
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Policy Heatmap
-            </h3>
-            <div className="overflow-auto max-h-96">
-              <div className="relative inline-block" style={{ width: BOARD_SIZE * CELL_SIZE, height: BOARD_SIZE * CELL_SIZE }}>
-                {/* Base board (read-only) */}
-                <svg
-                  width={BOARD_SIZE * CELL_SIZE}
-                  height={BOARD_SIZE * CELL_SIZE}
-                  style={{ background: 'transparent' }}
-                >
-                  {/* Grid lines */}
-                  {Array.from({ length: BOARD_SIZE + 1 }).map((_, i) => (
-                    <g key={i}>
-                      <line
-                        x1={i * CELL_SIZE}
-                        y1={0}
-                        x2={i * CELL_SIZE}
-                        y2={BOARD_SIZE * CELL_SIZE}
-                        stroke="#3E3E42"
-                        strokeWidth={0.5}
-                        opacity={0.3}
-                      />
-                      <line
-                        x1={0}
-                        y1={i * CELL_SIZE}
-                        x2={BOARD_SIZE * CELL_SIZE}
-                        y2={i * CELL_SIZE}
-                        stroke="#3E3E42"
-                        strokeWidth={0.5}
-                        opacity={0.3}
-                      />
-                    </g>
-                  ))}
-                </svg>
-
-                {/* Policy overlay grid */}
-                <div
-                  className="absolute inset-0 grid"
-                  style={{
-                    gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
-                    gridTemplateRows: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
-                  }}
-                >
-                  {currentPolicyGrid.map((row, rowIndex) =>
-                    row.map((value, colIndex) => {
-                      if (isBinaryHeatmap) {
-                        // Binary heatmap: 1.0 = legal (red), 0.0 = illegal (transparent/blue)
-                        if (value === 1.0) {
-                          return (
-                            <div
-                              key={`${rowIndex}-${colIndex}`}
-                              className="border border-charcoal-700"
-                              style={{
-                                backgroundColor: 'rgba(255, 77, 77, 0.6)', // neon.red for legal positions
-                              }}
-                            />
-                          );
-                        } else {
-                          return (
-                            <div
-                              key={`${rowIndex}-${colIndex}`}
-                              className="border border-charcoal-700"
-                              style={{
-                                backgroundColor: 'rgba(0, 240, 255, 0.1)', // neon.blue with low opacity for illegal
-                              }}
-                            />
-                          );
-                        }
-                      } else {
-                        // Continuous policy: normalize and map to colors
-                        const normalized = (value - minValue) / range;
-                        const opacity = normalized;
-                        const isHighProb = normalized > 0.5;
-                        
-                        return (
-                          <div
-                            key={`${rowIndex}-${colIndex}`}
-                            className="border border-charcoal-700"
-                            style={{
-                              backgroundColor: isHighProb
-                                ? `rgba(255, 77, 77, ${opacity})` // neon.red with opacity
-                                : `rgba(0, 240, 255, ${1 - opacity})`, // neon.blue with inverse opacity
-                            }}
-                          />
-                        );
-                      }
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="text-xs text-gray-400 space-y-1">
-              {isBinaryHeatmap ? (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-neon-red"></div>
-                    <span>Legal Move Position</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-neon-blue opacity-30"></div>
-                    <span>Illegal Position</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-neon-red"></div>
-                    <span>High Probability</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-neon-blue"></div>
-                    <span>Low Probability</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <PolicyView />
         )}
 
         {activeTab === 'value' && (
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Value Function
-            </h3>
-            <div className="space-y-4">
-              <div className="bg-charcoal-800 border border-charcoal-700 p-4">
-                <div className="text-xs text-gray-400 mb-2">Win Probability</div>
-                <div className="relative h-32 bg-charcoal-900 border border-charcoal-700">
-                  <div
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-neon-green to-neon-blue transition-all duration-500"
-                    style={{
-                      height: `${winProbability * 100}%`,
-                    }}
-                  >
-                    <div className="absolute -top-6 left-0 right-0 text-center">
-                      <span className="text-sm font-mono text-neon-green">
-                        {(winProbability * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="text-xs text-gray-400">
-                Estimated win probability for current game state
-              </div>
-            </div>
-          </div>
+          <ValueView />
         )}
 
         {activeTab === 'tree' && (
@@ -269,102 +242,6 @@ export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
               <div className="text-gray-400 text-sm py-8">
                 Tree visualization coming soon
               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'pieces' && (
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Piece Selection
-            </h3>
-            {selectedPiece && (
-              <div className="bg-charcoal-800 border border-charcoal-700 p-2 mb-2">
-                <div className="text-xs text-gray-400">Selected</div>
-                <div className="text-sm text-neon-blue font-mono">
-                  {PIECE_NAMES[selectedPiece]} • {orientation}
-                </div>
-              </div>
-            )}
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {availablePieces.map(pieceId => {
-                const shape = getPieceShape(pieceId, orientation);
-                const isSelected = selectedPiece === pieceId;
-                
-                const piecesUsed = gameState?.pieces_used || {};
-                const currentPlayer = gameState?.current_player;
-                const currentPlayerPiecesUsed = piecesUsed[currentPlayer] || [];
-                const isPieceUsed = currentPlayerPiecesUsed.includes(pieceId);
-                
-                return (
-                  <div
-                    key={pieceId}
-                    className={`
-                      group relative p-2 border cursor-pointer transition-all
-                      ${isSelected 
-                        ? 'bg-charcoal-700 border-neon-blue' 
-                        : isPieceUsed
-                        ? 'bg-charcoal-900 border-charcoal-600 opacity-40 cursor-not-allowed'
-                        : 'bg-charcoal-800 border-charcoal-700 hover:border-charcoal-600 hover:bg-charcoal-700'
-                      }
-                    `}
-                    onClick={() => {
-                      if (isPieceUsed || !onPieceSelect) return;
-                      onPieceSelect(pieceId);
-                    }}
-                  >
-                    <div className="flex items-center space-x-2">
-                      {/* Piece visual */}
-                      <div className="flex-shrink-0">
-                        <svg
-                          width={Math.min(shape[0]?.length * PIECE_SIZE, 32)}
-                          height={Math.min(shape.length * PIECE_SIZE, 32)}
-                          viewBox={`0 0 ${shape[0]?.length * PIECE_SIZE} ${shape.length * PIECE_SIZE}`}
-                        >
-                          {shape.map((row, rowIndex) =>
-                            row.map((cell, colIndex) => (
-                              cell === 1 && (
-                                <rect
-                                  key={`${rowIndex}-${colIndex}`}
-                                  x={colIndex * PIECE_SIZE}
-                                  y={rowIndex * PIECE_SIZE}
-                                  width={PIECE_SIZE}
-                                  height={PIECE_SIZE}
-                                  fill={isSelected ? '#00F0FF' : '#64748B'}
-                                  rx="1"
-                                />
-                              )
-                            ))
-                          )}
-                        </svg>
-                      </div>
-                      
-                      {/* Piece info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-mono text-gray-300 truncate">
-                          #{pieceId}
-                        </div>
-                        <div className="text-xs text-gray-400 truncate">
-                          {PIECE_NAMES[pieceId]}
-                        </div>
-                      </div>
-                      
-                      {/* Used indicator */}
-                      {isPieceUsed && (
-                        <div className="text-xs text-neon-red">✕</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {availablePieces.length === 0 && (
-              <div className="text-center text-gray-400 text-sm py-8">
-                All pieces used
-              </div>
-            )}
-            <div className="text-xs text-gray-500 mt-2 space-y-1">
-              <div>R: Rotate | F: Flip</div>
             </div>
           </div>
         )}
