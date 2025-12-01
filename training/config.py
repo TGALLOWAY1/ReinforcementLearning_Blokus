@@ -79,6 +79,8 @@ class TrainingConfig:
     enable_sanity_checks: bool = True
     log_action_details: bool = False
     disable_distribution_validation: bool = True  # Default True for large action space (36400)
+    num_envs: int = 1
+    vec_env_type: Literal["dummy", "subproc"] = "dummy"
     
     def __post_init__(self):
         """Apply smoke-test mode defaults if mode is 'smoke'."""
@@ -187,6 +189,8 @@ class TrainingConfig:
         logger.info(f"Agent Config: {self.agent_config_path if self.agent_config_path else 'None (use defaults)'}")
         logger.info(f"Sanity Checks: {self.enable_sanity_checks}")
         logger.info(f"Log Action Details: {self.log_action_details}")
+        logger.info(f"Number of Environments: {self.num_envs}")
+        logger.info(f"VecEnv Type: {self.vec_env_type}")
         logger.info("=" * 80)
 
 
@@ -341,6 +345,21 @@ def create_arg_parser() -> argparse.ArgumentParser:
         help="Disable sanity checks (NaN/Inf detection, etc.)"
     )
     
+    # VecEnv configuration
+    parser.add_argument(
+        "--num-envs",
+        type=int,
+        default=1,
+        help="Number of parallel environments (default: 1, use VecEnv if > 1)"
+    )
+    parser.add_argument(
+        "--vec-env-type",
+        type=str,
+        choices=["dummy", "subproc"],
+        default="dummy",
+        help="VecEnv type: 'dummy' for sequential (same process), 'subproc' for parallel (default: dummy)"
+    )
+    
     return parser
 
 
@@ -401,6 +420,11 @@ def parse_args_to_config(args: argparse.Namespace) -> TrainingConfig:
     
     if args.disable_sanity_checks:
         config.enable_sanity_checks = False
+    
+    if args.num_envs is not None:
+        config.num_envs = args.num_envs
+    if args.vec_env_type:
+        config.vec_env_type = args.vec_env_type
     
     # Apply smoke-test mode defaults after all overrides
     config.__post_init__()

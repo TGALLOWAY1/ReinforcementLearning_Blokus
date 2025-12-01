@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { PLAYER_COLORS, BOARD_SIZE, CELL_SIZE } from '../constants/gameConstants';
 import { calculatePiecePositions } from '../utils/pieceUtils';
@@ -12,6 +12,35 @@ interface BoardProps {
 
 // Constants are now imported from shared constants file
 
+// Memoized cell component to prevent unnecessary re-renders
+const CellRect = React.memo<{
+  row: number;
+  col: number;
+  cellColor: string;
+  opacity: number;
+  stroke: string;
+  strokeWidth: number;
+  hasPiece: boolean;
+}>(({ row, col, cellColor, opacity, stroke, strokeWidth, hasPiece }) => (
+  <g>
+    <rect
+      x={col * CELL_SIZE}
+      y={row * CELL_SIZE}
+      width={CELL_SIZE}
+      height={CELL_SIZE}
+      fill={cellColor}
+      opacity={opacity}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      className="transition-all duration-200"
+      style={{
+        filter: hasPiece ? `drop-shadow(0 0 2px ${cellColor})` : 'none'
+      }}
+    />
+  </g>
+));
+CellRect.displayName = 'CellRect';
+
 export const Board: React.FC<BoardProps> = ({
   onCellClick,
   onCellHover,
@@ -21,6 +50,23 @@ export const Board: React.FC<BoardProps> = ({
   const { gameState } = useGameStore();
   const [hoveredCell, setHoveredCell] = useState<{row: number, col: number} | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  
+  // Performance instrumentation - measure render time
+  useEffect(() => {
+    console.time('[UI] Board render');
+    return () => {
+      console.timeEnd('[UI] Board render');
+    };
+  });
+  
+  // Performance instrumentation - measure effect time when gameState changes
+  useEffect(() => {
+    if (gameState) {
+      console.time('[UI] Board effect (gameState change)');
+      // Any async operations or computations would go here
+      console.timeEnd('[UI] Board effect (gameState change)');
+    }
+  }, [gameState]);
   
 
   const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
@@ -58,48 +104,44 @@ export const Board: React.FC<BoardProps> = ({
     }
   }, [onCellClick]);
 
-  const getCellColor = (row: number, col: number) => {
-    if (!gameState?.board) return PLAYER_COLORS.empty;
-    
-    const cell = gameState.board[row]?.[col];
-    if (!cell || cell === 0) return PLAYER_COLORS.empty;
-    
-    // Convert numeric values to color names
-    const colorMap = {
-      1: 'red',    // RED
-      2: 'blue',   // BLUE  
-      3: 'green',  // GREEN
-      4: 'yellow'  // YELLOW
-    };
-    
-    const colorName = colorMap[cell as keyof typeof colorMap];
-    const color = PLAYER_COLORS[colorName as keyof typeof PLAYER_COLORS] || PLAYER_COLORS.empty;
-    
-    return color;
-  };
+  // Memoize cell color calculation to avoid recomputation
+  const cellColors = useMemo(() => {
+    if (!gameState?.board) return null;
+    const colors: (string | null)[][] = [];
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      colors[row] = [];
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const cell = gameState.board[row]?.[col];
+        if (!cell || cell === 0) {
+          colors[row][col] = PLAYER_COLORS.empty;
+        } else {
+          const colorMap = {
+            1: 'red',    // RED -> red
+            2: 'blue',   // BLUE -> blue
+            3: 'yellow', // YELLOW -> yellow
+            4: 'green'   // GREEN -> green
+          };
+          const colorName = colorMap[cell as keyof typeof colorMap];
+          colors[row][col] = PLAYER_COLORS[colorName as keyof typeof PLAYER_COLORS] || PLAYER_COLORS.empty;
+        }
+      }
+    }
+    return colors;
+  }, [gameState?.board]);
+
+  const getCellColor = useCallback((row: number, col: number) => {
+    if (!cellColors) return PLAYER_COLORS.empty;
+    return cellColors[row]?.[col] || PLAYER_COLORS.empty;
+  }, [cellColors]);
 
   const isPreviewCell = (row: number, col: number) => {
     return piecePreview.some(pos => pos.row === row && pos.col === col);
   };
 
   const getCellFillColor = (row: number, col: number) => {
-    // Check if this cell is part of the piece preview (ghost piece)
+    // Preview cells (ghost piece) should be transparent (hollow)
     if (isPreviewCell(row, col)) {
-      // Get the color for the selected piece based on current player
-      const currentPlayer = gameState?.current_player;
-      const colorMap: { [key: string]: string } = {
-        'RED': PLAYER_COLORS.red,
-        'BLUE': PLAYER_COLORS.blue,
-        'GREEN': PLAYER_COLORS.green,
-        'YELLOW': PLAYER_COLORS.yellow,
-      };
-      const playerColor = currentPlayer ? colorMap[currentPlayer] || PLAYER_COLORS.blue : PLAYER_COLORS.blue;
-      return playerColor;
-    }
-    
-    // Check if this cell is hovered
-    if (hoveredCell && hoveredCell.row === row && hoveredCell.col === col) {
-      return PLAYER_COLORS.hover;
+      return 'transparent';
     }
     
     // Return the normal cell color
@@ -107,14 +149,9 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const getCellOpacity = (row: number, col: number) => {
-    // Preview cells (ghost piece) should have 20% opacity fill
+    // Preview cells are transparent (hollow), so opacity doesn't matter
     if (isPreviewCell(row, col)) {
-      return 0.2;
-    }
-    
-    // Hovered cells should be slightly visible
-    if (hoveredCell && hoveredCell.row === row && hoveredCell.col === col) {
-      return 0.3;
+      return 1.0;
     }
     
     // Normal cells are fully opaque
@@ -122,17 +159,9 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const getCellStroke = (row: number, col: number) => {
-    // Ghost piece cells get neon border
+    // Ghost piece cells get preview color stroke only (hollow rectangle)
     if (isPreviewCell(row, col)) {
-      const currentPlayer = gameState?.current_player;
-      const colorMap: { [key: string]: string } = {
-        'RED': PLAYER_COLORS.red,
-        'BLUE': PLAYER_COLORS.blue,
-        'GREEN': PLAYER_COLORS.green,
-        'YELLOW': PLAYER_COLORS.yellow,
-      };
-      const playerColor = currentPlayer ? colorMap[currentPlayer] || PLAYER_COLORS.blue : PLAYER_COLORS.blue;
-      return playerColor;
+      return PLAYER_COLORS.preview;
     }
     return 'none';
   };
@@ -172,13 +201,12 @@ export const Board: React.FC<BoardProps> = ({
   const piecePreview = getPiecePreview();
 
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div className="flex flex-col items-center justify-center h-full bg-transparent">
       <svg
         ref={svgRef}
         width={BOARD_SIZE * CELL_SIZE}
         height={BOARD_SIZE * CELL_SIZE}
-        className="cursor-crosshair"
-        style={{ background: 'transparent' }}
+        className="cursor-crosshair bg-charcoal-900/50"
         onMouseMove={handleMouseMove}
         onClick={handleClick}
       >
@@ -206,7 +234,7 @@ export const Board: React.FC<BoardProps> = ({
           </g>
         ))}
         
-        {/* Board cells */}
+        {/* Board cells - memoized to prevent unnecessary re-renders */}
         {Array.from({ length: BOARD_SIZE }).map((_, row) =>
           Array.from({ length: BOARD_SIZE }).map((_, col) => {
             const cellColor = getCellFillColor(row, col);
@@ -216,22 +244,16 @@ export const Board: React.FC<BoardProps> = ({
             const hasPiece = hasPlacedPiece(row, col);
             
             return (
-              <g key={`${row}-${col}`}>
-                <rect
-                  x={col * CELL_SIZE}
-                  y={row * CELL_SIZE}
-                  width={CELL_SIZE}
-                  height={CELL_SIZE}
-                  fill={cellColor}
-                  opacity={opacity}
-                  stroke={stroke}
-                  strokeWidth={strokeWidth}
-                  className="transition-all duration-200"
-                  style={{
-                    filter: hasPiece ? `drop-shadow(0 0 2px ${cellColor})` : 'none'
-                  }}
-                />
-              </g>
+              <CellRect
+                key={`${row}-${col}`}
+                row={row}
+                col={col}
+                cellColor={cellColor}
+                opacity={opacity}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                hasPiece={hasPiece}
+              />
             );
           })
         )}
@@ -243,7 +265,7 @@ export const Board: React.FC<BoardProps> = ({
             y={hoveredCell.row * CELL_SIZE}
             width={CELL_SIZE}
             height={CELL_SIZE}
-            fill={PLAYER_COLORS.hover}
+            fill={PLAYER_COLORS.grid}
             opacity={0.3}
             className="pointer-events-none"
           />

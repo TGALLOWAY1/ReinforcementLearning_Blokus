@@ -1,0 +1,17 @@
+# Smoke-test mode configuration
+# Quick verification run with small episode count and detailed logging
+
+mode: smoke
+max_episodes: 5
+max_steps_per_episode: 100
+total_timesteps: 10000
+n_steps: 512
+learning_rate: 3e-4
+batch_size: 64
+logging_verbosity: 2  # DEBUG level
+random_seed: 42
+checkpoint_dir: checkpoints
+tensorboard_log_dir: ./logs
+enable_sanity_checks: true
+log_action_details: true
+

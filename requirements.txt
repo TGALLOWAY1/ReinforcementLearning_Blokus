@@ -17,3 +17,7 @@ pytest
 pytest-asyncio
 ruff
 mypy
+pyyaml
+motor
+pymongo
+python-dotenv

@@ -89,6 +89,7 @@ interface GameStore {
   selectPiece: (pieceId: number | null) => void;
   setPieceOrientation: (orientation: number) => void;
   makeMove: (move: MoveRequest) => Promise<MoveResponse>;
+  passTurn: (player: string) => Promise<MoveResponse>;
   createGame: (config: any) => Promise<string>;
   setError: (error: string | null) => void;
   setGameState: (gameState: GameState | null) => void;
@@ -157,11 +158,24 @@ export const useGameStore = create<GameStore>()(
               // Add log for WebSocket message
               const { addLog, gameState: currentGameState } = get();
               if (data.type === 'move_made' || data.type === 'move_response') {
+                // Extract move data - backend now includes move info in data.move
                 const moveData = data.data?.move || data.data;
-                const player = data.data?.player || moveData?.player || 'Unknown';
+                const player = data.data?.player || moveData?.player || data.data?.game_state?.current_player || 'Unknown';
                 const pieceId = moveData?.piece_id;
                 const anchorRow = moveData?.anchor_row;
                 const anchorCol = moveData?.anchor_col;
+                
+                // Log raw data for debugging
+                console.log('[UI] Move message received:', {
+                  type: data.type,
+                  hasMove: !!data.data?.move,
+                  hasPlayer: !!data.data?.player,
+                  moveData: moveData,
+                  player: player,
+                  pieceId: pieceId,
+                  anchorRow: anchorRow,
+                  anchorCol: anchorCol
+                });
                 
                 // Check if this is an agent move
                 const newGameState = data.data?.game_state || data.data;
@@ -175,9 +189,15 @@ export const useGameStore = create<GameStore>()(
                   const agentName = agentType.toUpperCase();
                   addLog(`Agent ${agentName} selected move (confidence ${confidence.toFixed(2)})`, 'INFO');
                 } else {
-                  // Human move
-                  const pieceName = pieceId ? `Piece ${pieceId}` : 'a piece';
-                  addLog(`Player ${player} placed ${pieceName} at ${anchorRow},${anchorCol}`, 'INFO');
+                  // Human move - only log if we have valid coordinates
+                  if (anchorRow !== undefined && anchorCol !== undefined && pieceId !== undefined) {
+                    const pieceName = `Piece ${pieceId}`;
+                    addLog(`Player ${player} placed ${pieceName} at ${anchorRow},${anchorCol}`, 'INFO');
+                  } else {
+                    // Fallback: log what we have
+                    console.warn('[UI] Move message missing coordinates:', { player, pieceId, anchorRow, anchorCol, moveData });
+                    addLog(`Player ${player} made a move`, 'INFO');
+                  }
                 }
               } else if (data.type === 'state' || data.type === 'game_state') {
                 // Check if this is a new game state after a move
@@ -274,6 +294,83 @@ export const useGameStore = create<GameStore>()(
 
     setPieceOrientation: (orientation: number) => {
       set({ pieceOrientation: orientation });
+    },
+
+    passTurn: async (player: string): Promise<MoveResponse> => {
+      console.log('⏭️ passTurn called for player:', player);
+      
+      const { websocket } = get();
+      
+      if (!websocket) {
+        console.log('❌ No WebSocket connection');
+        throw new Error('Not connected to game');
+      }
+      
+      if (websocket.readyState !== WebSocket.OPEN) {
+        console.log('❌ WebSocket not open, state:', websocket.readyState);
+        throw new Error('Not connected to game');
+      }
+      
+      console.log('✅ WebSocket is open, sending pass...');
+
+      return new Promise((resolve, reject) => {
+        const message = {
+          type: 'pass',
+          data: {
+            player: player.toUpperCase()
+          }
+        };
+        
+        console.log('📤 Sending WebSocket pass message:', message);
+
+        const handleMessage = (event: MessageEvent) => {
+          console.log('📥 Received WebSocket message:', event.data);
+          try {
+            const data = JSON.parse(event.data);
+            console.log('📥 Parsed message data:', data);
+            
+            // Check if this is a MoveResponse (has success field) or wrapped in move_response
+            if (data.type === 'move_response' || (data.success !== undefined)) {
+              console.log('✅ Pass response received:', data);
+              websocket.removeEventListener('message', handleMessage);
+              // Handle both direct response and wrapped response
+              const response = data.type === 'move_response' ? data.data : data;
+              
+              // Update game state if the response includes it
+              if (response.game_state) {
+                console.log('🔄 Updating game state from pass response');
+                set({ gameState: response.game_state });
+                console.log('✅ Game state updated in store');
+              }
+              
+              resolve(response);
+            } else if (data.type === 'player_passed' || data.type === 'move_made') {
+              console.log('✅ Pass made message received, updating game state');
+              // Update game state when pass is processed
+              const gameState = data.data?.game_state || data.data;
+              if (gameState) {
+                set({ gameState: gameState });
+              }
+            } else {
+              console.log('ℹ️ Non-pass response received:', data.type);
+            }
+          } catch (error) {
+            console.error('💥 Error parsing WebSocket message:', error);
+            websocket.removeEventListener('message', handleMessage);
+            reject(error);
+          }
+        };
+
+        websocket.addEventListener('message', handleMessage);
+        websocket.send(JSON.stringify(message));
+        console.log('📤 Pass message sent to server');
+
+        // Add a timeout for pass responses
+        setTimeout(() => {
+          websocket.removeEventListener('message', handleMessage);
+          reject(new Error('Pass timeout - server did not respond'));
+        }, 10000); // 10 second timeout
+      });
     },
 
     makeMove: async (move: MoveRequest): Promise<MoveResponse> => {
