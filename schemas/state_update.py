@@ -75,6 +75,10 @@ class GameState(BaseModel):
     game_over: bool = False
     winner: Optional[Player] = None
     last_move: Optional[Move] = None
+    heatmap: Optional[List[List[float]]] = Field(
+        default=None,
+        description="20x20 grid where 1.0 = legal move position, 0.0 = illegal"
+    )
     
     class Config:
         json_schema_extra = {

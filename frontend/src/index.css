@@ -24,7 +24,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  @apply bg-charcoal-900 text-gray-200;
 }
 
 #root {
@@ -109,4 +109,9 @@ body {
 
 .text-slate-600 {
   color: #475569 !important;
+}
+
+/* Panel utility class for high-end AI research tool styling */
+.panel {
+  @apply bg-charcoal-800 border border-charcoal-700 rounded-none shadow-none;
 }

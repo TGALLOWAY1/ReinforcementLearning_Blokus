@@ -83,9 +83,18 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const getCellFillColor = (row: number, col: number) => {
-    // Check if this cell is part of the piece preview
+    // Check if this cell is part of the piece preview (ghost piece)
     if (isPreviewCell(row, col)) {
-      return PLAYER_COLORS.preview;
+      // Get the color for the selected piece based on current player
+      const currentPlayer = gameState?.current_player;
+      const colorMap: { [key: string]: string } = {
+        'RED': PLAYER_COLORS.red,
+        'BLUE': PLAYER_COLORS.blue,
+        'GREEN': PLAYER_COLORS.green,
+        'YELLOW': PLAYER_COLORS.yellow,
+      };
+      const playerColor = currentPlayer ? colorMap[currentPlayer] || PLAYER_COLORS.blue : PLAYER_COLORS.blue;
+      return playerColor;
     }
     
     // Check if this cell is hovered
@@ -98,18 +107,48 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const getCellOpacity = (row: number, col: number) => {
-    // Preview cells should be semi-transparent
+    // Preview cells (ghost piece) should have 20% opacity fill
     if (isPreviewCell(row, col)) {
-      return 0.6;
+      return 0.2;
     }
     
-    // Hovered cells should be slightly transparent
+    // Hovered cells should be slightly visible
     if (hoveredCell && hoveredCell.row === row && hoveredCell.col === col) {
-      return 0.4;
+      return 0.3;
     }
     
     // Normal cells are fully opaque
     return 1.0;
+  };
+
+  const getCellStroke = (row: number, col: number) => {
+    // Ghost piece cells get neon border
+    if (isPreviewCell(row, col)) {
+      const currentPlayer = gameState?.current_player;
+      const colorMap: { [key: string]: string } = {
+        'RED': PLAYER_COLORS.red,
+        'BLUE': PLAYER_COLORS.blue,
+        'GREEN': PLAYER_COLORS.green,
+        'YELLOW': PLAYER_COLORS.yellow,
+      };
+      const playerColor = currentPlayer ? colorMap[currentPlayer] || PLAYER_COLORS.blue : PLAYER_COLORS.blue;
+      return playerColor;
+    }
+    return 'none';
+  };
+
+  const getCellStrokeWidth = (row: number, col: number) => {
+    // Ghost piece cells get 2px border
+    if (isPreviewCell(row, col)) {
+      return 2;
+    }
+    return 0;
+  };
+
+  const hasPlacedPiece = (row: number, col: number) => {
+    // Check if this cell has a placed piece (not empty, not preview, not hover)
+    const cellColor = getCellColor(row, col);
+    return cellColor !== PLAYER_COLORS.empty && !isPreviewCell(row, col);
   };
 
 
@@ -133,90 +172,83 @@ export const Board: React.FC<BoardProps> = ({
   const piecePreview = getPiecePreview();
 
   return (
-    <div className="flex flex-col items-center space-y-6">
-      {/* Board container with modern styling */}
-      <div className="relative">
-        {/* Board shadow and glow effect */}
-        <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl blur-xl opacity-30"></div>
+    <div className="flex flex-col items-center justify-center h-full">
+      <svg
+        ref={svgRef}
+        width={BOARD_SIZE * CELL_SIZE}
+        height={BOARD_SIZE * CELL_SIZE}
+        className="cursor-crosshair"
+        style={{ background: 'transparent' }}
+        onMouseMove={handleMouseMove}
+        onClick={handleClick}
+      >
+        {/* Grid lines with charcoal styling */}
+        {Array.from({ length: BOARD_SIZE + 1 }).map((_, i) => (
+          <g key={i}>
+            <line
+              x1={i * CELL_SIZE}
+              y1={0}
+              x2={i * CELL_SIZE}
+              y2={BOARD_SIZE * CELL_SIZE}
+              stroke="#3E3E42"
+              strokeWidth={0.5}
+              opacity={0.5}
+            />
+            <line
+              x1={0}
+              y1={i * CELL_SIZE}
+              x2={BOARD_SIZE * CELL_SIZE}
+              y2={i * CELL_SIZE}
+              stroke="#3E3E42"
+              strokeWidth={0.5}
+              opacity={0.5}
+            />
+          </g>
+        ))}
         
-        {/* Board card */}
-        <div className="relative card p-6">
-          <svg
-            ref={svgRef}
-            width={BOARD_SIZE * CELL_SIZE}
-            height={BOARD_SIZE * CELL_SIZE}
-            className="cursor-crosshair drop-shadow-lg"
-            onMouseMove={handleMouseMove}
-            onClick={handleClick}
-          >
-            {/* Grid lines with subtle styling */}
-            {Array.from({ length: BOARD_SIZE + 1 }).map((_, i) => (
-              <g key={i}>
-                <line
-                  x1={i * CELL_SIZE}
-                  y1={0}
-                  x2={i * CELL_SIZE}
-                  y2={BOARD_SIZE * CELL_SIZE}
-                  stroke={PLAYER_COLORS.grid}
-                  strokeWidth={0.5}
-                  opacity={0.6}
-                />
-                <line
-                  x1={0}
-                  y1={i * CELL_SIZE}
-                  x2={BOARD_SIZE * CELL_SIZE}
-                  y2={i * CELL_SIZE}
-                  stroke={PLAYER_COLORS.grid}
-                  strokeWidth={0.5}
-                  opacity={0.6}
-                />
-              </g>
-            ))}
+        {/* Board cells */}
+        {Array.from({ length: BOARD_SIZE }).map((_, row) =>
+          Array.from({ length: BOARD_SIZE }).map((_, col) => {
+            const cellColor = getCellFillColor(row, col);
+            const opacity = getCellOpacity(row, col);
+            const stroke = getCellStroke(row, col);
+            const strokeWidth = getCellStrokeWidth(row, col);
+            const hasPiece = hasPlacedPiece(row, col);
             
-            {/* Board cells with modern styling */}
-            {Array.from({ length: BOARD_SIZE }).map((_, row) =>
-              Array.from({ length: BOARD_SIZE }).map((_, col) => (
+            return (
+              <g key={`${row}-${col}`}>
                 <rect
-                  key={`${row}-${col}`}
                   x={col * CELL_SIZE}
                   y={row * CELL_SIZE}
                   width={CELL_SIZE}
                   height={CELL_SIZE}
-                  fill={getCellFillColor(row, col)}
-                  opacity={getCellOpacity(row, col)}
-                  stroke={PLAYER_COLORS.grid}
-                  strokeWidth={0.5}
-                  className="transition-all duration-200 hover:opacity-80"
-                  rx="1"
+                  fill={cellColor}
+                  opacity={opacity}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  className="transition-all duration-200"
+                  style={{
+                    filter: hasPiece ? `drop-shadow(0 0 2px ${cellColor})` : 'none'
+                  }}
                 />
-              ))
-            )}
-            
-            {/* Hovered cell highlight with modern effect - only show if not part of piece preview */}
-            {hoveredCell && !isPreviewCell(hoveredCell.row, hoveredCell.col) && (
-              <rect
-                x={hoveredCell.col * CELL_SIZE}
-                y={hoveredCell.row * CELL_SIZE}
-                width={CELL_SIZE}
-                height={CELL_SIZE}
-                fill={PLAYER_COLORS.hover}
-                opacity={0.4}
-                rx="2"
-                className="pointer-events-none animate-pulse"
-              />
-            )}
-            
-          </svg>
-        </div>
-      </div>
-
-      {/* Board info */}
-      <div className="text-center space-y-2">
-        <h3 className="text-lg font-semibold text-slate-700">Game Board</h3>
-        <p className="text-sm text-slate-500">
-          Click on a cell to place your selected piece
-        </p>
-      </div>
+              </g>
+            );
+          })
+        )}
+        
+        {/* Hovered cell highlight - only show if not part of piece preview */}
+        {hoveredCell && !isPreviewCell(hoveredCell.row, hoveredCell.col) && (
+          <rect
+            x={hoveredCell.col * CELL_SIZE}
+            y={hoveredCell.row * CELL_SIZE}
+            width={CELL_SIZE}
+            height={CELL_SIZE}
+            fill={PLAYER_COLORS.hover}
+            opacity={0.3}
+            className="pointer-events-none"
+          />
+        )}
+      </svg>
     </div>
   );
 };

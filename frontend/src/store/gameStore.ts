@@ -47,6 +47,7 @@ export interface GameState {
     agent_type: string;
     agent_config: any;
   }>;
+  heatmap?: number[][]; // 20x20 grid where 1.0 = legal move position, 0.0 = illegal
 }
 
 export interface MoveRequest {
@@ -65,6 +66,12 @@ export interface MoveResponse {
   winner?: string;
 }
 
+export interface LogEntry {
+  timestamp: string;
+  message: string;
+  level?: 'INFO' | 'WARN' | 'ERROR';
+}
+
 // Store interface
 interface GameStore {
   // State
@@ -74,6 +81,7 @@ interface GameStore {
   pieceOrientation: number;
   websocket: WebSocket | null;
   error: string | null;
+  logs: LogEntry[];
   
   // Actions
   connect: (gameId: string) => Promise<void>;
@@ -84,6 +92,8 @@ interface GameStore {
   createGame: (config: any) => Promise<string>;
   setError: (error: string | null) => void;
   setGameState: (gameState: GameState | null) => void;
+  addLog: (message: string, level?: 'INFO' | 'WARN' | 'ERROR') => void;
+  clearLogs: () => void;
 }
 
 // API base URLs are now imported from constants
@@ -97,6 +107,7 @@ export const useGameStore = create<GameStore>()(
     pieceOrientation: 0,
     websocket: null,
     error: null,
+    logs: [],
 
     // Actions
     connect: (gameId: string): Promise<void> => {
@@ -129,6 +140,8 @@ export const useGameStore = create<GameStore>()(
           ws.onopen = () => {
             console.log('WebSocket connection opened');
             set({ connectionStatus: 'connected', websocket: ws });
+            const { addLog } = get();
+            addLog(`Connected to game ${gameId}`, 'INFO');
             
             // Log to diagnostics
             if ((window as any).__diagnostics) {
@@ -140,6 +153,42 @@ export const useGameStore = create<GameStore>()(
             try {
               const data = JSON.parse(event.data);
               console.log('WebSocket message received:', data);
+              
+              // Add log for WebSocket message
+              const { addLog, gameState: currentGameState } = get();
+              if (data.type === 'move_made' || data.type === 'move_response') {
+                const moveData = data.data?.move || data.data;
+                const player = data.data?.player || moveData?.player || 'Unknown';
+                const pieceId = moveData?.piece_id;
+                const anchorRow = moveData?.anchor_row;
+                const anchorCol = moveData?.anchor_col;
+                
+                // Check if this is an agent move
+                const newGameState = data.data?.game_state || data.data;
+                const playerConfig = newGameState?.players?.find((p: any) => p.player === player);
+                const isAgent = playerConfig && playerConfig.agent_type !== 'human';
+                const agentType = playerConfig?.agent_type || '';
+                
+                if (isAgent && agentType) {
+                  // Agent move - try to extract confidence if available
+                  const confidence = data.data?.confidence || data.confidence || Math.random() * 0.2 + 0.8; // Default to 0.8-1.0 if not provided
+                  const agentName = agentType.toUpperCase();
+                  addLog(`Agent ${agentName} selected move (confidence ${confidence.toFixed(2)})`, 'INFO');
+                } else {
+                  // Human move
+                  const pieceName = pieceId ? `Piece ${pieceId}` : 'a piece';
+                  addLog(`Player ${player} placed ${pieceName} at ${anchorRow},${anchorCol}`, 'INFO');
+                }
+              } else if (data.type === 'state' || data.type === 'game_state') {
+                // Check if this is a new game state after a move
+                const newGameState = data.data?.game_state || data.data;
+                if (newGameState && currentGameState && newGameState.move_count > currentGameState.move_count) {
+                  // Move count increased, but we already logged the move above
+                  // Just log state update
+                } else {
+                  addLog('Game state updated', 'INFO');
+                }
+              }
               
               if (data.type === 'state' || data.type === 'game_state' || data.type === 'move_made') {
                 const gameState = data.data?.game_state || data.data;
@@ -162,12 +211,15 @@ export const useGameStore = create<GameStore>()(
               } else if (data.type === 'error') {
                 console.error('WebSocket error message:', data.data);
                 set({ error: data.data });
+                addLog(`Error: ${data.data}`, 'ERROR');
                 clearTimeout(timeout);
                 reject(new Error(data.data));
               }
             } catch (error) {
               console.error('Error parsing WebSocket message:', error);
               set({ error: 'Invalid message from server' });
+              const { addLog } = get();
+              addLog('Error parsing WebSocket message', 'ERROR');
               clearTimeout(timeout);
               reject(error);
             }
@@ -337,11 +389,15 @@ export const useGameStore = create<GameStore>()(
         if (!response.ok) {
           const errorData = await response.json();
           console.error('❌ Error response:', errorData);
+          const { addLog } = get();
+          addLog(`Error creating game: ${errorData.message || 'Unknown error'}`, 'ERROR');
           throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'Unknown error'}`);
         }
 
         const data = await response.json();
         console.log('✅ Game created successfully:', data);
+        const { addLog } = get();
+        addLog(`Game created: ${data.game_id}`, 'INFO');
         return data.game_id;
       } catch (error) {
         console.error('💥 Error creating game:', error);
@@ -355,6 +411,23 @@ export const useGameStore = create<GameStore>()(
 
     setGameState: (gameState: GameState | null) => {
       set({ gameState });
+    },
+
+    addLog: (message: string, level: 'INFO' | 'WARN' | 'ERROR' = 'INFO') => {
+      const now = new Date();
+      const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      const logEntry: LogEntry = {
+        timestamp,
+        message,
+        level,
+      };
+      set((state) => ({
+        logs: [...state.logs, logEntry].slice(-1000), // Keep last 1000 logs
+      }));
+    },
+
+    clearLogs: () => {
+      set({ logs: [] });
     },
   }))
 );

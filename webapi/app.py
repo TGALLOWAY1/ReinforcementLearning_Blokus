@@ -338,9 +338,29 @@ class GameManager:
         
         # Get legal moves
         legal_moves = []
+        engine_moves = []
         if not game.is_game_over():
             engine_moves = game.get_legal_moves()
             legal_moves = [self._convert_move_back(move) for move in engine_moves]
+        
+        # Calculate heatmap: map legal_moves to 20x20 grid (1 = legal, 0 = illegal)
+        heatmap = [[0.0 for _ in range(20)] for _ in range(20)]
+        if engine_moves:
+            from engine.move_generator import LegalMoveGenerator
+            move_generator = LegalMoveGenerator()
+            for engine_move in engine_moves:
+                # Get positions this move would occupy
+                orientations = move_generator.piece_orientations_cache[engine_move.piece_id]
+                orientation = orientations[engine_move.orientation]
+                
+                # Mark all positions of this legal move as 1.0
+                for i in range(orientation.shape[0]):
+                    for j in range(orientation.shape[1]):
+                        if orientation[i, j] == 1:
+                            row = engine_move.anchor_row + i
+                            col = engine_move.anchor_col + j
+                            if 0 <= row < 20 and 0 <= col < 20:
+                                heatmap[row][col] = 1.0
         
         return GameState(
             game_id=game_id,
@@ -354,7 +374,8 @@ class GameManager:
             winner=self._convert_player_back(game.winner) if game.winner else None,
             legal_moves=legal_moves,
             created_at=game_data['created_at'],
-            updated_at=game_data['updated_at']
+            updated_at=game_data['updated_at'],
+            heatmap=heatmap
         )
     
     async def _broadcast_game_state(self, game_id: str, update_type: str):
