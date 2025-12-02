@@ -1,7 +1,26 @@
 // Shared game constants to avoid duplication
+// Environment variables are loaded from .env file (development) or OS env (production)
+// Vite requires VITE_ prefix for environment variables exposed to client code
 
-export const API_BASE = '';
-export const WS_BASE = 'ws://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+// Derive WebSocket URL from API URL if VITE_WS_URL is not set
+// Convert http:// to ws:// and https:// to wss://
+const getWebSocketURL = (): string => {
+  if (import.meta.env.VITE_WS_URL) {
+    return import.meta.env.VITE_WS_URL;
+  }
+  // Convert http://localhost:8000 to ws://localhost:8000
+  // Convert https://example.com to wss://example.com
+  return API_URL.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+};
+
+// API_BASE: Empty string means use relative URLs (works with Vite proxy in dev)
+// In production, this should be the full API URL
+export const API_BASE = import.meta.env.PROD ? API_URL : '';
+
+// WS_BASE: WebSocket URL (always needs full URL)
+export const WS_BASE = getWebSocketURL();
 
 // Piece definitions with their shapes
 export const PIECE_SHAPES: { [key: number]: number[][] } = {
