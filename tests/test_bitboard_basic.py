@@ -168,6 +168,66 @@ class TestBitboardConsistency(unittest.TestCase):
             # Check consistency after each move
             board.assert_bitboard_consistent()
     
+    def test_bitboard_invariants_through_random_self_play(self):
+        """
+        Safety test: Verify bitboard state remains consistent through random self-play.
+        
+        This test uses the default move generation path (frontier+bitboard) and
+        verifies that the bitboard state stays in sync with the grid state after
+        each move. This catches regressions where move generation or board updates
+        break bitboard consistency.
+        """
+        import random
+        from engine.move_generator import LegalMoveGenerator
+        
+        board = Board()
+        generator = LegalMoveGenerator()
+        
+        # Use a small number of moves to keep test fast
+        num_moves = 8
+        random.seed(42)  # Fixed seed for reproducibility
+        
+        moves_made = 0
+        max_attempts = num_moves * 10  # Prevent infinite loops
+        
+        for attempt in range(max_attempts):
+            if moves_made >= num_moves:
+                break
+            
+            player = board.current_player
+            
+            # Use default move generation (frontier+bitboard)
+            moves = generator.get_legal_moves(board, player)
+            
+            if not moves:
+                # No legal moves for current player, try next player
+                board._update_current_player()
+                continue
+            
+            # Choose a random move
+            move = random.choice(moves)
+            orientations = generator.piece_orientations_cache[move.piece_id]
+            positions = move.get_positions(orientations)
+            
+            # Apply the move
+            success = board.place_piece(positions, player, move.piece_id)
+            
+            if success:
+                moves_made += 1
+                
+                # Critical: Check bitboard consistency after each move
+                # This ensures move generation and Board's bit state stay in sync
+                try:
+                    board.assert_bitboard_consistent()
+                except AssertionError as e:
+                    self.fail(
+                        f"Bitboard consistency check failed after move {moves_made} "
+                        f"(player={player.name}, piece_id={move.piece_id}): {e}"
+                    )
+        
+        # Final consistency check
+        board.assert_bitboard_consistent()
+    
     def test_bitboard_copy_consistency(self):
         """Test that copied board maintains bitboard state."""
         board = Board()

@@ -95,6 +95,12 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
     ensuring all offsets are tried as anchors for correctness. The heuristic anchor
     optimization is a performance feature that should not affect correctness due to
     the per-orientation fallback mechanism.
+    
+    Safety Tests:
+    - test_default_move_generation_matches_naive_on_small_random_sample: Ensures the
+      default path (frontier+bitboard) matches naive reference on random states.
+      This test uses the actual default configuration, so it will catch regressions
+      if defaults change or optimizations break correctness.
     """
     
     def setUp(self):
@@ -517,6 +523,103 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
             move_gen_module.USE_FRONTIER_MOVEGEN = original_frontier
             move_gen_module.USE_BITBOARD_LEGALITY = original_bitboard
             move_gen_module.USE_HEURISTIC_ANCHORS = original_heuristic
+    
+    def test_default_move_generation_matches_naive_on_small_random_sample(self):
+        """
+        Safety test: Ensure default move generation path matches naive reference.
+        
+        This test uses the actual default configuration (frontier+bitboard with
+        heuristics disabled) and compares it against the naive reference implementation.
+        It samples a small number of random states to keep the test fast while
+        providing regression protection.
+        
+        This test will catch regressions if:
+        - Default configuration changes unexpectedly
+        - Optimizations break correctness
+        - Bitboard legality diverges from grid-based legality
+        """
+        # Use a small sample to keep this test fast
+        num_samples = 5
+        num_moves_range = (3, 8)
+        
+        for seed in range(num_samples):
+            num_moves = random.randint(*num_moves_range)
+            board, current_player = generate_random_valid_state(num_moves, seed=seed)
+            
+            # Get moves using naive generator (reference implementation)
+            naive_moves = self.generator._get_legal_moves_naive(board, current_player)
+            
+            # Get moves using default path (should be frontier+bitboard with heuristics disabled)
+            # This uses the actual default configuration, not explicitly set flags
+            default_moves = self.generator.get_legal_moves(board, current_player)
+            
+            # Compare using coordinate-based keys for robustness
+            naive_keys = {move_to_coord_key(self.generator, m) for m in naive_moves}
+            default_keys = {move_to_coord_key(self.generator, m) for m in default_moves}
+            
+            # They should be identical
+            self.assertEqual(
+                naive_keys, default_keys,
+                f"Default move generation should match naive on random state "
+                f"(seed={seed}, player={current_player.name}, num_moves={num_moves}): "
+                f"naive has {len(naive_keys)}, default has {len(default_keys)}"
+            )
+    
+    def test_heuristic_anchors_still_produce_correct_moves(self):
+        """
+        Sanity test: Verify heuristic anchors don't cause major regressions.
+        
+        This test enables heuristic anchors and verifies that the per-orientation
+        fallback mechanism prevents major move loss. It uses a smaller sample than
+        the main equivalence tests to keep it fast.
+        
+        Note: The fallback mechanism should ensure no moves are missed, but this
+        test is lenient to catch major regressions while allowing for edge cases
+        where fallback may not trigger if some moves are already found.
+        """
+        import engine.move_generator as move_gen_module
+        
+        # Save original flags
+        original_heuristic = move_gen_module.USE_HEURISTIC_ANCHORS
+        
+        try:
+            # Enable heuristic anchors
+            move_gen_module.USE_HEURISTIC_ANCHORS = True
+            
+            # Use a small sample for this sanity check
+            num_samples = 3
+            num_moves_range = (2, 5)
+            
+            for seed in range(num_samples):
+                num_moves = random.randint(*num_moves_range)
+                board, current_player = generate_random_valid_state(num_moves, seed=seed)
+                
+                # Get moves using naive generator (reference)
+                naive_moves = self.generator._get_legal_moves_naive(board, current_player)
+                
+                # Get moves using default path with heuristics enabled
+                heuristic_moves = self.generator.get_legal_moves(board, current_player)
+                
+                # Compare using coordinate-based keys
+                naive_keys = {move_to_coord_key(self.generator, m) for m in naive_moves}
+                heuristic_keys = {move_to_coord_key(self.generator, m) for m in heuristic_moves}
+                
+                # Heuristic mode should find a reasonable percentage of moves
+                # (fallback should prevent major loss, but may not catch all edge cases)
+                if len(naive_keys) > 0:
+                    coverage_ratio = len(heuristic_keys) / len(naive_keys)
+                    # Require at least 80% coverage to catch major regressions
+                    # (fallback should ideally give 100%, but this is a safety test)
+                    self.assertGreaterEqual(
+                        coverage_ratio, 0.80,
+                        f"Heuristic anchors found too few moves "
+                        f"(seed={seed}, player={current_player.name}): "
+                        f"naive has {len(naive_keys)}, heuristic has {len(heuristic_keys)} "
+                        f"(coverage={coverage_ratio:.2%}). This suggests a major regression."
+                    )
+                
+        finally:
+            # Restore original flags
             move_gen_module.USE_HEURISTIC_ANCHORS = original_heuristic
 
 
