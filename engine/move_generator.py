@@ -293,17 +293,23 @@ class LegalMoveGenerator:
                         
                         # Check legality using bitboard or grid-based method
                         if USE_BITBOARD_LEGALITY:
-                            # Use bitboard legality check
-                            # anchor_board_coord is where the anchor point (anchor_piece_idx) should be placed
-                            # We calculated anchor_row, anchor_col so that offset anchor_piece_idx ends up at frontier
-                            # So the anchor point itself is at (anchor_row, anchor_col)
-                            if self.is_placement_legal_bitboard(
-                                board, player, piece_orientation,
-                                (anchor_row, anchor_col), anchor_piece_idx
-                            ):
-                                move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                legal_moves.append(move)
-                                found_legal_anchor = True
+                            # Use coords-based bitboard legality check
+                            # Compute placement coordinates directly from offsets
+                            placement_coords = [
+                                (anchor_row + rel_r, anchor_col + rel_c)
+                                for rel_r, rel_c in relative_positions
+                            ]
+                            
+                            # Bounds check: ensure all coords are on board
+                            if all(0 <= r < board.SIZE and 0 <= c < board.SIZE 
+                                   for r, c in placement_coords):
+                                if self.is_placement_legal_bitboard_coords(
+                                    board, player, placement_coords,
+                                    is_first_move=is_first_move
+                                ):
+                                    move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
+                                    legal_moves.append(move)
+                                    found_legal_anchor = True
                         else:
                             # Use grid-based legality check (original method)
                             # Check if piece would be within bounds at this anchor
@@ -497,6 +503,79 @@ class LegalMoveGenerator:
         """
         piece_positions = [Position(row, col) for row, col in placement_coords]
         return board.can_place_piece(piece_positions, player)
+    
+    def is_placement_legal_bitboard_coords(
+        self,
+        board: Board,
+        player: Player,
+        placement_coords: List[Tuple[int, int]],
+        *,
+        is_first_move: bool = False,
+    ) -> bool:
+        """
+        Check if a piece placement is legal using bitboard operations.
+        
+        This version works directly from placement coordinates, avoiding
+        anchor/shift complexity. It's more robust and easier to verify.
+        
+        Args:
+            board: Board state
+            player: Player making the placement
+            placement_coords: List of (row, col) tuples where piece would be placed
+            is_first_move: Whether this is the player's first move
+            
+        Returns:
+            True if placement is legal
+        """
+        # 1. Build shape mask from coords
+        shape_mask = coords_to_mask(placement_coords)
+        
+        # 2. Overlap check: shape must not overlap with any occupied cells
+        if shape_mask & board.occupied_bits != 0:
+            return False
+        
+        # 3. Compute diagonal and orth neighbors on the fly
+        placement_set = set(placement_coords)
+        diag_neighbors = set()
+        orth_neighbors = set()
+        
+        for (r, c) in placement_coords:
+            # Diagonals
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                rr, cc = r + dr, c + dc
+                if 0 <= rr < board.SIZE and 0 <= cc < board.SIZE:
+                    if (rr, cc) not in placement_set:
+                        diag_neighbors.add((rr, cc))
+            
+            # Orthogonals
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                rr, cc = r + dr, c + dc
+                if 0 <= rr < board.SIZE and 0 <= cc < board.SIZE:
+                    if (rr, cc) not in placement_set:
+                        orth_neighbors.add((rr, cc))
+        
+        diag_mask = coords_to_mask(diag_neighbors)
+        orth_mask = coords_to_mask(orth_neighbors)
+        
+        player_bits = board.player_bits[player]
+        
+        # 4. Orth adjacency rule: cannot touch own pieces orthogonally
+        if orth_mask & player_bits != 0:
+            return False
+        
+        # 5. Diagonal rule: must touch at least one own piece diagonally (except first move)
+        if not is_first_move:
+            if (diag_mask & player_bits) == 0:
+                return False
+        
+        # 6. First move special rule: must cover starting corner
+        if is_first_move:
+            start_corner = board.player_start_corners[player]
+            start_corner_bit = coord_to_bit(start_corner.row, start_corner.col)
+            if shape_mask & start_corner_bit == 0:
+                return False
+        
+        return True
     
     def _check_adjacency_fast_inline(self, relative_positions: List[Tuple[int, int]], 
                                      anchor_row: int, anchor_col: int,

@@ -52,45 +52,29 @@ class TestLegalityBitboardEquivalence(unittest.TestCase):
                                         piece_id: int, orientation_idx: int,
                                         anchor_row: int, anchor_col: int) -> bool:
         """
-        Check legality using bitboard method.
+        Check legality using coords-based bitboard method.
         
-        This finds the appropriate anchor point by trying all offsets.
+        This converts anchor position to placement coordinates and uses
+        the coords-based bitboard legality check.
         """
-        piece_orientations = ALL_PIECE_ORIENTATIONS.get(piece_id, [])
-        if orientation_idx >= len(piece_orientations):
+        # Get numpy orientation to compute placement coordinates
+        orientations = self.generator.piece_orientations_cache[piece_id]
+        if orientation_idx >= len(orientations):
             return False
         
-        orientation = piece_orientations[orientation_idx]
+        orientation = orientations[orientation_idx]
         
-        # Try each offset as a potential anchor point
-        for anchor_piece_idx, (rel_r, rel_c) in enumerate(orientation.offsets):
-            # Calculate where this anchor would place the piece
-            board_r = anchor_row + rel_r
-            board_c = anchor_col + rel_c
-            
-            # Check if this anchor point matches the desired anchor position
-            # (We need to find which anchor point results in the desired anchor_row, anchor_col)
-            # Actually, we need to work backwards: given anchor_row, anchor_col, find the anchor point
-            # that would result in the piece being at those coordinates
-            
-            # For now, let's try the first offset as anchor and see if it matches
-            # This is a simplified check - in practice we'd need to find the right anchor
-            test_anchor_row = anchor_row - rel_r
-            test_anchor_col = anchor_col - rel_c
-            
-            # Check if placing anchor at (test_anchor_row, test_anchor_col) results in
-            # the piece covering (anchor_row, anchor_col)
-            if (test_anchor_row, test_anchor_col) == (anchor_row, anchor_col) or anchor_piece_idx == 0:
-                # Try this anchor
-                result = self.generator.is_placement_legal_bitboard(
-                    board, player, orientation,
-                    (board_r, board_c), anchor_piece_idx
-                )
-                if result:
-                    return True
+        # Get placement coordinates from anchor position
+        positions = PiecePlacement.get_piece_positions(
+            orientation, anchor_row, anchor_col
+        )
+        placement_coords = [(row, col) for row, col in positions]
         
-        # If no anchor worked, return False
-        return False
+        # Use coords-based bitboard legality check
+        return self.generator.is_placement_legal_bitboard_coords(
+            board, player, placement_coords,
+            is_first_move=board.player_first_move[player]
+        )
     
     def test_first_move_equivalence(self):
         """Test equivalence on empty board (first move scenario)."""
@@ -104,11 +88,14 @@ class TestLegalityBitboardEquivalence(unittest.TestCase):
         # Test placing at starting corner (should be legal)
         grid_result = self._check_legality_grid_based(board, player, piece_id, orientation_idx, 0, 0)
         
-        # For bitboard, we need to find the right anchor
-        piece_orientations = ALL_PIECE_ORIENTATIONS[piece_id]
-        orientation = piece_orientations[orientation_idx]
-        bitboard_result = self.generator.is_placement_legal_bitboard(
-            board, player, orientation, (0, 0), 0
+        # For bitboard, use coords-based check
+        orientations = self.generator.piece_orientations_cache[piece_id]
+        orientation = orientations[orientation_idx]
+        positions = PiecePlacement.get_piece_positions(orientation, 0, 0)
+        placement_coords = [(row, col) for row, col in positions]
+        bitboard_result = self.generator.is_placement_legal_bitboard_coords(
+            board, player, placement_coords,
+            is_first_move=board.player_first_move[player]
         )
         
         self.assertEqual(grid_result, bitboard_result,
@@ -135,13 +122,14 @@ class TestLegalityBitboardEquivalence(unittest.TestCase):
                 board, player, piece_id, orientation_idx, anchor_row, anchor_col
             )
             
-            # For bitboard, try to find matching anchor
-            piece_orientations = ALL_PIECE_ORIENTATIONS[piece_id]
-            orientation = piece_orientations[orientation_idx]
-            
-            # Try first offset as anchor
-            bitboard_result = self.generator.is_placement_legal_bitboard(
-                board, player, orientation, (anchor_row, anchor_col), 0
+            # For bitboard, use coords-based check
+            orientations = self.generator.piece_orientations_cache[piece_id]
+            orientation = orientations[orientation_idx]
+            positions = PiecePlacement.get_piece_positions(orientation, anchor_row, anchor_col)
+            placement_coords = [(row, col) for row, col in positions]
+            bitboard_result = self.generator.is_placement_legal_bitboard_coords(
+                board, player, placement_coords,
+                is_first_move=board.player_first_move[player]
             )
             
             # If that didn't work, the grid-based might be using a different anchor strategy
@@ -166,32 +154,21 @@ class TestLegalityBitboardEquivalence(unittest.TestCase):
             
             orientation = piece_orientations[move.orientation]
             
-            # Try each offset as anchor to find one that matches
-            found_match = False
-            for anchor_piece_idx, (rel_r, rel_c) in enumerate(orientation.offsets):
-                # Calculate where anchor would be if we place this offset at move.anchor_row, anchor_col
-                test_anchor_row = move.anchor_row - rel_r
-                test_anchor_col = move.anchor_col - rel_c
-                
-                # Check if this results in the piece being at the right place
-                # Actually, we need to check: if anchor is at (test_anchor_row, test_anchor_col),
-                # does the piece cover the positions we expect?
-                # For simplicity, let's just check if bitboard says it's legal when we place
-                # the anchor offset at the move's anchor position
-                bitboard_result = self.generator.is_placement_legal_bitboard(
-                    board, player, orientation,
-                    (move.anchor_row + rel_r, move.anchor_col + rel_c),
-                    anchor_piece_idx
-                )
-                
-                if bitboard_result:
-                    found_match = True
-                    break
+            # Use coords-based bitboard check
+            orientations = self.generator.piece_orientations_cache[move.piece_id]
+            orientation = orientations[move.orientation]
+            positions = PiecePlacement.get_piece_positions(
+                orientation, move.anchor_row, move.anchor_col
+            )
+            placement_coords = [(row, col) for row, col in positions]
+            bitboard_result = self.generator.is_placement_legal_bitboard_coords(
+                board, player, placement_coords,
+                is_first_move=board.player_first_move[player]
+            )
             
-            # At least one anchor should work for a legal move
-            # (This is a simplified check - we're verifying bitboard can find the move)
-            self.assertTrue(found_match or len(orientation.offsets) == 0,
-                          f"Bitboard couldn't find legal anchor for move {move}")
+            # Bitboard should agree with grid-based (which said this move is legal)
+            self.assertTrue(bitboard_result,
+                          f"Bitboard says move {move} is illegal, but grid-based says it's legal")
     
     def test_equivalence_after_two_pieces(self):
         """Test equivalence after placing two pieces."""
@@ -213,10 +190,13 @@ class TestLegalityBitboardEquivalence(unittest.TestCase):
         # Test placing at YELLOW's starting corner
         grid_result = self._check_legality_grid_based(board, player, piece_id, orientation_idx, 19, 19)
         
-        piece_orientations = ALL_PIECE_ORIENTATIONS[piece_id]
-        orientation = piece_orientations[orientation_idx]
-        bitboard_result = self.generator.is_placement_legal_bitboard(
-            board, player, orientation, (19, 19), 0
+        orientations = self.generator.piece_orientations_cache[piece_id]
+        orientation = orientations[orientation_idx]
+        positions = PiecePlacement.get_piece_positions(orientation, 19, 19)
+        placement_coords = [(row, col) for row, col in positions]
+        bitboard_result = self.generator.is_placement_legal_bitboard_coords(
+            board, player, placement_coords,
+            is_first_move=board.player_first_move[player]
         )
         
         self.assertEqual(grid_result, bitboard_result,

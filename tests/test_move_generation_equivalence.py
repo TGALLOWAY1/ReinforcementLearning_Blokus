@@ -369,49 +369,37 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
                             print(f"  Grid-based legality: ERROR (orientation index {missing_move.orientation} out of range)")
                             grid_legal = False
                         
-                        # Bitboard legality
+                        # Bitboard legality (coords-based)
+                        placement_coords_list = list(coords)
+                        bitboard_legal = self.generator.is_placement_legal_bitboard_coords(
+                            board, player_id, placement_coords_list,
+                            is_first_move=board.player_first_move[player_id]
+                        )
+                        print(f"  Bitboard legality (coords-based): {bitboard_legal}")
+                        
+                        # Call deep debug helper for detailed comparison (if needed)
                         piece_orientations = ALL_PIECE_ORIENTATIONS.get(piece_id, [])
                         if missing_move.orientation < len(piece_orientations):
                             piece_orientation = piece_orientations[missing_move.orientation]
-                            
-                            # Try each anchor index to find one that matches
-                            bitboard_legal = False
+                            # Find matching anchor for debug helper
                             matching_anchor_idx = None
                             matching_anchor_coord = None
-                            
                             for anchor_idx in piece_orientation.anchor_indices:
                                 if anchor_idx >= len(piece_orientation.offsets):
                                     continue
-                                
-                                # Calculate anchor position
                                 rel_r, rel_c = piece_orientation.offsets[anchor_idx]
                                 anchor_row = missing_move.anchor_row - rel_r
                                 anchor_col = missing_move.anchor_col - rel_c
-                                
-                                # Check if this anchor produces the same placement
                                 test_coords = tuple(sorted(
                                     (anchor_row + offset[0], anchor_col + offset[1])
                                     for offset in piece_orientation.offsets
                                 ))
-                                
                                 if test_coords == coords:
-                                    # Found matching anchor - check legality
                                     matching_anchor_idx = anchor_idx
                                     matching_anchor_coord = (anchor_row, anchor_col)
-                                    bitboard_legal = self.generator.is_placement_legal_bitboard(
-                                        board, player_id, piece_orientation,
-                                        (anchor_row, anchor_col), anchor_idx
-                                    )
-                                    if bitboard_legal:
-                                        print(f"  Bitboard legality: {bitboard_legal} (anchor_idx={anchor_idx})")
-                                        break
+                                    break
                             
-                            if not bitboard_legal:
-                                print(f"  Bitboard legality: {bitboard_legal} (tried all anchors)")
-                            
-                            # Call deep debug helper if we found a matching anchor
                             if matching_anchor_idx is not None and matching_anchor_coord is not None:
-                                placement_coords_list = list(coords)
                                 debug_compare_bitboard_vs_grid(
                                     board, player_id, piece_orientation,
                                     matching_anchor_coord, matching_anchor_idx,
