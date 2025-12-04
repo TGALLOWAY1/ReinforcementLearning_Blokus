@@ -7,7 +7,8 @@ import time
 import logging
 from typing import List, Tuple, Set, Optional
 from .board import Board, Player, Position
-from .pieces import PieceGenerator, PiecePlacement
+from .pieces import PieceGenerator, PiecePlacement, PieceOrientation, ALL_PIECE_ORIENTATIONS
+from .bitboard import shift_mask, coord_to_bit
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,11 @@ MOVEGEN_DEBUG = bool(os.getenv("BLOKUS_MOVEGEN_DEBUG", ""))
 
 # Feature flag to toggle between naive and frontier-based move generation
 USE_FRONTIER_MOVEGEN = bool(os.getenv("BLOKUS_USE_FRONTIER_MOVEGEN", ""))
+
+# Feature flag to toggle between grid-based and bitboard-based legality checks
+# When True, frontier-based move generation (and optionally others) will use
+# bitboard legality instead of cell-based checks
+USE_BITBOARD_LEGALITY = bool(os.getenv("BLOKUS_USE_BITBOARD_LEGALITY", ""))
 
 
 class Move:
@@ -218,18 +224,30 @@ class LegalMoveGenerator:
         piece_timings = {}
         for piece in available_pieces:
             piece_start = time.perf_counter()
-            orientations = self.piece_orientations_cache[piece.id]
-            cached_positions = self.piece_position_cache[piece.id]
             
-            for orientation_idx, orientation in enumerate(orientations):
-                # Get cached relative positions for this orientation
-                relative_positions = cached_positions[orientation_idx]
+            # Get orientations - use precomputed PieceOrientation if bitboard legality is enabled
+            if USE_BITBOARD_LEGALITY:
+                piece_orientations = ALL_PIECE_ORIENTATIONS.get(piece.id, [])
+                num_orientations = len(piece_orientations)
+            else:
+                # Use old numpy-based orientations
+                orientations = self.piece_orientations_cache[piece.id]
+                cached_positions = self.piece_position_cache[piece.id]
+                num_orientations = len(orientations)
+            
+            for orientation_idx in range(num_orientations):
+                if USE_BITBOARD_LEGALITY:
+                    piece_orientation = piece_orientations[orientation_idx]
+                    relative_positions = piece_orientation.offsets
+                else:
+                    orientation = orientations[orientation_idx]
+                    relative_positions = cached_positions[orientation_idx]
                 
                 # For each frontier cell, try anchoring the piece at different positions
                 # Simple strategy: try anchoring each cell of the piece to the frontier cell
                 for frontier_row, frontier_col in frontier_cells:
                     # Try each position in the piece as a potential anchor
-                    for rel_r, rel_c in relative_positions:
+                    for anchor_piece_idx, (rel_r, rel_c) in enumerate(relative_positions):
                         # Calculate anchor position: frontier cell minus relative position
                         anchor_row = frontier_row - rel_r
                         anchor_col = frontier_col - rel_c
@@ -238,47 +256,60 @@ class LegalMoveGenerator:
                         if anchor_row < 0 or anchor_row >= board.SIZE or anchor_col < 0 or anchor_col >= board.SIZE:
                             continue
                         
-                        # Check if piece would be within bounds at this anchor
-                        # (get_valid_anchor_positions already does this, but we need to check manually here)
-                        if not PiecePlacement.can_place_piece_at(
-                            (board.SIZE, board.SIZE), orientation, anchor_row, anchor_col
-                        ):
-                            continue
-                        
-                        # Fast bounds and overlap check using cached positions and direct grid access
-                        has_overlap = False
-                        covers_start_corner = False
-                        
-                        for check_rel_r, check_rel_c in relative_positions:
-                            r = anchor_row + check_rel_r
-                            c = anchor_col + check_rel_c
+                        # Check legality using bitboard or grid-based method
+                        if USE_BITBOARD_LEGALITY:
+                            # Use bitboard legality check
+                            # anchor_board_coord is where the anchor point (anchor_piece_idx) should be placed
+                            # We calculated anchor_row, anchor_col so that offset anchor_piece_idx ends up at frontier
+                            # So the anchor point itself is at (anchor_row, anchor_col)
+                            if self.is_placement_legal_bitboard(
+                                board, player, piece_orientation,
+                                (anchor_row, anchor_col), anchor_piece_idx
+                            ):
+                                move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
+                                legal_moves.append(move)
+                        else:
+                            # Use grid-based legality check (original method)
+                            # Check if piece would be within bounds at this anchor
+                            if not PiecePlacement.can_place_piece_at(
+                                (board.SIZE, board.SIZE), orientation, anchor_row, anchor_col
+                            ):
+                                continue
                             
-                            # Bounds check
-                            if r < 0 or r >= board.SIZE or c < 0 or c >= board.SIZE:
-                                has_overlap = True
-                                break
+                            # Fast bounds and overlap check using cached positions and direct grid access
+                            has_overlap = False
+                            covers_start_corner = False
                             
-                            # Overlap check - direct grid access
-                            if grid[r, c] != 0:
-                                has_overlap = True
-                                break
+                            for check_rel_r, check_rel_c in relative_positions:
+                                r = anchor_row + check_rel_r
+                                c = anchor_col + check_rel_c
+                                
+                                # Bounds check
+                                if r < 0 or r >= board.SIZE or c < 0 or c >= board.SIZE:
+                                    has_overlap = True
+                                    break
+                                
+                                # Overlap check - direct grid access
+                                if grid[r, c] != 0:
+                                    has_overlap = True
+                                    break
+                                
+                                # Check if covers start corner (for first move)
+                                if is_first_move and start_corner and r == start_corner.row and c == start_corner.col:
+                                    covers_start_corner = True
                             
-                            # Check if covers start corner (for first move)
-                            if is_first_move and start_corner and r == start_corner.row and c == start_corner.col:
-                                covers_start_corner = True
-                        
-                        # Early exit if overlap or (first move and doesn't cover start corner)
-                        if has_overlap:
-                            continue
-                        if is_first_move and not covers_start_corner:
-                            continue
-                        
-                        # Check adjacency rules using relative positions directly
-                        if self._check_adjacency_fast_inline(relative_positions, anchor_row, anchor_col, 
-                                                             player_value, grid, board.SIZE, 
-                                                             is_first_move, start_corner):
-                            move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                            legal_moves.append(move)
+                            # Early exit if overlap or (first move and doesn't cover start corner)
+                            if has_overlap:
+                                continue
+                            if is_first_move and not covers_start_corner:
+                                continue
+                            
+                            # Check adjacency rules using relative positions directly
+                            if self._check_adjacency_fast_inline(relative_positions, anchor_row, anchor_col, 
+                                                                 player_value, grid, board.SIZE, 
+                                                                 is_first_move, start_corner):
+                                move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
+                                legal_moves.append(move)
             
             piece_end = time.perf_counter()
             piece_timings[piece.id] = piece_end - piece_start
@@ -303,6 +334,74 @@ class LegalMoveGenerator:
             logger.debug(f"Legal move generation [frontier]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
         
         return legal_moves
+    
+    def is_placement_legal_bitboard(self, board: Board, player: Player, 
+                                     orientation: PieceOrientation,
+                                     anchor_board_coord: Tuple[int, int],
+                                     anchor_piece_index: int = 0) -> bool:
+        """
+        Check if a piece placement is legal using bitboard operations.
+        
+        Args:
+            board: Board state
+            player: Player making the placement
+            orientation: PieceOrientation instance
+            anchor_board_coord: (row, col) where the anchor point should be placed
+            anchor_piece_index: Index into orientation.offsets for the anchor point
+            
+        Returns:
+            True if placement is legal
+        """
+        if anchor_piece_index >= len(orientation.offsets):
+            return False
+        
+        # Get anchor point in piece coordinates
+        piece_r, piece_c = orientation.offsets[anchor_piece_index]
+        
+        # Get anchor point in board coordinates
+        board_r, board_c = anchor_board_coord
+        
+        # Compute shift
+        d_row = board_r - piece_r
+        d_col = board_c - piece_c
+        
+        # Shift masks to board position
+        shape_shifted = shift_mask(orientation.shape_mask, d_row, d_col)
+        if shape_shifted is None:
+            return False  # Off-board
+        
+        diag_shifted = shift_mask(orientation.diag_mask, d_row, d_col)
+        if diag_shifted is None:
+            # If diag_mask shift fails, we can still check (some neighbors might be off-board)
+            diag_shifted = 0
+        
+        orth_shifted = shift_mask(orientation.orth_mask, d_row, d_col)
+        if orth_shifted is None:
+            # If orth_mask shift fails, we can still check
+            orth_shifted = 0
+        
+        # Overlap check: shape must not overlap with any occupied cells
+        if shape_shifted & board.occupied_bits != 0:
+            return False
+        
+        # Orthogonal adjacency check: cannot touch own pieces orthogonally
+        if orth_shifted & board.player_bits[player] != 0:
+            return False
+        
+        # Diagonal adjacency requirement: must touch at least one own piece diagonally (if not first move)
+        is_first_move = board.player_first_move[player]
+        if not is_first_move:
+            if diag_shifted & board.player_bits[player] == 0:
+                return False
+        
+        # First move exception: must cover starting corner
+        if is_first_move:
+            start_corner = board.player_start_corners[player]
+            start_corner_bit = coord_to_bit(start_corner.row, start_corner.col)
+            if shape_shifted & start_corner_bit == 0:
+                return False
+        
+        return True
     
     def _check_adjacency_fast_inline(self, relative_positions: List[Tuple[int, int]], 
                                      anchor_row: int, anchor_col: int,
