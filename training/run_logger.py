@@ -39,16 +39,18 @@ class TrainingRunLogger:
     during RL training sessions.
     """
     
-    def __init__(self, run_id: Optional[str] = None):
+    def __init__(self, run_id: Optional[str] = None, agent_id: str = "ppo_agent", algorithm: str = "MaskablePPO"):
         """
         Initialize the training run logger.
         
         Args:
             run_id: Optional run ID (will generate UUID if not provided)
+            agent_id: Agent identifier for logging
+            algorithm: Algorithm name for logging
         """
         self.run_id = run_id or str(uuid.uuid4())
-        self.agent_id = "ppo_agent"  # TODO: Make configurable
-        self.algorithm = "MaskablePPO"  # TODO: Make configurable
+        self.agent_id = agent_id
+        self.algorithm = algorithm
         self.episodes: List[Dict[str, Any]] = []
         self.rolling_win_rates: List[Dict[str, Any]] = []
         self.window_size = 100  # For rolling win rate calculation
@@ -56,17 +58,13 @@ class TrainingRunLogger:
         
     def create_run(
         self,
-        config: Dict[str, Any],
-        agent_id: Optional[str] = None,
-        algorithm: Optional[str] = None
+        config: Dict[str, Any]
     ) -> bool:
         """
         Create a new TrainingRun record in MongoDB.
         
         Args:
             config: Training configuration dictionary
-            agent_id: Optional agent identifier
-            algorithm: Optional algorithm name
             
         Returns:
             True if successful, False otherwise
@@ -74,11 +72,6 @@ class TrainingRunLogger:
         if not MONGODB_AVAILABLE:
             logger.warning("MongoDB not available, skipping run creation")
             return False
-        
-        if agent_id:
-            self.agent_id = agent_id
-        if algorithm:
-            self.algorithm = algorithm
         
         try:
             # Run async operation in sync context
@@ -124,7 +117,7 @@ class TrainingRunLogger:
         episode: int,
         total_reward: float,
         steps: int,
-        win: Optional[bool] = None,
+        win: Optional[float] = None,
         epsilon: Optional[float] = None
     ) -> bool:
         """
@@ -134,7 +127,7 @@ class TrainingRunLogger:
             episode: Episode number
             total_reward: Total reward for the episode
             steps: Number of steps in the episode
-            win: Whether the agent won (if applicable)
+            win: Win value (1.0=win, 0.5=tie, 0.0=loss) or None if unavailable
             epsilon: Exploration rate (if applicable)
             
         Returns:
@@ -170,16 +163,24 @@ class TrainingRunLogger:
             logger.error(f"Failed to log episode {episode}: {e}")
             return False
     
-    def _update_rolling_win_rate(self, episode: int, win: bool):
-        """Update rolling win rate calculation."""
+    def _update_rolling_win_rate(self, episode: int, win: float):
+        """
+        Update rolling win rate calculation.
+        
+        Win values: 1.0 = win, 0.5 = tie, 0.0 = loss
+        Win rate is calculated as: (wins + 0.5 * ties) / total_episodes
+        This gives partial credit for ties.
+        """
         # Calculate win rate over last N episodes
         recent_episodes = [e for e in self.episodes if e.get("win") is not None]
         if len(recent_episodes) >= self.window_size:
             recent_wins = recent_episodes[-self.window_size:]
-            win_rate = sum(1 for e in recent_wins if e["win"]) / len(recent_wins)
+            # Win rate = (wins + 0.5 * ties) / total
+            # win > 0.5 counts as full win, win == 0.5 counts as half, win < 0.5 counts as loss
+            win_rate = sum(e["win"] for e in recent_wins) / len(recent_wins)
         else:
             recent_wins = recent_episodes
-            win_rate = sum(1 for e in recent_wins if e["win"]) / len(recent_wins) if recent_wins else 0.0
+            win_rate = sum(e["win"] for e in recent_wins) / len(recent_wins) if recent_wins else 0.0
         
         self.rolling_win_rates.append({
             "episode": episode,
@@ -311,23 +312,23 @@ class TrainingRunLogger:
 
 def create_training_run_logger(
     config: Dict[str, Any],
-    agent_id: Optional[str] = None,
-    algorithm: Optional[str] = None
+    agent_id: str = "ppo_agent",
+    algorithm: str = "MaskablePPO"
 ) -> Optional[TrainingRunLogger]:
     """
     Create and initialize a TrainingRunLogger.
     
     Args:
         config: Training configuration dictionary
-        agent_id: Optional agent identifier
-        algorithm: Optional algorithm name
+        agent_id: Agent identifier for logging
+        algorithm: Algorithm name for logging
         
     Returns:
         TrainingRunLogger instance or None if MongoDB is unavailable
     """
-    logger_instance = TrainingRunLogger()
+    logger_instance = TrainingRunLogger(agent_id=agent_id, algorithm=algorithm)
     
-    if logger_instance.create_run(config, agent_id, algorithm):
+    if logger_instance.create_run(config):
         return logger_instance
     else:
         return None

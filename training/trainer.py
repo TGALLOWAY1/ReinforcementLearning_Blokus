@@ -37,6 +37,7 @@ Current hyperparameter usage:
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 
@@ -62,6 +63,7 @@ from training.checkpoints import (
 )
 from training.agent_config import load_agent_config, AgentConfig
 from training.reproducibility import get_reproducibility_metadata, log_reproducibility_info
+from utils.logging_setup import setup_training_logging
 
 # Configure logging
 logging.basicConfig(
@@ -320,9 +322,15 @@ class TrainingCallback(BaseCallback):
         self.env_current_reward = {i: 0.0 for i in range(self.num_envs)}
         self.env_current_length = {i: 0 for i in range(self.num_envs)}
         self.env_episode_count = {i: 0 for i in range(self.num_envs)}
+        self.env_last_info = {i: None for i in range(self.num_envs)}  # Store last info dict per env for win detection
         
         # Global step tracking (increments once per SB3 step, not per env)
         self.step_count = 0
+        
+        # Timing for speed metrics (using perf_counter for high-precision elapsed time)
+        self.start_time = time.perf_counter()
+        self.last_log_time = time.perf_counter()
+        self.last_log_step_count = 0
         
         # Last step info (for debugging, uses first env's data)
         self.last_obs = None
@@ -400,6 +408,10 @@ class TrainingCallback(BaseCallback):
                 self.last_reward = reward
                 self.last_done = done
             
+            # Store last info dict per env (needed for win detection on terminal steps)
+            if done:
+                self.env_last_info[env_id] = info
+            
             # Sanity checks (per env)
             if self.config.enable_sanity_checks:
                 self._sanity_check(reward, obs, action, info)
@@ -446,11 +458,11 @@ class TrainingCallback(BaseCallback):
         self.env_episode_rewards[env_id].append(self.env_current_reward[env_id])
         self.env_episode_lengths[env_id].append(self.env_current_length[env_id])
         
+        # Determine win status from terminal step info
+        win = self._compute_win_from_info(env_id)
+        
         # Log to MongoDB if logger is available
         if self.run_logger:
-            # Determine win status (simplified: positive reward indicates good performance)
-            # TODO: Implement proper win detection based on game outcome
-            win = None  # Will be None for now since we don't have game outcome in callback
             self.run_logger.log_episode(
                 episode=episode_num,
                 total_reward=self.env_current_reward[env_id],
@@ -461,10 +473,12 @@ class TrainingCallback(BaseCallback):
         # Log episode completion (only for first env or if verbose/multi-env)
         if env_id == 0 or (self.config.mode == "smoke" or self.config.logging_verbosity >= 1):
             env_suffix = f" (env {env_id})" if self.num_envs > 1 else ""
+            win_str = f"win={win:.1f}" if win is not None else "win=None"
             logger.info(
                 f"Episode {episode_num}{env_suffix} completed: "
                 f"reward={self.env_current_reward[env_id]:.2f}, "
-                f"length={self.env_current_length[env_id]}"
+                f"length={self.env_current_length[env_id]}, "
+                f"{win_str}"
             )
         
         # Save checkpoint if interval is reached (based on aggregate episode count)
@@ -509,6 +523,7 @@ class TrainingCallback(BaseCallback):
         # Reset per-env episode tracking
         self.env_current_reward[env_id] = 0.0
         self.env_current_length[env_id] = 0
+        self.env_last_info[env_id] = None  # Clear last info for next episode
         
         # Log episode statistics periodically (aggregate across all envs)
         total_episodes = self.episode_count
@@ -518,10 +533,32 @@ class TrainingCallback(BaseCallback):
             all_lengths = self.episode_lengths
             if len(all_rewards) >= 10:
                 avg_reward = np.mean(all_rewards[-10:])
+                std_reward = np.std(all_rewards[-10:])
                 avg_length = np.mean(all_lengths[-10:])
+                std_length = np.std(all_lengths[-10:])
+                
+                # Calculate speed metrics (using perf_counter for high-precision timing)
+                current_time = time.perf_counter()
+                elapsed_since_last_log = current_time - self.last_log_time
+                steps_since_last_log = self.step_count - self.last_log_step_count
+                
+                if elapsed_since_last_log > 0:
+                    steps_per_sec = steps_since_last_log / elapsed_since_last_log
+                    # Environment steps per second (accounting for vectorization)
+                    env_steps_per_sec = steps_per_sec * self.num_envs
+                else:
+                    steps_per_sec = 0.0
+                    env_steps_per_sec = 0.0
+                
+                # Update tracking
+                self.last_log_time = current_time
+                self.last_log_step_count = self.step_count
+                
                 logger.info(
-                    f"Last 10 episodes (across all envs) - Avg reward: {avg_reward:.2f}, "
-                    f"Avg length: {avg_length:.1f}"
+                    f"Episodes {total_episodes - 9}-{total_episodes} (last 10): "
+                    f"reward={avg_reward:.2f}±{std_reward:.2f}, "
+                    f"length={avg_length:.1f}±{std_length:.1f}, "
+                    f"speed={steps_per_sec:.1f} steps/s ({env_steps_per_sec:.1f} env steps/s)"
                 )
     
     def _sanity_check(self, reward: float, obs: Any, action: Any, info: Dict):
@@ -563,18 +600,94 @@ class TrainingCallback(BaseCallback):
             logger.debug(f"  Current score: {info['score']}")
         if "pieces_remaining" in info:
             logger.debug(f"  Pieces remaining: {info['pieces_remaining']}")
+    
+    def _compute_win_from_info(self, env_id: int) -> Optional[float]:
+        """
+        Compute win value for player_0 from terminal step info dict.
+        
+        Win calculation:
+        - 1.0 if player0_won=True and is_tie=False (player_0 wins uniquely)
+        - 0.5 if is_tie=True and player_0 (id=1) in winner_ids (player_0 ties)
+        - 0.0 otherwise (player_0 loses)
+        - None if info dict doesn't contain game result fields (unexpected)
+        
+        Args:
+            env_id: Environment ID to get info from
+            
+        Returns:
+            Win value (1.0, 0.5, 0.0) or None if info is missing
+        """
+        info = self.env_last_info[env_id]
+        
+        if info is None:
+            logger.warning(
+                f"Episode end for env {env_id}: No info dict available. "
+                f"Win detection requires terminal step info dict."
+            )
+            return None
+        
+        # Check if game result fields are present
+        if "final_scores" not in info or "winner_ids" not in info or "is_tie" not in info:
+            logger.warning(
+                f"Episode end for env {env_id}: Missing game result fields in info dict. "
+                f"Expected: final_scores, winner_ids, is_tie. "
+                f"Got keys: {list(info.keys())}. "
+                f"This may indicate the episode was truncated or game result wasn't computed."
+            )
+            return None
+        
+        # Extract game result information
+        is_tie = info["is_tie"]
+        winner_ids = info["winner_ids"]
+        player0_won = info.get("player0_won", False)  # Convenience flag from env
+        
+        # Player_0 corresponds to Player.RED which has value=1
+        player_0_id = 1  # Player.RED.value
+        
+        # Compute win value according to specification
+        if player0_won and not is_tie:
+            # Player_0 wins uniquely
+            return 1.0
+        elif is_tie and player_0_id in winner_ids:
+            # Player_0 ties for highest score
+            return 0.5
+        else:
+            # Player_0 loses (or tie where player_0 not in winner_ids, which shouldn't happen)
+            return 0.0
 
 
-def train(config: TrainingConfig) -> Optional[TrainingCallback]:
+def train(config: TrainingConfig, run_dir: Optional[Path] = None, experiment_name: Optional[str] = None) -> Optional[TrainingCallback]:
     """
     Train a MaskablePPO agent on the Blokus environment.
     
     Args:
         config: Training configuration object
+        run_dir: Optional run directory for logs (if None, creates timestamped directory)
+        experiment_name: Optional experiment name for run directory
         
     Returns:
         TrainingCallback instance (for testing/inspection), or None if training failed
     """
+    # Set up logging with file output
+    if run_dir is None:
+        run_dir, log_file = setup_training_logging(
+            base_run_dir=Path("runs"),
+            experiment_name=experiment_name or config.mode,
+            level=logging.INFO if config.logging_verbosity >= 1 else logging.ERROR
+        )
+        logger.info(f"Created run directory: {run_dir}")
+        logger.info(f"Log file: {log_file}")
+    else:
+        # Use provided run directory, set up logging
+        from utils.logging_setup import setup_logging
+        log_file = setup_logging(
+            run_dir,
+            "training",
+            level=logging.INFO if config.logging_verbosity >= 1 else logging.ERROR
+        )
+        logger.info(f"Using run directory: {run_dir}")
+        logger.info(f"Log file: {log_file}")
+    
     # Set up logging level
     if config.logging_verbosity == 0:
         logging.getLogger().setLevel(logging.ERROR)
@@ -589,7 +702,6 @@ def train(config: TrainingConfig) -> Optional[TrainingCallback]:
         try:
             agent_config = load_agent_config(Path(config.agent_config_path))
             if agent_config:
-                agent_config.log_config(logger)
                 # Override training config with agent config values
                 config.learning_rate = agent_config.learning_rate
                 config.batch_size = agent_config.batch_size
@@ -598,11 +710,40 @@ def train(config: TrainingConfig) -> Optional[TrainingCallback]:
             logger.error(f"Failed to load agent config: {e}")
             raise
     
+    # Log run start
+    logger.info("=" * 80)
+    logger.info("Starting Training Run")
+    logger.info("=" * 80)
+    logger.info(f"Run directory: {run_dir}")
+    logger.info(f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("")
+    
     # Log reproducibility information
     log_reproducibility_info(logger)
+    logger.info("")
     
-    # Log configuration
+    # Log comprehensive configuration
+    logger.info("=" * 80)
+    logger.info("Training Configuration")
+    logger.info("=" * 80)
     config.log_config(logger)
+    
+    # Log additional config details (after agent_config is loaded)
+    logger.info("")
+    logger.info("Additional Configuration:")
+    if agent_config:
+        logger.info(f"  Agent Config: {config.agent_config_path}")
+        logger.info(f"  Agent ID: {agent_config.agent_id}")
+        logger.info(f"  Agent Name: {agent_config.name}")
+        logger.info(f"  Network Architecture: {agent_config.net_arch}")
+        logger.info(f"  PPO Clip Range: {agent_config.clip_range}")
+        logger.info(f"  PPO Entropy Coef: {agent_config.ent_coef}")
+        logger.info(f"  PPO VF Coef: {agent_config.vf_coef}")
+        logger.info(f"  PPO Max Grad Norm: {agent_config.max_grad_norm}")
+    else:
+        logger.info("  Agent Config: Using defaults")
+    logger.info("=" * 80)
+    logger.info("")
     
     # Create training run logger
     # If resuming, add resume info to config metadata
@@ -642,9 +783,9 @@ def train(config: TrainingConfig) -> Optional[TrainingCallback]:
     
     run_logger = None
     try:
-        # Use agent config info if available
-        agent_id = agent_config.agent_id if agent_config else "ppo_agent"
-        algorithm = agent_config.algorithm if agent_config else "MaskablePPO"
+        # Use agent config info if available, otherwise use config defaults
+        agent_id = agent_config.agent_id if agent_config else config.agent_id
+        algorithm = agent_config.algorithm if agent_config else config.algorithm
         
         run_logger = create_training_run_logger(
             config=config_dict,
@@ -913,31 +1054,47 @@ def train(config: TrainingConfig) -> Optional[TrainingCallback]:
     # Log final statistics (aggregate across all environments)
     total_episodes = callback.episode_count
     if total_episodes > 0:
+        total_time = time.perf_counter() - callback.start_time
+        total_steps = callback.step_count
+        total_env_steps = total_steps * callback.num_envs
+        
+        logger.info("")
         logger.info("=" * 80)
         logger.info("Training Summary")
         logger.info("=" * 80)
         logger.info(f"Total episodes: {total_episodes}")
-        logger.info(f"Total steps: {callback.step_count}")
+        logger.info(f"Total steps: {total_steps}")
+        logger.info(f"Total environment steps: {total_env_steps}")
+        logger.info(f"Total time: {total_time:.1f}s ({total_time/60:.1f} minutes)")
+        
+        # Speed metrics
+        if total_time > 0:
+            steps_per_sec = total_steps / total_time
+            env_steps_per_sec = total_env_steps / total_time
+            logger.info(f"Average speed: {steps_per_sec:.1f} steps/s ({env_steps_per_sec:.1f} env steps/s)")
         
         # Aggregate episode rewards and lengths across all envs
         all_episode_rewards = callback.episode_rewards
         all_episode_lengths = callback.episode_lengths
         
         if all_episode_rewards:
-            logger.info(f"Average reward: {np.mean(all_episode_rewards):.2f}")
-            logger.info(f"Average episode length: {np.mean(all_episode_lengths):.1f}")
-            logger.info(f"Best episode reward: {np.max(all_episode_rewards):.2f}")
-            logger.info(f"Worst episode reward: {np.min(all_episode_rewards):.2f}")
+            logger.info("")
+            logger.info("Episode Statistics:")
+            logger.info(f"  Average reward: {np.mean(all_episode_rewards):.2f} ± {np.std(all_episode_rewards):.2f}")
+            logger.info(f"  Average episode length: {np.mean(all_episode_lengths):.1f} ± {np.std(all_episode_lengths):.1f}")
+            logger.info(f"  Best episode reward: {np.max(all_episode_rewards):.2f}")
+            logger.info(f"  Worst episode reward: {np.min(all_episode_rewards):.2f}")
             
             # Optionally show per-env stats if using multiple envs
             if callback.num_envs > 1:
+                logger.info("")
                 logger.info("Per-environment statistics:")
                 for env_id in range(callback.num_envs):
                     env_rewards = callback.env_episode_rewards[env_id]
                     if env_rewards:
                         logger.info(
                             f"  Env {env_id}: {len(env_rewards)} episodes, "
-                            f"avg reward: {np.mean(env_rewards):.2f}, "
+                            f"avg reward: {np.mean(env_rewards):.2f} ± {np.std(env_rewards):.2f}, "
                             f"best: {np.max(env_rewards):.2f}, "
                             f"worst: {np.min(env_rewards):.2f}"
                         )
