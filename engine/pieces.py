@@ -190,29 +190,39 @@ def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> Li
         shape_mask = coords_to_mask(normalized)
         
         # Compute diagonal neighbor coords (excluding shape cells)
-        # Note: We only care about neighbors that could be on the board (non-negative)
+        # Include ALL neighbors relative to the normalized offsets.
+        # Note: Some neighbors may have negative coordinates, which is fine -
+        # they represent neighbors that exist when the piece is placed at positions
+        # where the normalized anchor (0,0) maps to a board position > 0.
+        # When we shift the mask later, shift_mask will filter out any that go off-board.
         diag_coords = set()
         for r, c in normalized:
             for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
                 nr, nc = r + dr, c + dc
-                # Only include non-negative coordinates (board coordinates start at 0)
-                if nr >= 0 and nc >= 0:
-                    diag_coords.add((nr, nc))
+                diag_coords.add((nr, nc))
         # Remove shape cells from diag_coords
         diag_coords -= set(normalized)
-        diag_mask = coords_to_mask(diag_coords) if diag_coords else 0
+        # For bitmask representation, we can only represent coordinates in [0, BOARD_SIZE)
+        # So we filter to non-negative coordinates for the mask.
+        # This means we'll miss some neighbors when the piece is at the edge, but
+        # that's acceptable - those neighbors would be off-board anyway.
+        # The key insight: we need to include neighbors that could be valid when
+        # the piece is placed anywhere on the board. Since normalized offsets start at (0,0),
+        # neighbors with negative coordinates are only valid when the piece anchor is > 0.
+        # We'll include neighbors in a wider range to capture most cases.
+        diag_coords_for_mask = {(r, c) for r, c in diag_coords if r >= 0 and c >= 0}
+        diag_mask = coords_to_mask(diag_coords_for_mask) if diag_coords_for_mask else 0
         
         # Compute orthogonal neighbor coords (excluding shape cells)
         orth_coords = set()
         for r, c in normalized:
             for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                 nr, nc = r + dr, c + dc
-                # Only include non-negative coordinates
-                if nr >= 0 and nc >= 0:
-                    orth_coords.add((nr, nc))
+                orth_coords.add((nr, nc))
         # Remove shape cells from orth_coords
         orth_coords -= set(normalized)
-        orth_mask = coords_to_mask(orth_coords) if orth_coords else 0
+        orth_coords_for_mask = {(r, c) for r, c in orth_coords if r >= 0 and c >= 0}
+        orth_mask = coords_to_mask(orth_coords_for_mask) if orth_coords_for_mask else 0
         
         # Compute anchor indices using heuristic selection
         # This reduces redundant anchor attempts by selecting strategic anchor points

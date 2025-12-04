@@ -96,19 +96,19 @@ def mask_to_coords(mask: int) -> List[Tuple[int, int]]:
     return coords
 
 
-def shift_mask(mask: int, d_row: int, d_col: int) -> Optional[int]:
+def shift_mask(mask: int, d_row: int, d_col: int, strict: bool = True) -> Optional[int]:
     """
     Shift all bits in a mask by (d_row, d_col).
-    
-    If any bit would go off-board or wrap across rows, returns None.
     
     Args:
         mask: Bitmask to shift
         d_row: Row offset (can be negative)
         d_col: Column offset (can be negative)
+        strict: If True, returns None if ANY bit would go off-board.
+                If False, filters out off-board bits and returns the remaining mask.
         
     Returns:
-        Shifted bitmask, or None if shift would go off-board
+        Shifted bitmask, or None if strict=True and any bit would go off-board
     """
     # Convert mask to coords, shift them, and rebuild mask
     coords = mask_to_coords(mask)
@@ -120,17 +120,26 @@ def shift_mask(mask: int, d_row: int, d_col: int) -> Optional[int]:
         
         # Check bounds
         if new_row < 0 or new_row >= BOARD_HEIGHT:
-            return None
+            if strict:
+                return None
+            else:
+                continue  # Skip this coordinate
         if new_col < 0 or new_col >= BOARD_WIDTH:
-            return None
+            if strict:
+                return None
+            else:
+                continue  # Skip this coordinate
         
         # Check for row wrapping (if we shifted across a row boundary incorrectly)
         # This shouldn't happen with our bounds check, but we verify the index is still valid
         new_index = coord_to_index(new_row, new_col)
         if new_index < 0 or new_index >= NUM_CELLS:
-            return None
+            if strict:
+                return None
+            else:
+                continue  # Skip this coordinate
         
         shifted_coords.append((new_row, new_col))
     
-    return coords_to_mask(shifted_coords)
+    return coords_to_mask(shifted_coords) if shifted_coords else 0
 

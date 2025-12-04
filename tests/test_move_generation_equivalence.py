@@ -6,7 +6,7 @@ as the naive (full-board scan) move generation.
 import random
 import unittest
 from engine.board import Board, Player, Position
-from engine.move_generator import LegalMoveGenerator, Move
+from engine.move_generator import LegalMoveGenerator, Move, debug_compare_bitboard_vs_grid
 from engine.pieces import ALL_PIECE_ORIENTATIONS, PiecePlacement
 from tests.utils_game_states import generate_random_valid_state
 
@@ -376,6 +376,9 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
                             
                             # Try each anchor index to find one that matches
                             bitboard_legal = False
+                            matching_anchor_idx = None
+                            matching_anchor_coord = None
+                            
                             for anchor_idx in piece_orientation.anchor_indices:
                                 if anchor_idx >= len(piece_orientation.offsets):
                                     continue
@@ -393,6 +396,8 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
                                 
                                 if test_coords == coords:
                                     # Found matching anchor - check legality
+                                    matching_anchor_idx = anchor_idx
+                                    matching_anchor_coord = (anchor_row, anchor_col)
                                     bitboard_legal = self.generator.is_placement_legal_bitboard(
                                         board, player_id, piece_orientation,
                                         (anchor_row, anchor_col), anchor_idx
@@ -403,6 +408,15 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
                             
                             if not bitboard_legal:
                                 print(f"  Bitboard legality: {bitboard_legal} (tried all anchors)")
+                            
+                            # Call deep debug helper if we found a matching anchor
+                            if matching_anchor_idx is not None and matching_anchor_coord is not None:
+                                placement_coords_list = list(coords)
+                                debug_compare_bitboard_vs_grid(
+                                    board, player_id, piece_orientation,
+                                    matching_anchor_coord, matching_anchor_idx,
+                                    placement_coords_list
+                                )
                             
                             # Orientation debug info
                             print()

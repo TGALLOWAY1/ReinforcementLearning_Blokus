@@ -9,7 +9,7 @@ import random
 from typing import List, Tuple, Set, Optional
 from .board import Board, Player, Position
 from .pieces import PieceGenerator, PiecePlacement, PieceOrientation, ALL_PIECE_ORIENTATIONS
-from .bitboard import shift_mask, coord_to_bit
+from .bitboard import shift_mask, coord_to_bit, coords_to_mask, mask_to_coords, BOARD_WIDTH, BOARD_HEIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,10 @@ USE_BITBOARD_LEGALITY = bool(os.getenv("BLOKUS_USE_BITBOARD_LEGALITY", ""))
 # Debug flag for equivalence checking (guarded, samples 5% of calls)
 # When enabled, randomly samples calls to verify bitboard and grid legality match
 MOVEGEN_DEBUG_EQUIVALENCE = bool(os.getenv("BLOKUS_MOVEGEN_DEBUG_EQUIVALENCE", ""))
+
+# Debug flag for deep bitboard vs grid comparison
+# When enabled, prints detailed comparison of bitboard and grid legality checks
+DEBUG_BITBOARD = bool(os.getenv("BLOKUS_DEBUG_BITBOARD", ""))
 
 
 class Move:
@@ -408,15 +412,31 @@ class LegalMoveGenerator:
         if shape_shifted is None:
             return False  # Off-board
         
-        diag_shifted = shift_mask(orientation.diag_mask, d_row, d_col)
-        if diag_shifted is None:
-            # If diag_mask shift fails, we can still check (some neighbors might be off-board)
-            diag_shifted = 0
+        # Compute diag/orth neighbors dynamically from the shifted shape
+        # This ensures we capture ALL neighbors, including those that were negative
+        # in normalized space but become valid when shifted
+        shape_coords = mask_to_coords(shape_shifted)
+        placement_set = set(shape_coords)
         
-        orth_shifted = shift_mask(orientation.orth_mask, d_row, d_col)
-        if orth_shifted is None:
-            # If orth_mask shift fails, we can still check
-            orth_shifted = 0
+        # Compute diagonal neighbors from shifted shape
+        diag_neighbors = set()
+        for r, c in shape_coords:
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < board.SIZE and 0 <= nc < board.SIZE:
+                    if (nr, nc) not in placement_set:
+                        diag_neighbors.add((nr, nc))
+        diag_shifted = coords_to_mask(diag_neighbors)
+        
+        # Compute orthogonal neighbors from shifted shape
+        orth_neighbors = set()
+        for r, c in shape_coords:
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < board.SIZE and 0 <= nc < board.SIZE:
+                    if (nr, nc) not in placement_set:
+                        orth_neighbors.add((nr, nc))
+        orth_shifted = coords_to_mask(orth_neighbors)
         
         # Overlap check: shape must not overlap with any occupied cells
         if shape_shifted & board.occupied_bits != 0:
@@ -452,6 +472,31 @@ class LegalMoveGenerator:
             )
         
         return True
+    
+    def is_placement_legal_grid(self, board: Board, player: Player,
+                                 orientation: PieceOrientation,
+                                 anchor_board_coord: Tuple[int, int],
+                                 anchor_piece_index: int,
+                                 placement_coords: List[Tuple[int, int]]) -> bool:
+        """
+        Grid-based legality check for a given placement.
+        
+        This is a helper function for debugging that uses the grid-based
+        can_place_piece method to check legality.
+        
+        Args:
+            board: Board state
+            player: Player making the placement
+            orientation: PieceOrientation instance (for compatibility, not used)
+            anchor_board_coord: (row, col) where anchor is placed (for compatibility)
+            anchor_piece_index: Index into offsets (for compatibility, not used)
+            placement_coords: List of (row, col) tuples where piece would be placed
+            
+        Returns:
+            True if placement is legal according to grid-based rules
+        """
+        piece_positions = [Position(row, col) for row, col in placement_coords]
+        return board.can_place_piece(piece_positions, player)
     
     def _check_adjacency_fast_inline(self, relative_positions: List[Tuple[int, int]], 
                                      anchor_row: int, anchor_col: int,
@@ -619,3 +664,140 @@ class LegalMoveGenerator:
             summary['player_pieces_used'][player.name] = len(board.player_pieces_used[player])
         
         return summary
+
+
+def debug_compare_bitboard_vs_grid(
+    board: Board,
+    player: Player,
+    orientation: PieceOrientation,
+    anchor_board_coord: Tuple[int, int],
+    anchor_piece_index: int,
+    placement_coords: List[Tuple[int, int]],
+) -> None:
+    """
+    Debug helper: for a given move (piece orientation + anchor + resulting coords),
+    compare grid-based legality and bitboard-based legality and print detailed info.
+    Only prints when DEBUG_BITBOARD is True.
+    
+    Args:
+        board: Board state
+        player: Player making the placement
+        orientation: PieceOrientation instance
+        anchor_board_coord: (row, col) where the anchor point should be placed
+        anchor_piece_index: Index into orientation.offsets for the anchor point
+        placement_coords: List of (row, col) tuples where the piece would be placed
+    """
+    if not DEBUG_BITBOARD:
+        return
+    
+    # 1. Compute masks from coords directly
+    shape_mask_from_coords = coords_to_mask(placement_coords)
+    
+    # Compute diagonal and orthogonal neighbors directly from coords.
+    # These are used only for debugging.
+    diag_neighbors = set()
+    orth_neighbors = set()
+    placement_set = set(placement_coords)
+    
+    for (r, c) in placement_coords:
+        # Diagonal neighbors
+        for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            rr, cc = r + dr, c + dc
+            if 0 <= rr < BOARD_HEIGHT and 0 <= cc < BOARD_WIDTH:
+                if (rr, cc) not in placement_set:
+                    diag_neighbors.add((rr, cc))
+        
+        # Orth neighbors
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            rr, cc = r + dr, c + dc
+            if 0 <= rr < BOARD_HEIGHT and 0 <= cc < BOARD_WIDTH:
+                if (rr, cc) not in placement_set:
+                    orth_neighbors.add((rr, cc))
+    
+    diag_mask_from_coords = coords_to_mask(diag_neighbors)
+    orth_mask_from_coords = coords_to_mask(orth_neighbors)
+    
+    # 2. Compute masks via orientation + anchor using the bitboard logic
+    piece_r, piece_c = orientation.offsets[anchor_piece_index]
+    board_r, board_c = anchor_board_coord
+    d_row, d_col = board_r - piece_r, board_c - piece_c
+    
+    shape_shifted = shift_mask(orientation.shape_mask, d_row, d_col)
+    diag_shifted = shift_mask(orientation.diag_mask, d_row, d_col)
+    orth_shifted = shift_mask(orientation.orth_mask, d_row, d_col)
+    
+    # 3. Log and compare
+    print("\n" + "=" * 80)
+    print("=== DEBUG BITBOARD VS GRID ===")
+    print(f"player={player.name} (value={player.value})")
+    print(f"piece_id={orientation.piece_id}")
+    print(f"anchor_board_coord={anchor_board_coord}, anchor_piece_index={anchor_piece_index}")
+    print(f"d_row={d_row}, d_col={d_col} (computed from board_r={board_r} - piece_r={piece_r}, board_c={board_c} - piece_c={piece_c})")
+    print(f"placement_coords={sorted(placement_coords)}")
+    print()
+    
+    print("Shape from coords vs shifted shape:")
+    shape_coords_from_mask = sorted(mask_to_coords(shape_mask_from_coords))
+    shape_shifted_coords = sorted(mask_to_coords(shape_shifted or 0))
+    print(f"  coords -> mask -> coords: {shape_coords_from_mask}")
+    print(f"  shifted orientation shape coords: {shape_shifted_coords}")
+    print(f"  MATCH: {shape_coords_from_mask == shape_shifted_coords}")
+    print()
+    
+    print("Diag neighbors from coords vs shifted diag mask:")
+    diag_coords_from_set = sorted(diag_neighbors)
+    diag_shifted_coords = sorted(mask_to_coords(diag_shifted or 0))
+    print(f"  diag from coords: {diag_coords_from_set}")
+    print(f"  diag mask coords: {diag_shifted_coords}")
+    print(f"  MATCH: {diag_coords_from_set == diag_shifted_coords}")
+    print()
+    
+    print("Orth neighbors from coords vs shifted orth mask:")
+    orth_coords_from_set = sorted(orth_neighbors)
+    orth_shifted_coords = sorted(mask_to_coords(orth_shifted or 0))
+    print(f"  orth from coords: {orth_coords_from_set}")
+    print(f"  orth mask coords: {orth_shifted_coords}")
+    print(f"  MATCH: {orth_coords_from_set == orth_shifted_coords}")
+    print()
+    
+    # 4. Show adjacency intersections with player bits
+    player_bits = board.player_bits[player]
+    occupied_bits = board.occupied_bits
+    
+    print("Adjacency & overlap checks:")
+    shape_overlap = bool(shape_shifted and (shape_shifted & occupied_bits))
+    orth_adj = bool(orth_shifted and (orth_shifted & player_bits))
+    diag_adj = bool(diag_shifted and (diag_shifted & player_bits))
+    print(f"  shape & occupied_bits -> {shape_overlap} (should be False for legal)")
+    print(f"  orth & player_bits     -> {orth_adj} (should be False for legal)")
+    print(f"  diag & player_bits      -> {diag_adj} (should be True if not first move)")
+    print()
+    
+    # Show which cells are causing overlaps/adjacencies
+    if shape_overlap:
+        overlap_cells = mask_to_coords(shape_shifted & occupied_bits)
+        print(f"  Overlap cells: {sorted(overlap_cells)}")
+    if orth_adj:
+        orth_adj_cells = mask_to_coords(orth_shifted & player_bits)
+        print(f"  Orth adj cells: {sorted(orth_adj_cells)}")
+    if diag_adj:
+        diag_adj_cells = mask_to_coords(diag_shifted & player_bits)
+        print(f"  Diag adj cells: {sorted(diag_adj_cells)}")
+    print()
+    
+    # 5. Show grid-based vs bitboard legality results for this move
+    generator = LegalMoveGenerator()
+    grid_legal = generator.is_placement_legal_grid(
+        board, player, orientation, anchor_board_coord, anchor_piece_index,
+        placement_coords=placement_coords
+    )
+    bitboard_legal = generator.is_placement_legal_bitboard(
+        board, player, orientation, anchor_board_coord, anchor_piece_index
+    )
+    
+    print(f"RESULT: grid_legal={grid_legal}, bitboard_legal={bitboard_legal}")
+    if grid_legal != bitboard_legal:
+        print("  *** MISMATCH DETECTED ***")
+    print("=== END DEBUG ===")
+    print("=" * 80)
+    print()
