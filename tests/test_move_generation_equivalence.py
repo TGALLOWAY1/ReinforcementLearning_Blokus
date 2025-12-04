@@ -3,6 +3,7 @@ Tests to verify that frontier-based move generation produces the same results
 as the naive (full-board scan) move generation.
 """
 
+import random
 import unittest
 from engine.board import Board, Player, Position
 from engine.move_generator import LegalMoveGenerator, Move
@@ -12,6 +13,45 @@ def moves_to_set(moves: list) -> set:
     """Convert a list of Move objects to a set of tuples for comparison."""
     return {(move.piece_id, move.orientation, move.anchor_row, move.anchor_col) 
             for move in moves}
+
+
+def generate_random_board_state(num_moves: int, seed: int = None) -> tuple:
+    """
+    Generate a random but valid board state by playing random legal moves.
+    
+    Args:
+        num_moves: Number of moves to make
+        seed: Random seed for reproducibility
+        
+    Returns:
+        Tuple of (board, current_player) representing the final state
+    """
+    if seed is not None:
+        random.seed(seed)
+    
+    board = Board()
+    generator = LegalMoveGenerator()
+    
+    moves_made = 0
+    for _ in range(num_moves):
+        player = board.current_player
+        moves = generator._get_legal_moves_naive(board, player)
+        
+        if not moves:
+            # No legal moves for current player, try next player
+            board._update_current_player()
+            continue
+        
+        # Choose a random move
+        move = random.choice(moves)
+        orientations = generator.piece_orientations_cache[move.piece_id]
+        positions = move.get_positions(orientations)
+        
+        success = board.place_piece(positions, player, move.piece_id)
+        if success:
+            moves_made += 1
+    
+    return board, board.current_player
 
 
 class TestMoveGenerationEquivalence(unittest.TestCase):
@@ -151,6 +191,64 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
             self.assertEqual(moves_to_set(wrapper_moves), moves_to_set(frontier_moves))
         finally:
             move_gen_module.USE_FRONTIER_MOVEGEN = original_flag
+    
+    def test_move_generation_equivalence_random_states_small(self):
+        """Test equivalence on random board states with few moves (early game)."""
+        num_states = 15
+        num_moves_per_state = 5
+        
+        for seed in range(num_states):
+            board, current_player = generate_random_board_state(num_moves_per_state, seed=seed)
+            
+            # Generate moves with both generators
+            naive_moves = self.generator._get_legal_moves_naive(board, current_player)
+            frontier_moves = self.generator._get_legal_moves_frontier(board, current_player)
+            
+            naive_set = moves_to_set(naive_moves)
+            frontier_set = moves_to_set(frontier_moves)
+            
+            self.assertEqual(naive_set, frontier_set,
+                            f"Moves differ for random state (seed={seed}, player={current_player.name}): "
+                            f"naive has {len(naive_set)}, frontier has {len(frontier_set)}")
+    
+    def test_move_generation_equivalence_random_states_midgame(self):
+        """Test equivalence on random board states with more moves (mid-game)."""
+        num_states = 10
+        num_moves_per_state = 10
+        
+        for seed in range(num_states):
+            board, current_player = generate_random_board_state(num_moves_per_state, seed=seed)
+            
+            # Generate moves with both generators
+            naive_moves = self.generator._get_legal_moves_naive(board, current_player)
+            frontier_moves = self.generator._get_legal_moves_frontier(board, current_player)
+            
+            naive_set = moves_to_set(naive_moves)
+            frontier_set = moves_to_set(frontier_moves)
+            
+            self.assertEqual(naive_set, frontier_set,
+                            f"Moves differ for random mid-game state (seed={seed}, player={current_player.name}): "
+                            f"naive has {len(naive_set)}, frontier has {len(frontier_set)}")
+    
+    def test_move_generation_equivalence_all_players_random_states(self):
+        """Test equivalence for all players on random board states."""
+        num_states = 5
+        num_moves_per_state = 8
+        
+        for seed in range(num_states):
+            board, _ = generate_random_board_state(num_moves_per_state, seed=seed)
+            
+            # Test all players
+            for player in Player:
+                naive_moves = self.generator._get_legal_moves_naive(board, player)
+                frontier_moves = self.generator._get_legal_moves_frontier(board, player)
+                
+                naive_set = moves_to_set(naive_moves)
+                frontier_set = moves_to_set(frontier_moves)
+                
+                self.assertEqual(naive_set, frontier_set,
+                                f"Moves differ for {player.name} on random state (seed={seed}): "
+                                f"naive has {len(naive_set)}, frontier has {len(frontier_set)}")
 
 
 if __name__ == "__main__":

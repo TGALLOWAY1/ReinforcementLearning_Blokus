@@ -2,8 +2,60 @@
 Basic tests for frontier tracking functionality.
 """
 
+import random
 import unittest
 from engine.board import Board, Player, Position
+from engine.move_generator import LegalMoveGenerator
+
+
+def assert_frontier_invariants(board: Board, player: Player, test_case: unittest.TestCase):
+    """
+    Assert that frontier invariants hold for a given board and player.
+    
+    Invariants:
+    1. Every frontier cell is empty
+    2. Every frontier cell is diagonally adjacent to at least one of the player's cells
+    3. No frontier cell is orthogonally adjacent to any of the player's cells
+    
+    Args:
+        board: Board to check
+        player: Player to check frontier for
+        test_case: TestCase instance for assertions
+    """
+    frontier = board.get_frontier(player)
+    player_value = player.value
+    grid = board.grid
+    is_first_move = board.player_first_move[player]
+    start_corner = board.player_start_corners[player]
+    start_corner_tuple = (start_corner.row, start_corner.col)
+    
+    for r, c in frontier:
+        # Invariant 1: Every frontier cell is empty
+        test_case.assertEqual(grid[r, c], 0, 
+                             f"Frontier cell ({r}, {c}) should be empty")
+        
+        # Special case: starting corner on first move
+        if is_first_move and (r, c) == start_corner_tuple:
+            continue
+        
+        # Invariant 2: Every frontier cell is diagonally adjacent to player's cells
+        has_diagonal = False
+        for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < board.SIZE and 0 <= nc < board.SIZE:
+                if grid[nr, nc] == player_value:
+                    has_diagonal = True
+                    break
+        
+        test_case.assertTrue(has_diagonal,
+                           f"Frontier cell ({r}, {c}) should be diagonally adjacent to {player.name}'s pieces")
+        
+        # Invariant 3: No frontier cell is orthogonally adjacent to player's cells
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < board.SIZE and 0 <= nc < board.SIZE:
+                test_case.assertNotEqual(grid[nr, nc], player_value,
+                                        f"Frontier cell ({r}, {c}) should not be orthogonally adjacent to {player.name}'s pieces")
 
 
 class TestFrontierInitialization(unittest.TestCase):
@@ -221,6 +273,76 @@ class TestFrontierEdgeCases(unittest.TestCase):
         # Verify that frontier matches full recompute
         match = board.debug_rebuild_frontier(Player.RED)
         self.assertTrue(match, "Frontier should match full recompute")
+
+
+class TestFrontierInvariants(unittest.TestCase):
+    """Test that frontier invariants hold across various game states."""
+    
+    def test_frontier_invariants_after_random_moves(self):
+        """Test frontier invariants after several random moves."""
+        board = Board()
+        generator = LegalMoveGenerator()
+        random.seed(42)  # For reproducibility
+        
+        # Make several random moves
+        for move_num in range(8):
+            player = board.current_player
+            moves = generator.get_legal_moves(board, player)
+            
+            if not moves:
+                # No legal moves, try next player
+                board._update_current_player()
+                continue
+            
+            # Choose a random move
+            move = random.choice(moves)
+            orientations = generator.piece_orientations_cache[move.piece_id]
+            positions = move.get_positions(orientations)
+            board.place_piece(positions, player, move.piece_id)
+            
+            # Check invariants for all players after each move
+            for p in Player:
+                assert_frontier_invariants(board, p, self)
+                
+                # Verify that incremental and full recompute match
+                # Skip rebuild check for first move (starting corner is special case)
+                if not board.player_first_move[p]:
+                    match = board.debug_rebuild_frontier(p)
+                    self.assertTrue(match, 
+                                   f"Frontier should match full recompute for {p.name} after move {move_num}")
+    
+    def test_frontier_invariants_self_play(self):
+        """Test frontier invariants in a self-play scenario."""
+        board = Board()
+        generator = LegalMoveGenerator()
+        
+        # Make moves for all players in rotation
+        for move_num in range(12):
+            player = board.current_player
+            moves = generator.get_legal_moves(board, player)
+            
+            if not moves:
+                # No legal moves, skip this player
+                board._update_current_player()
+                continue
+            
+            # Use first move (deterministic)
+            move = moves[0]
+            orientations = generator.piece_orientations_cache[move.piece_id]
+            positions = move.get_positions(orientations)
+            board.place_piece(positions, player, move.piece_id)
+            
+            # Check invariants for the player who just moved
+            assert_frontier_invariants(board, player, self)
+            
+            # Verify consistency check
+            self.assertTrue(board._verify_frontier_consistency(player),
+                           f"Frontier consistency check should pass for {player.name} after move {move_num}")
+            
+            # Verify that incremental and full recompute match
+            match = board.debug_rebuild_frontier(player)
+            self.assertTrue(match,
+                           f"Frontier should match full recompute for {player.name} after move {move_num}")
 
 
 if __name__ == "__main__":
