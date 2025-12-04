@@ -2,6 +2,7 @@
 Legal move generator for Blokus game.
 """
 
+import os
 import time
 import logging
 from typing import List, Tuple, Set, Optional
@@ -9,6 +10,9 @@ from .board import Board, Player, Position
 from .pieces import PieceGenerator, PiecePlacement
 
 logger = logging.getLogger(__name__)
+
+# Debug flag for move generation timing (controlled via environment variable)
+MOVEGEN_DEBUG = bool(os.getenv("BLOKUS_MOVEGEN_DEBUG", ""))
 
 
 class Move:
@@ -133,6 +137,17 @@ class LegalMoveGenerator:
         
         end = time.perf_counter()
         total_time = end - start
+        elapsed_ms = total_time * 1000.0
+        
+        # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
+        if MOVEGEN_DEBUG:
+            logger.info(f"MoveGen: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}")
+            if piece_timings and len(piece_timings) > 0:
+                max_piece_time = max(piece_timings.values())
+                max_piece_id = max(piece_timings, key=piece_timings.get)
+                logger.info(f"MoveGen: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
+        
+        # Existing debug logging (always at DEBUG level)
         logger.debug(f"Legal move generation: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, pieces_checked={len(available_pieces)}")
         if piece_timings and len(piece_timings) > 0:
             max_piece_time = max(piece_timings.values())
