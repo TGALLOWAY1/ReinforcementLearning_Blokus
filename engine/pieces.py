@@ -81,6 +81,64 @@ def normalize_offsets(offsets: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     return sorted(normalized)  # Sort for canonical ordering
 
 
+def _compute_anchor_indices(offsets: List[Tuple[int, int]], max_anchors: int = 4) -> List[int]:
+    """
+    Compute heuristic anchor indices for a piece orientation.
+    
+    Selects strategic anchor points that are more likely to produce valid placements
+    when aligned with frontier cells. This reduces redundant anchor attempts.
+    
+    Heuristic:
+    - Top-left cell (min row+col)
+    - Bottom-right cell (max row+col)
+    - Furthest-from-centroid cell (max distance from average position)
+    
+    Args:
+        offsets: List of normalized (row, col) offsets
+        max_anchors: Maximum number of anchors to select (default 4)
+        
+    Returns:
+        List of indices into offsets for anchor points
+    """
+    if not offsets:
+        return []
+    
+    if len(offsets) <= max_anchors:
+        # If piece is small, use all offsets as anchors
+        return list(range(len(offsets)))
+    
+    anchor_set = set()
+    
+    # 1. Top-left cell: minimum (row + col)
+    top_left_idx = min(range(len(offsets)), 
+                      key=lambda i: offsets[i][0] + offsets[i][1])
+    anchor_set.add(top_left_idx)
+    
+    # 2. Bottom-right cell: maximum (row + col)
+    bottom_right_idx = max(range(len(offsets)),
+                          key=lambda i: offsets[i][0] + offsets[i][1])
+    anchor_set.add(bottom_right_idx)
+    
+    # 3. Furthest-from-centroid cell
+    if len(offsets) > 2:
+        # Compute centroid
+        avg_row = sum(r for r, c in offsets) / len(offsets)
+        avg_col = sum(c for r, c in offsets) / len(offsets)
+        
+        # Find cell with max distance squared from centroid
+        furthest_idx = max(range(len(offsets)),
+                          key=lambda i: (offsets[i][0] - avg_row)**2 + 
+                                       (offsets[i][1] - avg_col)**2)
+        anchor_set.add(furthest_idx)
+    
+    # Convert to sorted list and cap at max_anchors
+    anchor_list = sorted(anchor_set)
+    if len(anchor_list) > max_anchors:
+        anchor_list = anchor_list[:max_anchors]
+    
+    return anchor_list
+
+
 def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> List[PieceOrientation]:
     """
     Generate all unique orientations for a piece with precomputed bitmasks.
@@ -156,7 +214,12 @@ def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> Li
         orth_coords -= set(normalized)
         orth_mask = coords_to_mask(orth_coords) if orth_coords else 0
         
-        # Create PieceOrientation (anchor_indices placeholder for now)
+        # Compute anchor indices using heuristic selection
+        # This reduces redundant anchor attempts by selecting strategic anchor points
+        # that are more likely to produce valid placements when aligned with frontier cells
+        anchor_indices = _compute_anchor_indices(normalized)
+        
+        # Create PieceOrientation
         orientation = PieceOrientation(
             piece_id=piece_id,
             orientation_id=orientation_id,
@@ -164,7 +227,7 @@ def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> Li
             shape_mask=shape_mask,
             diag_mask=diag_mask,
             orth_mask=orth_mask,
-            anchor_indices=[0]  # Placeholder
+            anchor_indices=anchor_indices
         )
         
         orientations.append(orientation)

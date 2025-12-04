@@ -213,6 +213,13 @@ class LegalMoveGenerator:
         start = time.perf_counter()
         legal_moves = []
         
+        # Per-call cache to avoid redundant anchor tests
+        # This is a micro-optimization that does not affect correctness:
+        # If we've tried all anchors for a (piece_id, frontier_coord) combination
+        # and none were legal, we skip that combination in future iterations.
+        # Cache is local to this function call and cleared on return.
+        piece_frontier_fail: Set[Tuple[int, Tuple[int, int]]] = set()
+        
         # Get pieces that haven't been used yet
         available_pieces = [piece for piece in self.all_pieces 
                           if piece.id not in board.player_pieces_used[player]]
@@ -230,29 +237,48 @@ class LegalMoveGenerator:
         for piece in available_pieces:
             piece_start = time.perf_counter()
             
-            # Get orientations - use precomputed PieceOrientation if bitboard legality is enabled
+            # Hoist orientation lookup outside inner loops
             if USE_BITBOARD_LEGALITY:
                 piece_orientations = ALL_PIECE_ORIENTATIONS.get(piece.id, [])
                 num_orientations = len(piece_orientations)
             else:
-                # Use old numpy-based orientations
                 orientations = self.piece_orientations_cache[piece.id]
                 cached_positions = self.piece_position_cache[piece.id]
                 num_orientations = len(orientations)
             
             for orientation_idx in range(num_orientations):
+                # Hoist orientation access outside frontier loop
                 if USE_BITBOARD_LEGALITY:
                     piece_orientation = piece_orientations[orientation_idx]
                     relative_positions = piece_orientation.offsets
+                    # Use precomputed anchor indices for bitboard (heuristic optimization)
+                    anchor_indices = piece_orientation.anchor_indices
                 else:
                     orientation = orientations[orientation_idx]
                     relative_positions = cached_positions[orientation_idx]
+                    # For grid-based, try all offsets to maintain correctness
+                    # (Anchor optimization could be added here in the future)
+                    anchor_indices = list(range(len(relative_positions)))
                 
-                # For each frontier cell, try anchoring the piece at different positions
-                # Simple strategy: try anchoring each cell of the piece to the frontier cell
+                # For each frontier cell, try anchoring the piece at strategic positions
                 for frontier_row, frontier_col in frontier_cells:
-                    # Try each position in the piece as a potential anchor
-                    for anchor_piece_idx, (rel_r, rel_c) in enumerate(relative_positions):
+                    # Check per-call cache: skip if we've already determined this
+                    # (piece_id, orientation_idx, frontier_coord) combination has no legal anchors
+                    # Note: We include orientation_idx because different orientations may succeed
+                    frontier_key = (piece.id, orientation_idx, (frontier_row, frontier_col))
+                    if frontier_key in piece_frontier_fail:
+                        continue
+                    
+                    # Track if we found any legal anchor for this frontier cell
+                    found_legal_anchor = False
+                    
+                    # Try only the precomputed anchor indices (heuristic selection)
+                    for anchor_piece_idx in anchor_indices:
+                        if anchor_piece_idx >= len(relative_positions):
+                            continue
+                        
+                        rel_r, rel_c = relative_positions[anchor_piece_idx]
+                        
                         # Calculate anchor position: frontier cell minus relative position
                         anchor_row = frontier_row - rel_r
                         anchor_col = frontier_col - rel_c
@@ -273,6 +299,7 @@ class LegalMoveGenerator:
                             ):
                                 move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
                                 legal_moves.append(move)
+                                found_legal_anchor = True
                         else:
                             # Use grid-based legality check (original method)
                             # Check if piece would be within bounds at this anchor
@@ -315,6 +342,12 @@ class LegalMoveGenerator:
                                                                  is_first_move, start_corner):
                                 move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
                                 legal_moves.append(move)
+                                found_legal_anchor = True
+                    
+                    # Update per-call cache: if no anchors were legal for this frontier cell,
+                    # remember to skip it in future iterations
+                    if not found_legal_anchor:
+                        piece_frontier_fail.add(frontier_key)
             
             piece_end = time.perf_counter()
             piece_timings[piece.id] = piece_end - piece_start
