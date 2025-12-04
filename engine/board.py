@@ -9,6 +9,8 @@ import numpy as np
 from typing import List, Tuple, Set, Optional, Dict
 from dataclasses import dataclass
 from enum import Enum
+from collections import defaultdict
+from .bitboard import coords_to_mask, coord_to_bit
 
 
 class Player(Enum):
@@ -64,6 +66,10 @@ class Board:
         }
         # Initialize frontiers for all players
         self.init_frontiers()
+        
+        # Bitboard state: maintain bit-level occupancy for efficient operations
+        self.occupied_bits: int = 0  # Bitmask of all occupied cells
+        self.player_bits: Dict[Player, int] = defaultdict(int)  # Bitmask per player
     
     def is_valid_position(self, pos: Position) -> bool:
         """Check if position is within board bounds."""
@@ -516,6 +522,11 @@ class Board:
         for pos in piece_positions:
             self.grid[pos.row, pos.col] = player_value
         
+        # Update bitboard state
+        placed_mask = coords_to_mask(placed_cells)
+        self.occupied_bits |= placed_mask
+        self.player_bits[player] |= placed_mask
+        
         # Record the piece as used
         self.player_pieces_used[player].add(piece_id)
         
@@ -568,6 +579,56 @@ class Board:
         # This is a simplified check - in practice, you'd need to check all possible moves
         return self.game_over
     
+    def assert_bitboard_consistent(self) -> None:
+        """
+        Assert that bitboard state is consistent with grid state.
+        
+        Checks:
+        - Every occupied cell in grid has corresponding bit set in occupied_bits
+        - Every player-owned cell has corresponding bit set in player_bits[player]
+        - No bit is set in occupied_bits for an empty cell
+        
+        Raises:
+            AssertionError if any inconsistency is found
+        """
+        # Check that occupied_bits matches grid
+        for row in range(self.SIZE):
+            for col in range(self.SIZE):
+                cell_value = self.grid[row, col]
+                bit = coord_to_bit(row, col)
+                is_occupied_in_grid = (cell_value != 0)
+                is_occupied_in_bits = ((self.occupied_bits & bit) != 0)
+                
+                if is_occupied_in_grid != is_occupied_in_bits:
+                    raise AssertionError(
+                        f"Bitboard inconsistency at ({row}, {col}): "
+                        f"grid={cell_value}, occupied_bits has bit={is_occupied_in_bits}"
+                    )
+                
+                # Check player_bits
+                if cell_value != 0:
+                    player = Player(cell_value)
+                    has_player_bit = ((self.player_bits[player] & bit) != 0)
+                    if not has_player_bit:
+                        raise AssertionError(
+                            f"Bitboard inconsistency at ({row}, {col}): "
+                            f"grid has {player.name}, but player_bits[{player.name}] missing bit"
+                        )
+                
+                # Check that no player_bits have bits set for empty cells
+                for p in Player:
+                    has_player_bit = ((self.player_bits[p] & bit) != 0)
+                    if has_player_bit and cell_value == 0:
+                        raise AssertionError(
+                            f"Bitboard inconsistency at ({row}, {col}): "
+                            f"cell is empty but player_bits[{p.name}] has bit set"
+                        )
+                    if has_player_bit and cell_value != p.value:
+                        raise AssertionError(
+                            f"Bitboard inconsistency at ({row}, {col}): "
+                            f"grid has {Player(cell_value).name} but player_bits[{p.name}] has bit set"
+                        )
+    
     def copy(self) -> 'Board':
         """Create a deep copy of the board."""
         new_board = Board()
@@ -579,6 +640,9 @@ class Board:
         new_board.move_count = self.move_count
         # Copy frontiers
         new_board.player_frontiers = {k: v.copy() for k, v in self.player_frontiers.items()}
+        # Copy bitboard state
+        new_board.occupied_bits = self.occupied_bits
+        new_board.player_bits = self.player_bits.copy()
         return new_board
     
     def __str__(self) -> str:
