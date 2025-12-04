@@ -4,6 +4,7 @@
 Blokus Board implementation with 20x20 grid and game state management.
 """
 
+import os
 import numpy as np
 from typing import List, Tuple, Set, Optional, Dict
 from dataclasses import dataclass
@@ -62,8 +63,7 @@ class Board:
             player: set() for player in Player
         }
         # Initialize frontiers for all players
-        for player in Player:
-            self.init_frontier_for_player(player)
+        self.init_frontiers()
     
     def is_valid_position(self, pos: Position) -> bool:
         """Check if position is within board bounds."""
@@ -353,9 +353,29 @@ class Board:
                     # Remove from frontier (orthogonal adjacency not allowed)
                     frontier.discard((nr, nc))
     
+    def init_frontiers(self) -> None:
+        """
+        Initialize frontiers for all players.
+        
+        This method clears all frontier sets and initializes them based on
+        the starting corners. For a fresh board, each player's initial frontier
+        contains only their starting corner (which must be covered by the first move).
+        
+        This should be called:
+        - From Board.__init__ when creating a new board
+        - When resetting the game to initial state
+        """
+        # Clear all frontiers
+        for player in Player:
+            self.player_frontiers[player].clear()
+        
+        # Initialize each player's frontier with their starting corner
+        for player in Player:
+            self.init_frontier_for_player(player)
+    
     def init_frontier_for_player(self, player: Player) -> None:
         """
-        Initialize the frontier for a player based on their starting corner.
+        Initialize the frontier for a single player based on their starting corner.
         
         For a fresh board, the initial frontier is the player's starting corner
         (since it's empty and will be the first placement location).
@@ -366,14 +386,20 @@ class Board:
         start_corner = self.player_start_corners[player]
         # Initially, the starting corner is the only frontier cell
         # (it's empty and will be covered by the first move)
-        self.player_frontiers[player] = {(start_corner.row, start_corner.col)}
+        # Note: This is a special case - normally frontier requires diagonal adjacency,
+        # but on first move there are no pieces yet, so we allow the starting corner
+        if self.is_empty(start_corner):
+            self.player_frontiers[player].add((start_corner.row, start_corner.col))
     
     def debug_rebuild_frontier(self, player: Player) -> bool:
         """
-        Debug helper: recompute frontier from scratch and optionally verify consistency.
+        Debug helper: recompute frontier from scratch and verify consistency.
         
         This method recomputes the frontier using _compute_full_frontier and
-        compares it with the current incremental frontier. Returns True if they match.
+        compares it with the current incremental frontier. 
+        
+        In debug mode (BLOKUS_FRONTIER_DEBUG env var set), this will assert
+        that the frontiers match and log helpful error messages if they don't.
         
         Args:
             player: Player to rebuild frontier for
@@ -385,6 +411,32 @@ class Board:
         current_frontier = self.player_frontiers[player]
         
         if computed_frontier != current_frontier:
+            # Find differences
+            extra_cells = current_frontier - computed_frontier
+            missing_cells = computed_frontier - current_frontier
+            
+            # Log helpful error message
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"Frontier mismatch for {player.name}: "
+                f"incremental has {len(current_frontier)} cells, "
+                f"computed has {len(computed_frontier)} cells"
+            )
+            if extra_cells:
+                logger.error(f"  Extra cells in incremental frontier: {sorted(extra_cells)}")
+            if missing_cells:
+                logger.error(f"  Missing cells in incremental frontier: {sorted(missing_cells)}")
+            
+            # In debug mode, assert equality
+            FRONTIER_DEBUG = bool(os.getenv("BLOKUS_FRONTIER_DEBUG", ""))
+            if FRONTIER_DEBUG:
+                raise AssertionError(
+                    f"Frontier mismatch for {player.name}: "
+                    f"incremental={sorted(current_frontier)}, "
+                    f"computed={sorted(computed_frontier)}"
+                )
+            
             # Update to match computed frontier
             self.player_frontiers[player] = computed_frontier
             return False
