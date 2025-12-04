@@ -55,6 +55,15 @@ class Board:
         self.game_over = False
         self.current_player = Player.RED
         self.move_count = 0
+        # Frontier tracking: per-player set of (row, col) tuples
+        # Frontier = empty cells diagonally adjacent to player's pieces, 
+        # but NOT orthogonally adjacent to player's pieces
+        self.player_frontiers: Dict[Player, Set[Tuple[int, int]]] = {
+            player: set() for player in Player
+        }
+        # Initialize frontiers for all players
+        for player in Player:
+            self.init_frontier_for_player(player)
     
     def is_valid_position(self, pos: Position) -> bool:
         """Check if position is within board bounds."""
@@ -223,6 +232,221 @@ class Board:
         
         return False
     
+    def get_frontier(self, player: Player) -> Set[Tuple[int, int]]:
+        """
+        Get the current frontier cells for a player.
+        
+        Frontier = empty cells that are:
+        - Diagonally adjacent to at least one cell occupied by the player
+        - NOT orthogonally adjacent to any cell occupied by the player
+        
+        Returns:
+            Set of (row, col) tuples representing frontier cells
+        """
+        return self.player_frontiers[player].copy()
+    
+    def _compute_full_frontier(self, player: Player) -> Set[Tuple[int, int]]:
+        """
+        Recompute the frontier from scratch based on the current board state.
+        
+        This is the source of truth for frontier computation. It scans the entire
+        board to find all cells that meet the frontier criteria:
+        - On the board
+        - Empty (no piece placed)
+        - Diagonally adjacent to at least one cell occupied by player
+        - NOT orthogonally adjacent to any cell occupied by player
+        
+        Args:
+            player: Player to compute frontier for
+            
+        Returns:
+            Set of (row, col) tuples representing frontier cells
+        """
+        frontier = set()
+        player_value = player.value
+        grid = self.grid
+        
+        # Scan all board positions
+        for r in range(self.SIZE):
+            for c in range(self.SIZE):
+                # Must be empty
+                if grid[r, c] != 0:
+                    continue
+                
+                # Check if diagonally adjacent to player's pieces
+                has_diagonal_adjacency = False
+                for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                        if grid[nr, nc] == player_value:
+                            has_diagonal_adjacency = True
+                            break
+                
+                if not has_diagonal_adjacency:
+                    continue
+                
+                # Check if orthogonally adjacent to player's pieces (must NOT be)
+                has_orthogonal_adjacency = False
+                for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                        if grid[nr, nc] == player_value:
+                            has_orthogonal_adjacency = True
+                            break
+                
+                if not has_orthogonal_adjacency:
+                    frontier.add((r, c))
+        
+        return frontier
+    
+    def update_frontier_after_move(self, player: Player, placed_cells: List[Tuple[int, int]]) -> None:
+        """
+        Incrementally update the frontier after a piece is placed.
+        
+        This method updates the frontier by:
+        1. Removing placed cells from the frontier (they're now occupied)
+        2. Adding new frontier candidates from diagonal neighbors of placed cells
+        3. Removing cells that become orthogonally adjacent to player's pieces
+        
+        Note: This method does NOT rely on previous frontier correctness beyond
+        removing/adding around placed_cells. The full recompute method remains
+        the source of truth for testing.
+        
+        Args:
+            player: Player who placed the piece
+            placed_cells: List of (row, col) tuples for the newly placed piece
+        """
+        player_value = player.value
+        grid = self.grid
+        frontier = self.player_frontiers[player]
+        
+        # For each placed cell
+        for r, c in placed_cells:
+            # Remove this cell from frontier (it's now occupied)
+            frontier.discard((r, c))
+            
+            # Check diagonal neighbors (potential new frontier cells)
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                    # Must be empty
+                    if grid[nr, nc] != 0:
+                        continue
+                    
+                    # Check if orthogonally adjacent to any of player's pieces
+                    is_orth_adjacent = False
+                    for odr, odc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        onr, onc = nr + odr, nc + odc
+                        if 0 <= onr < self.SIZE and 0 <= onc < self.SIZE:
+                            if grid[onr, onc] == player_value:
+                                is_orth_adjacent = True
+                                break
+                    
+                    # Add to frontier if not orthogonally adjacent
+                    if not is_orth_adjacent:
+                        frontier.add((nr, nc))
+            
+            # Check orthogonal neighbors (remove from frontier if present)
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                    # Remove from frontier (orthogonal adjacency not allowed)
+                    frontier.discard((nr, nc))
+    
+    def init_frontier_for_player(self, player: Player) -> None:
+        """
+        Initialize the frontier for a player based on their starting corner.
+        
+        For a fresh board, the initial frontier is the player's starting corner
+        (since it's empty and will be the first placement location).
+        
+        Args:
+            player: Player to initialize frontier for
+        """
+        start_corner = self.player_start_corners[player]
+        # Initially, the starting corner is the only frontier cell
+        # (it's empty and will be covered by the first move)
+        self.player_frontiers[player] = {(start_corner.row, start_corner.col)}
+    
+    def debug_rebuild_frontier(self, player: Player) -> bool:
+        """
+        Debug helper: recompute frontier from scratch and optionally verify consistency.
+        
+        This method recomputes the frontier using _compute_full_frontier and
+        compares it with the current incremental frontier. Returns True if they match.
+        
+        Args:
+            player: Player to rebuild frontier for
+            
+        Returns:
+            True if incremental frontier matches full recompute, False otherwise
+        """
+        computed_frontier = self._compute_full_frontier(player)
+        current_frontier = self.player_frontiers[player]
+        
+        if computed_frontier != current_frontier:
+            # Update to match computed frontier
+            self.player_frontiers[player] = computed_frontier
+            return False
+        
+        return True
+    
+    def _verify_frontier_consistency(self, player: Player) -> bool:
+        """
+        Verify that the frontier for a player is consistent with board state.
+        
+        Checks:
+        - Every frontier cell is empty
+        - Every frontier cell is diagonally adjacent to player's pieces (or is the starting corner on first move)
+        - No frontier cell is orthogonally adjacent to player's pieces
+        
+        Special case: On first move, the starting corner may be in the frontier
+        even though it's not yet diagonally adjacent (no pieces placed yet).
+        
+        Args:
+            player: Player to verify frontier for
+            
+        Returns:
+            True if frontier is consistent, False otherwise
+        """
+        player_value = player.value
+        grid = self.grid
+        frontier = self.player_frontiers[player]
+        is_first_move = self.player_first_move[player]
+        start_corner = self.player_start_corners[player]
+        start_corner_tuple = (start_corner.row, start_corner.col)
+        
+        for r, c in frontier:
+            # Check: must be empty
+            if grid[r, c] != 0:
+                return False
+            
+            # Special case: starting corner on first move
+            if is_first_move and (r, c) == start_corner_tuple:
+                # Starting corner is valid for first move even without diagonal adjacency
+                continue
+            
+            # Check: must be diagonally adjacent to player's pieces
+            has_diagonal = False
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                    if grid[nr, nc] == player_value:
+                        has_diagonal = True
+                        break
+            
+            if not has_diagonal:
+                return False
+            
+            # Check: must NOT be orthogonally adjacent to player's pieces
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.SIZE and 0 <= nc < self.SIZE:
+                    if grid[nr, nc] == player_value:
+                        return False
+        
+        return True
+    
     def place_piece(self, piece_positions: List[Position], player: Player, piece_id: int) -> bool:
         """
         Place a piece on the board.
@@ -236,6 +460,7 @@ class Board:
         
         # Place the piece using direct grid access (faster than set_cell)
         player_value = player.value
+        placed_cells = [(pos.row, pos.col) for pos in piece_positions]
         for pos in piece_positions:
             self.grid[pos.row, pos.col] = player_value
         
@@ -244,6 +469,9 @@ class Board:
         
         # Mark first move as completed
         self.player_first_move[player] = False
+        
+        # Update frontier after placing piece
+        self.update_frontier_after_move(player, placed_cells)
         
         # Update game state
         self.move_count += 1
@@ -297,6 +525,8 @@ class Board:
         new_board.game_over = self.game_over
         new_board.current_player = self.current_player
         new_board.move_count = self.move_count
+        # Copy frontiers
+        new_board.player_frontiers = {k: v.copy() for k, v in self.player_frontiers.items()}
         return new_board
     
     def __str__(self) -> str:
