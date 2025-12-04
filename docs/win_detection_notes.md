@@ -475,3 +475,73 @@ GameResult    info dict      win (float)        EpisodeMetric
 - Consider adding win rate metrics to TensorBoard logging
 - Potentially add win rate to evaluation scripts
 
+---
+
+## 12. How to Verify Win Detection
+
+### Quick Smoke Test
+
+Run the win detection smoke test from `docs/run_checklist.md` to confirm win values show up in logs:
+
+```bash
+PYTHONPATH=. python training/trainer.py --mode smoke --total-timesteps 2000
+```
+
+### What to Check
+
+1. **Episode logs contain win values:**
+   ```bash
+   grep "Episode.*completed.*win=" runs/*/training.log
+   ```
+   Should show lines like: `Episode X completed: reward=..., length=..., win=1.0`
+
+2. **No warnings about missing game result fields:**
+   ```bash
+   grep -i "missing.*final_scores\|missing.*winner_ids" runs/*/training.log
+   ```
+   Should be empty (no warnings)
+
+3. **Win values are present:**
+   - `win=1.0` - Player_0 won
+   - `win=0.5` - Player_0 tied
+   - `win=0.0` - Player_0 lost
+   - `win=None` - Should not occur in normal gameplay
+
+### Full Smoke Test
+
+The full smoke test (15000 timesteps, 10 episodes) also validates win detection:
+
+```bash
+PYTHONPATH=. python training/trainer.py --mode smoke
+```
+
+This provides more episodes to verify win detection across different game outcomes.
+
+### MongoDB Verification
+
+If MongoDB is enabled, verify that win values are being logged:
+
+```python
+# Check MongoDB for episode metrics with win values
+from webapi.db.mongo import get_database
+import asyncio
+
+async def check_win_logging():
+    db = get_database()
+    run = await db.training_runs.find_one({"status": "running"})
+    if run:
+        episodes = run.get("metrics", {}).get("episodes", [])
+        wins = [e.get("win") for e in episodes if e.get("win") is not None]
+        print(f"Episodes with win values: {len(wins)}")
+        print(f"Win values: {wins[:10]}")  # First 10
+
+asyncio.run(check_win_logging())
+```
+
+### Expected Behavior
+
+- **All completed episodes** should have win values (1.0, 0.5, or 0.0)
+- **No warnings** about missing game result fields
+- **Win values distributed** across 1.0, 0.5, and 0.0 (depending on game outcomes)
+- **Consistent logging** - win values appear in both console and log files
+
