@@ -7,6 +7,7 @@ import random
 import unittest
 from engine.board import Board, Player, Position
 from engine.move_generator import LegalMoveGenerator, Move
+from engine.pieces import ALL_PIECE_ORIENTATIONS, PiecePlacement
 from tests.utils_game_states import generate_random_valid_state
 
 
@@ -14,6 +15,37 @@ def moves_to_set(moves: list) -> set:
     """Convert a list of Move objects to a set of tuples for comparison."""
     return {(move.piece_id, move.orientation, move.anchor_row, move.anchor_col) 
             for move in moves}
+
+
+def move_to_coord_key(generator: LegalMoveGenerator, move: Move) -> tuple:
+    """
+    Convert a Move to a coordinate-based key for comparison.
+    
+    This allows comparing moves regardless of orientation indices or internal IDs.
+    The key is (piece_id, tuple(sorted_coords)) where coords are the board positions
+    the piece would occupy.
+    
+    Args:
+        generator: LegalMoveGenerator instance (for accessing orientation cache)
+        move: Move object to convert
+        
+    Returns:
+        Tuple of (piece_id, tuple(sorted_coords))
+    """
+    # Get the positions this move would occupy
+    orientations = generator.piece_orientations_cache.get(move.piece_id, [])
+    if move.orientation >= len(orientations):
+        # Fallback: use anchor position only
+        return (move.piece_id, ((move.anchor_row, move.anchor_col),))
+    
+    orientation = orientations[move.orientation]
+    positions = PiecePlacement.get_piece_positions(
+        orientation, move.anchor_row, move.anchor_col
+    )
+    
+    # Sort coordinates for canonical ordering
+    sorted_coords = tuple(sorted(positions))
+    return (move.piece_id, sorted_coords)
 
 
 def generate_random_board_state(num_moves: int, seed: int = None) -> tuple:
@@ -279,20 +311,140 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
                 frontier_bitboard_moves = self.generator._get_legal_moves_frontier(board, current_player)
                 frontier_bitboard_set = moves_to_set(frontier_bitboard_moves)
                 
+                # Check for discrepancies using coordinate-based keys
+                naive_coord_map = {move_to_coord_key(self.generator, move): move 
+                                  for move in naive_moves}
+                frontier_coord_map = {move_to_coord_key(self.generator, move): move 
+                                     for move in frontier_bitboard_moves}
+                
+                naive_coord_set = set(naive_coord_map.keys())
+                frontier_coord_set = set(frontier_coord_map.keys())
+                
+                missing_coords = naive_coord_set - frontier_coord_set
+                extra_coords = frontier_coord_set - naive_coord_set
+                
+                # If there's a mismatch, log detailed diagnostics for the first one
+                if missing_coords or extra_coords:
+                    print("\n" + "=" * 80)
+                    print("DEBUG MISMATCH DETECTED")
+                    print("=" * 80)
+                    print(f"State: seed={seed}, player={current_player.name}, num_moves={num_moves}")
+                    print(f"Naive moves: {len(naive_set)}, Frontier+bitboard moves: {len(frontier_bitboard_set)}")
+                    print(f"Missing moves (in naive but not frontier+bitboard): {len(missing_coords)}")
+                    print(f"Extra moves (in frontier+bitboard but not naive): {len(extra_coords)}")
+                    print()
+                    
+                    # Analyze first missing move
+                    if missing_coords:
+                        missing_key = next(iter(missing_coords))
+                        missing_move = naive_coord_map[missing_key]
+                        piece_id = missing_move.piece_id
+                        player_id = current_player
+                        
+                        print("DEBUG MISMATCH - Missing move (first):")
+                        print(f"  Piece ID: {piece_id}")
+                        print(f"  Player: {player_id.name} (value={player_id.value})")
+                        print(f"  Move: {missing_move}")
+                        print(f"  Anchor: ({missing_move.anchor_row}, {missing_move.anchor_col})")
+                        print(f"  Orientation index: {missing_move.orientation}")
+                        
+                        # Get coordinates this move would occupy
+                        coords = move_to_coord_key(self.generator, missing_move)[1]
+                        print(f"  Board coordinates: {coords}")
+                        print()
+                        
+                        # Compare legality directly
+                        print("Legality comparison:")
+                        # Grid-based legality
+                        orientations = self.generator.piece_orientations_cache.get(piece_id, [])
+                        if missing_move.orientation < len(orientations):
+                            orientation = orientations[missing_move.orientation]
+                            positions = PiecePlacement.get_piece_positions(
+                                orientation, missing_move.anchor_row, missing_move.anchor_col
+                            )
+                            piece_positions = [Position(row, col) for row, col in positions]
+                            grid_legal = board.can_place_piece(piece_positions, player_id)
+                            print(f"  Grid-based legality: {grid_legal}")
+                        else:
+                            print(f"  Grid-based legality: ERROR (orientation index {missing_move.orientation} out of range)")
+                            grid_legal = False
+                        
+                        # Bitboard legality
+                        piece_orientations = ALL_PIECE_ORIENTATIONS.get(piece_id, [])
+                        if missing_move.orientation < len(piece_orientations):
+                            piece_orientation = piece_orientations[missing_move.orientation]
+                            
+                            # Try each anchor index to find one that matches
+                            bitboard_legal = False
+                            for anchor_idx in piece_orientation.anchor_indices:
+                                if anchor_idx >= len(piece_orientation.offsets):
+                                    continue
+                                
+                                # Calculate anchor position
+                                rel_r, rel_c = piece_orientation.offsets[anchor_idx]
+                                anchor_row = missing_move.anchor_row - rel_r
+                                anchor_col = missing_move.anchor_col - rel_c
+                                
+                                # Check if this anchor produces the same placement
+                                test_coords = tuple(sorted(
+                                    (anchor_row + offset[0], anchor_col + offset[1])
+                                    for offset in piece_orientation.offsets
+                                ))
+                                
+                                if test_coords == coords:
+                                    # Found matching anchor - check legality
+                                    bitboard_legal = self.generator.is_placement_legal_bitboard(
+                                        board, player_id, piece_orientation,
+                                        (anchor_row, anchor_col), anchor_idx
+                                    )
+                                    if bitboard_legal:
+                                        print(f"  Bitboard legality: {bitboard_legal} (anchor_idx={anchor_idx})")
+                                        break
+                            
+                            if not bitboard_legal:
+                                print(f"  Bitboard legality: {bitboard_legal} (tried all anchors)")
+                            
+                            # Orientation debug info
+                            print()
+                            print("Orientation debug info:")
+                            print(f"  PieceOrientation offsets: {piece_orientation.offsets}")
+                            print(f"  PieceOrientation anchor_indices: {piece_orientation.anchor_indices}")
+                            if missing_move.orientation < len(orientations):
+                                old_orientation = orientations[missing_move.orientation]
+                                old_positions = PiecePlacement.get_piece_positions(
+                                    old_orientation, missing_move.anchor_row, missing_move.anchor_col
+                                )
+                                print(f"  Old orientation shape positions: {old_positions}")
+                        else:
+                            print(f"  Bitboard legality: ERROR (orientation index {missing_move.orientation} out of range)")
+                            bitboard_legal = False
+                        
+                        print()
+                        print("=" * 80)
+                        print()
+                        
+                        # Assertions for debugging
+                        self.assertTrue(grid_legal, 
+                                       f"Grid-based legality should be True for move {missing_move}")
+                        self.assertFalse(bitboard_legal,
+                                        f"Bitboard legality should be False for move {missing_move} (this is why it's missing)")
+                    
+                    # Also log first extra move if any
+                    if extra_coords:
+                        extra_key = next(iter(extra_coords))
+                        extra_move = frontier_coord_map[extra_key]
+                        print("DEBUG MISMATCH - Extra move (first):")
+                        print(f"  Piece ID: {extra_move.piece_id}")
+                        print(f"  Player: {current_player.name}")
+                        print(f"  Move: {extra_move}")
+                        print(f"  Board coordinates: {move_to_coord_key(self.generator, extra_move)[1]}")
+                        print()
+                
                 # They should be identical
-                self.assertEqual(naive_set, frontier_bitboard_set,
+                self.assertEqual(naive_coord_set, frontier_coord_set,
                                 f"Moves differ for random state (seed={seed}, player={current_player.name}, "
                                 f"num_moves={num_moves}): naive has {len(naive_set)}, "
                                 f"frontier+bitboard has {len(frontier_bitboard_set)}")
-                
-                # Check for discrepancies
-                if naive_set != frontier_bitboard_set:
-                    extra = frontier_bitboard_set - naive_set
-                    missing = naive_set - frontier_bitboard_set
-                    if extra:
-                        self.fail(f"Frontier+bitboard has {len(extra)} extra moves: {list(extra)[:5]}")
-                    if missing:
-                        self.fail(f"Frontier+bitboard missing {len(missing)} moves: {list(missing)[:5]}")
         finally:
             # Restore original flags
             move_gen_module.USE_FRONTIER_MOVEGEN = original_frontier
