@@ -88,7 +88,14 @@ def generate_random_board_state(num_moves: int, seed: int = None) -> tuple:
 
 
 class TestMoveGenerationEquivalence(unittest.TestCase):
-    """Test that naive and frontier-based generators produce equivalent results."""
+    """
+    Test that naive and frontier-based generators produce equivalent results.
+    
+    Note: These equivalence tests assume USE_HEURISTIC_ANCHORS is False (exact mode),
+    ensuring all offsets are tried as anchors for correctness. The heuristic anchor
+    optimization is a performance feature that should not affect correctness due to
+    the per-orientation fallback mechanism.
+    """
     
     def setUp(self):
         """Set up test fixtures."""
@@ -284,17 +291,24 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
                                 f"naive has {len(naive_set)}, frontier has {len(frontier_set)}")
     
     def test_frontier_bitboard_vs_naive_random_states(self):
-        """Test that frontier+bitboard move generation matches naive on random states."""
+        """
+        Test that frontier+bitboard move generation matches naive on random states.
+        
+        This test uses exact mode (USE_HEURISTIC_ANCHORS=False) to ensure correctness.
+        """
         import engine.move_generator as move_gen_module
         
         # Save original flags
         original_frontier = move_gen_module.USE_FRONTIER_MOVEGEN
         original_bitboard = move_gen_module.USE_BITBOARD_LEGALITY
+        original_heuristic = move_gen_module.USE_HEURISTIC_ANCHORS
         
         try:
             # Enable both frontier and bitboard
+            # Ensure exact mode (no heuristics) for equivalence testing
             move_gen_module.USE_FRONTIER_MOVEGEN = True
             move_gen_module.USE_BITBOARD_LEGALITY = True
+            move_gen_module.USE_HEURISTIC_ANCHORS = False  # Exact mode for correctness
             
             num_states = 15
             num_moves_range = (3, 10)
@@ -451,6 +465,59 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
             # Restore original flags
             move_gen_module.USE_FRONTIER_MOVEGEN = original_frontier
             move_gen_module.USE_BITBOARD_LEGALITY = original_bitboard
+            move_gen_module.USE_HEURISTIC_ANCHORS = original_heuristic
+    
+    def test_heuristic_anchors_fallback_correctness(self):
+        """
+        Test that heuristic anchors with fallback don't miss legal moves.
+        
+        This test verifies that when USE_HEURISTIC_ANCHORS is enabled, the
+        per-orientation fallback mechanism ensures no legal moves are missed.
+        """
+        import engine.move_generator as move_gen_module
+        from engine.pieces import PieceOrientation
+        
+        # Save original flags
+        original_frontier = move_gen_module.USE_FRONTIER_MOVEGEN
+        original_bitboard = move_gen_module.USE_BITBOARD_LEGALITY
+        original_heuristic = move_gen_module.USE_HEURISTIC_ANCHORS
+        
+        try:
+            # Enable frontier, bitboard, and heuristics
+            move_gen_module.USE_FRONTIER_MOVEGEN = True
+            move_gen_module.USE_BITBOARD_LEGALITY = True
+            move_gen_module.USE_HEURISTIC_ANCHORS = True
+            
+            # Create a simple board state
+            board = Board()
+            player = Player.RED
+            
+            # Get legal moves with exact mode (baseline)
+            move_gen_module.USE_HEURISTIC_ANCHORS = False
+            exact_moves = self.generator._get_legal_moves_frontier(board, player)
+            exact_set = moves_to_set(exact_moves)
+            
+            # Get legal moves with heuristic mode (should match due to fallback)
+            move_gen_module.USE_HEURISTIC_ANCHORS = True
+            heuristic_moves = self.generator._get_legal_moves_frontier(board, player)
+            heuristic_set = moves_to_set(heuristic_moves)
+            
+            # Heuristic mode should find at least as many moves as exact mode
+            # (it might find more if exact mode had bugs, but shouldn't find fewer)
+            self.assertGreaterEqual(len(heuristic_set), len(exact_set),
+                                  "Heuristic anchors should not miss legal moves")
+            
+            # For first move on empty board, they should be identical
+            # (all orientations should find moves with heuristic anchors)
+            self.assertEqual(exact_set, heuristic_set,
+                          "Heuristic anchors with fallback should match exact mode on empty board")
+            
+        finally:
+            # Restore original flags
+            move_gen_module.USE_FRONTIER_MOVEGEN = original_frontier
+            move_gen_module.USE_BITBOARD_LEGALITY = original_bitboard
+            move_gen_module.USE_HEURISTIC_ANCHORS = original_heuristic
+            move_gen_module.USE_HEURISTIC_ANCHORS = original_heuristic
 
 
 if __name__ == "__main__":

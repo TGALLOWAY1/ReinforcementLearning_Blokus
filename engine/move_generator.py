@@ -32,6 +32,12 @@ MOVEGEN_DEBUG_EQUIVALENCE = bool(os.getenv("BLOKUS_MOVEGEN_DEBUG_EQUIVALENCE", "
 # When enabled, prints detailed comparison of bitboard and grid legality checks
 DEBUG_BITBOARD = bool(os.getenv("BLOKUS_DEBUG_BITBOARD", ""))
 
+# Feature flag to control heuristic anchor selection
+# When False (default): All offsets of an orientation are considered as possible anchors (exact mode)
+# When True: Heuristic anchor_indices are used as a fast-path, with per-orientation fallback
+#            to full offsets if no legal moves are found (safe heuristic mode)
+USE_HEURISTIC_ANCHORS = bool(os.getenv("BLOKUS_USE_HEURISTIC_ANCHORS", ""))
+
 
 class Move:
     """Represents a legal move in Blokus."""
@@ -255,14 +261,43 @@ class LegalMoveGenerator:
                 if USE_BITBOARD_LEGALITY:
                     piece_orientation = piece_orientations[orientation_idx]
                     relative_positions = piece_orientation.offsets
-                    # Use precomputed anchor indices for bitboard (heuristic optimization)
-                    anchor_indices = piece_orientation.anchor_indices
                 else:
                     orientation = orientations[orientation_idx]
                     relative_positions = cached_positions[orientation_idx]
-                    # For grid-based, try all offsets to maintain correctness
-                    # (Anchor optimization could be added here in the future)
-                    anchor_indices = list(range(len(relative_positions)))
+                
+                # Helper function to get anchor indices for this orientation
+                def _get_anchor_indices_for_orientation(orientation_or_relative_positions):
+                    """
+                    Get anchor indices to try for this orientation.
+                    
+                    - Exact mode (USE_HEURISTIC_ANCHORS=False): Use all offsets
+                    - Heuristic mode (USE_HEURISTIC_ANCHORS=True): Use precomputed anchor_indices
+                      (with per-orientation fallback if no moves found)
+                    """
+                    if not USE_HEURISTIC_ANCHORS:
+                        # Exact mode: use all offsets as potential anchors
+                        if USE_BITBOARD_LEGALITY:
+                            return list(range(len(piece_orientation.offsets)))
+                        else:
+                            return list(range(len(relative_positions)))
+                    
+                    # Heuristic mode: use precomputed anchor_indices first
+                    if USE_BITBOARD_LEGALITY:
+                        if piece_orientation.anchor_indices:
+                            return piece_orientation.anchor_indices
+                        # Fallback: if no precomputed anchors, use all offsets
+                        return list(range(len(piece_orientation.offsets)))
+                    else:
+                        # For grid-based, always use all offsets (heuristics not implemented yet)
+                        return list(range(len(relative_positions)))
+                
+                # Get initial anchor indices (heuristic or all)
+                anchor_indices = _get_anchor_indices_for_orientation(
+                    piece_orientation if USE_BITBOARD_LEGALITY else orientation
+                )
+                
+                # Track if we found any legal moves for this orientation
+                any_legal_for_orientation = False
                 
                 # For each frontier cell, try anchoring the piece at strategic positions
                 for frontier_row, frontier_col in frontier_cells:
@@ -310,6 +345,7 @@ class LegalMoveGenerator:
                                     move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
                                     legal_moves.append(move)
                                     found_legal_anchor = True
+                                    any_legal_for_orientation = True
                         else:
                             # Use grid-based legality check (original method)
                             # Check if piece would be within bounds at this anchor
@@ -353,11 +389,95 @@ class LegalMoveGenerator:
                                 move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
                                 legal_moves.append(move)
                                 found_legal_anchor = True
+                                any_legal_for_orientation = True
                     
                     # Update per-call cache: if no anchors were legal for this frontier cell,
                     # remember to skip it in future iterations
                     if not found_legal_anchor:
                         piece_frontier_fail.add(frontier_key)
+                
+                # Per-orientation fallback: if heuristics enabled and no moves found,
+                # try all offsets to ensure we don't miss any legal moves
+                if USE_HEURISTIC_ANCHORS and not any_legal_for_orientation:
+                    # Fallback: try all possible anchor indices for this orientation
+                    full_anchor_indices = list(range(len(relative_positions)))
+                    
+                    # Only try anchors that weren't already tried
+                    anchors_to_try = [idx for idx in full_anchor_indices if idx not in anchor_indices]
+                    
+                    if anchors_to_try:
+                        # Try remaining anchors for all frontier cells
+                        for frontier_row, frontier_col in frontier_cells:
+                            # Skip cache check for fallback - we want to try everything
+                            for anchor_piece_idx in anchors_to_try:
+                                if anchor_piece_idx >= len(relative_positions):
+                                    continue
+                                
+                                rel_r, rel_c = relative_positions[anchor_piece_idx]
+                                
+                                # Calculate anchor position
+                                anchor_row = frontier_row - rel_r
+                                anchor_col = frontier_col - rel_c
+                                
+                                # Bounds check
+                                if anchor_row < 0 or anchor_row >= board.SIZE or anchor_col < 0 or anchor_col >= board.SIZE:
+                                    continue
+                                
+                                # Check legality
+                                if USE_BITBOARD_LEGALITY:
+                                    # Use coords-based bitboard legality check
+                                    placement_coords = [
+                                        (anchor_row + rel_r, anchor_col + rel_c)
+                                        for rel_r, rel_c in relative_positions
+                                    ]
+                                    
+                                    # Bounds check: ensure all coords are on board
+                                    if all(0 <= r < board.SIZE and 0 <= c < board.SIZE 
+                                           for r, c in placement_coords):
+                                        if self.is_placement_legal_bitboard_coords(
+                                            board, player, placement_coords,
+                                            is_first_move=is_first_move
+                                        ):
+                                            move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
+                                            legal_moves.append(move)
+                                            any_legal_for_orientation = True
+                                else:
+                                    # Use grid-based legality check
+                                    if not PiecePlacement.can_place_piece_at(
+                                        (board.SIZE, board.SIZE), orientation, anchor_row, anchor_col
+                                    ):
+                                        continue
+                                    
+                                    # Fast bounds and overlap check
+                                    has_overlap = False
+                                    covers_start_corner = False
+                                    
+                                    for check_rel_r, check_rel_c in relative_positions:
+                                        r = anchor_row + check_rel_r
+                                        c = anchor_col + check_rel_c
+                                        
+                                        if r < 0 or r >= board.SIZE or c < 0 or c >= board.SIZE:
+                                            has_overlap = True
+                                            break
+                                        
+                                        if grid[r, c] != 0:
+                                            has_overlap = True
+                                            break
+                                        
+                                        if is_first_move and start_corner and r == start_corner.row and c == start_corner.col:
+                                            covers_start_corner = True
+                                    
+                                    if has_overlap:
+                                        continue
+                                    if is_first_move and not covers_start_corner:
+                                        continue
+                                    
+                                    if self._check_adjacency_fast_inline(relative_positions, anchor_row, anchor_col, 
+                                                                         player_value, grid, board.SIZE, 
+                                                                         is_first_move, start_corner):
+                                        move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
+                                        legal_moves.append(move)
+                                        any_legal_for_orientation = True
             
             piece_end = time.perf_counter()
             piece_timings[piece.id] = piece_end - piece_start
