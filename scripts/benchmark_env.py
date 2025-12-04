@@ -182,7 +182,7 @@ def benchmark_move_generation(num_iterations: int = 1000, seed: int = 42):
         start_time = time.perf_counter()
         legal_moves = move_generator.get_legal_moves(board, player)
         elapsed_time = time.perf_counter() - start_time
-        
+        print(len(legal_moves))
         # Track statistics
         total_time += elapsed_time
         total_moves += len(legal_moves)
