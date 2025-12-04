@@ -783,9 +783,9 @@ def train(config: TrainingConfig, run_dir: Optional[Path] = None, experiment_nam
     
     run_logger = None
     try:
-        # Use agent config info if available
-        agent_id = agent_config.agent_id if agent_config else "ppo_agent"
-        algorithm = agent_config.algorithm if agent_config else "MaskablePPO"
+        # Use agent config info if available, otherwise use config defaults
+        agent_id = agent_config.agent_id if agent_config else config.agent_id
+        algorithm = agent_config.algorithm if agent_config else config.algorithm
         
         run_logger = create_training_run_logger(
             config=config_dict,

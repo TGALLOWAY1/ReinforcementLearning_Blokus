@@ -56,6 +56,8 @@ class TrainingConfig:
         enable_sanity_checks: Enable sanity checks (NaN/Inf detection, etc.)
         log_action_details: Log detailed action information (only in smoke mode or if explicitly enabled)
         disable_distribution_validation: Disable PyTorch distribution validation (needed for large action spaces)
+        agent_id: Agent identifier for logging and checkpoints (default: "ppo_agent")
+        algorithm: Algorithm name for logging (default: "MaskablePPO")
     """
     
     mode: Literal["smoke", "full"] = "full"
@@ -81,6 +83,8 @@ class TrainingConfig:
     disable_distribution_validation: bool = True  # Default True for large action space (36400)
     num_envs: int = 1
     vec_env_type: Literal["dummy", "subproc"] = "dummy"
+    agent_id: str = "ppo_agent"
+    algorithm: str = "MaskablePPO"
     
     def __post_init__(self):
         """Apply smoke-test mode defaults if mode is 'smoke'."""
@@ -105,9 +109,15 @@ class TrainingConfig:
                 self.log_action_details = True
             if not self.enable_sanity_checks:
                 self.enable_sanity_checks = True
-            # Disable periodic checkpointing in smoke mode (too short)
-            if self.checkpoint_interval_episodes is not None:
-                self.checkpoint_interval_episodes = None
+            # In smoke mode, only disable checkpointing if it's still at the default value
+            # This allows config files to explicitly enable checkpointing for smoke tests
+            # The default for checkpoint_interval_episodes is 50, so if it's None or 50,
+            # we disable it for smoke mode. But if a config file sets it to a different value,
+            # we respect that setting.
+            if self.checkpoint_interval_episodes == 50:  # Default value
+                self.checkpoint_interval_episodes = None  # Disable for smoke mode
+            # If checkpoint_interval_episodes was explicitly set to a non-default value
+            # (e.g., 5 in config_smoke.yaml), we keep it
     
     @classmethod
     def from_dict(cls, config_dict: dict) -> "TrainingConfig":
