@@ -18,9 +18,10 @@ This project provides a full-stack implementation of Blokus with:
 
 ### Game Engine
 - Full Blokus rule implementation (20x20 board, 4 players, 21 pieces per player)
-- Legal move generation with optimized caching
+- Legal move generation with optimized caching (frontier-based + bitboard)
 - Scoring system with bonuses (corner control, center control, piece completion)
 - Game state management and history tracking
+- **Move Generation**: For details on the optimized move generation system (frontier-based generation, bitboard legality, performance optimizations), see [docs/move-generation-optimization.md](docs/move-generation-optimization.md)
 
 ### AI Agents
 - **Random Agent**: Baseline agent making random legal moves
@@ -253,7 +254,7 @@ blokus_rl/
 │   ├── board.py         # Board state management
 │   ├── game.py          # Game logic and scoring
 │   ├── pieces.py        # Piece definitions and generation
-│   └── move_generator.py # Legal move generation
+│   └── move_generator.py # Legal move generation (see docs/move-generation-optimization.md)
 ├── envs/                # RL environments
 │   ├── blokus_env.py
 │   └── blokus_v0.py     # PettingZoo AEC environment
