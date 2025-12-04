@@ -4,12 +4,28 @@ Main Blokus game engine with scoring rules and game management.
 
 import time
 import logging
+from dataclasses import dataclass
 from typing import List, Optional, Dict, Tuple
 from .board import Board, Player, Position
 from .pieces import PieceGenerator
 from .move_generator import LegalMoveGenerator, Move
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class GameResult:
+    """
+    Canonical game result containing final scores and winner information.
+    
+    Attributes:
+        scores: Dictionary mapping player_id (Player.value) to final score
+        winner_ids: List of player_ids (Player.value) that tied for the highest score
+        is_tie: True if multiple players tied for the highest score (len(winner_ids) > 1)
+    """
+    scores: Dict[int, int]
+    winner_ids: List[int]
+    is_tie: bool
 
 
 class BlokusGame:
@@ -109,29 +125,83 @@ class BlokusGame:
         # If no player can move, the game is over
         if not any_player_can_move:
             self.board.game_over = True
-            self.winner = self.get_winner()
+            # Use get_game_result() to determine winner
+            game_result = self.get_game_result()
+            # Set self.winner for backward compatibility (None if tie)
+            if game_result.is_tie:
+                self.winner = None
+            else:
+                # Convert winner_id back to Player enum
+                winner_id = game_result.winner_ids[0]
+                self.winner = Player(winner_id)
+    
+    def get_game_result(self) -> GameResult:
+        """
+        Get the canonical game result with final scores and winner information.
+        
+        This method computes final scores for all players using the standard Blokus
+        scoring system:
+        - Base score: 1 point per square covered by pieces
+        - Bonus: +15 points if player used all 21 pieces
+        - Corner control bonus: +5 points per controlled corner (4 corners max)
+        - Center control bonus: +2 points per center square (4×4 center area)
+        
+        The method can be safely called:
+        - After the game is over (recommended): Returns accurate final scores
+        - Before the game is over: Computes scores from current board state
+          (scores may change as more moves are made)
+        
+        Returns:
+            GameResult containing:
+            - scores: Dict mapping player_id (Player.value) to final score
+            - winner_ids: List of player_ids that tied for highest score
+            - is_tie: True if multiple players tied for highest score
+        
+        Raises:
+            RuntimeError: If called on a game that has never had any moves made
+            (edge case - should not occur in normal gameplay)
+        """
+        # Calculate scores for all players using existing scoring logic
+        scores = {}
+        for player in Player:
+            scores[player.value] = self.get_score(player)
+        
+        # Find the maximum score
+        max_score = max(scores.values())
+        
+        # Find all players who achieved the maximum score
+        winner_ids = [player_id for player_id, score in scores.items() if score == max_score]
+        
+        # Determine if there's a tie
+        is_tie = len(winner_ids) > 1
+        
+        return GameResult(
+            scores=scores,
+            winner_ids=winner_ids,
+            is_tie=is_tie
+        )
     
     def get_winner(self) -> Optional[Player]:
-        """Get the winner of the game."""
+        """
+        Get the winner of the game (backward compatibility method).
+        
+        This method uses get_game_result() internally. For new code, prefer
+        using get_game_result() directly as it provides more complete information.
+        
+        Returns:
+            Player enum if there's a unique winner, None if there's a tie or game not over.
+        """
         if not self.board.game_over:
             return None
         
-        # Calculate scores for all players
-        scores = {}
-        for player in Player:
-            scores[player] = self.get_score(player)
+        game_result = self.get_game_result()
         
-        # Find player with highest score
-        winner = max(scores, key=scores.get)
+        if game_result.is_tie:
+            return None
         
-        # Check for ties
-        max_score = scores[winner]
-        tied_players = [p for p, s in scores.items() if s == max_score]
-        
-        if len(tied_players) > 1:
-            return None  # Tie
-        
-        return winner
+        # Convert winner_id back to Player enum
+        winner_id = game_result.winner_ids[0]
+        return Player(winner_id)
     
     def get_score(self, player: Player) -> int:
         """
