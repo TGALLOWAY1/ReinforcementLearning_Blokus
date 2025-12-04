@@ -90,6 +90,7 @@ class BlokusEnv(AECEnv):
         self.step_count = 0
         self.last_scores = {agent: 0 for agent in self.possible_agents}
         self.last_move_info = {agent: None for agent in self.possible_agents}
+        self.game_result = None  # Stores GameResult when game is over
         
         # Move generation profiling (if enabled)
         self._movegen_profiling_enabled = PROFILE_MOVEGEN
@@ -185,6 +186,7 @@ class BlokusEnv(AECEnv):
         self.step_count = 0
         self.last_scores = {agent: 0 for agent in self.possible_agents}
         self.last_move_info = {agent: None for agent in self.possible_agents}
+        self.game_result = None  # Clear game result on reset
         
         # Reset agents
         self.agents = self.possible_agents[:]
@@ -303,7 +305,7 @@ class BlokusEnv(AECEnv):
                         f"Mismatch: {len(legal_moves)} legal moves but only {mapped_count} mapped to action space"
                     )
                 
-        return {
+        info = {
             "legal_action_mask": legal_action_mask,
             "legal_moves_count": len(legal_moves),
             "score": self.game.get_score(player),
@@ -311,6 +313,20 @@ class BlokusEnv(AECEnv):
             "pieces_remaining": 21 - len(self.game.board.player_pieces_used[player]),
             "can_move": len(legal_moves) > 0,
         }
+        
+        # Add game result information on terminal steps
+        # These fields are only guaranteed to be present when the game is over
+        if self.game_result is not None:
+            info["final_scores"] = self.game_result.scores
+            info["winner_ids"] = self.game_result.winner_ids
+            info["is_tie"] = self.game_result.is_tie
+            
+            # Convenience flag: player_0 (RED, value=1) won
+            # player_0 corresponds to Player.RED which has value=1
+            player_0_id = Player.RED.value  # player_0 = RED = 1
+            info["player0_won"] = (player_0_id in self.game_result.winner_ids) and not self.game_result.is_tie
+        
+        return info
         
     def _agent_to_player(self, agent: str) -> Player:
         """Convert agent string to Player enum."""
@@ -387,6 +403,9 @@ class BlokusEnv(AECEnv):
         """Check for episode termination or truncation."""
         # Check if game is over
         if self.game.is_game_over():
+            # Get canonical game result (includes scores, winner_ids, is_tie)
+            self.game_result = self.game.get_game_result()
+            
             # Calculate final rewards
             winner = self.game.get_winner()
             for agent in self.agents:
