@@ -1,5 +1,16 @@
 """
 Legal move generator for Blokus game.
+
+Configuration:
+    Default runtime configuration:
+    - Frontier-based generator: ON (default)
+    - Bitboard legality: ON (default)
+    - Heuristic anchors: OFF by default (for correctness, with safe fallback)
+    
+    The naive generator is only used when explicitly requested for debugging
+    or experiments. Set BLOKUS_USE_FRONTIER_MOVEGEN=0 to use naive generator.
+    Set BLOKUS_USE_BITBOARD_LEGALITY=0 to use grid-based legality checks.
+    Set BLOKUS_USE_HEURISTIC_ANCHORS=1 to enable heuristic anchor optimization.
 """
 
 import os
@@ -13,30 +24,51 @@ from .bitboard import shift_mask, coord_to_bit, coords_to_mask, mask_to_coords, 
 
 logger = logging.getLogger(__name__)
 
+
+def _env_flag(name: str, default: bool) -> bool:
+    """
+    Read a boolean environment variable with a default value.
+    
+    Args:
+        name: Environment variable name
+        default: Default value if env var is unset
+        
+    Returns:
+        Boolean value from env var or default
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    # Accept common truthy/falsy string values
+    return raw.lower() in ("1", "true", "yes", "on")
+
+
 # Debug flag for move generation timing (controlled via environment variable)
-MOVEGEN_DEBUG = bool(os.getenv("BLOKUS_MOVEGEN_DEBUG", ""))
+MOVEGEN_DEBUG = _env_flag("BLOKUS_MOVEGEN_DEBUG", False)
 
 # Feature flag to toggle between naive and frontier-based move generation
-USE_FRONTIER_MOVEGEN = bool(os.getenv("BLOKUS_USE_FRONTIER_MOVEGEN", ""))
+# Default: True (frontier-based is the default)
+USE_FRONTIER_MOVEGEN = _env_flag("BLOKUS_USE_FRONTIER_MOVEGEN", True)
 
 # Feature flag to toggle between grid-based and bitboard-based legality checks
-# When True, frontier-based move generation (and optionally others) will use
-# bitboard legality instead of cell-based checks
-USE_BITBOARD_LEGALITY = bool(os.getenv("BLOKUS_USE_BITBOARD_LEGALITY", ""))
+# Default: True (bitboard legality is the default)
+# When True, frontier-based move generation uses bitboard legality instead of cell-based checks
+USE_BITBOARD_LEGALITY = _env_flag("BLOKUS_USE_BITBOARD_LEGALITY", True)
 
 # Debug flag for equivalence checking (guarded, samples 5% of calls)
 # When enabled, randomly samples calls to verify bitboard and grid legality match
-MOVEGEN_DEBUG_EQUIVALENCE = bool(os.getenv("BLOKUS_MOVEGEN_DEBUG_EQUIVALENCE", ""))
+MOVEGEN_DEBUG_EQUIVALENCE = _env_flag("BLOKUS_MOVEGEN_DEBUG_EQUIVALENCE", False)
 
 # Debug flag for deep bitboard vs grid comparison
 # When enabled, prints detailed comparison of bitboard and grid legality checks
-DEBUG_BITBOARD = bool(os.getenv("BLOKUS_DEBUG_BITBOARD", ""))
+DEBUG_BITBOARD = _env_flag("BLOKUS_DEBUG_BITBOARD", False)
 
 # Feature flag to control heuristic anchor selection
-# When False (default): All offsets of an orientation are considered as possible anchors (exact mode)
+# Default: False (exact mode for correctness)
+# When False: All offsets of an orientation are considered as possible anchors (exact mode)
 # When True: Heuristic anchor_indices are used as a fast-path, with per-orientation fallback
 #            to full offsets if no legal moves are found (safe heuristic mode)
-USE_HEURISTIC_ANCHORS = bool(os.getenv("BLOKUS_USE_HEURISTIC_ANCHORS", ""))
+USE_HEURISTIC_ANCHORS = _env_flag("BLOKUS_USE_HEURISTIC_ANCHORS", False)
 
 
 class Move:
@@ -83,8 +115,12 @@ class LegalMoveGenerator:
         """
         Get all legal moves for a given player on the current board.
         
-        This is a thin wrapper that delegates to either the naive or frontier-based
-        generator based on the USE_FRONTIER_MOVEGEN feature flag.
+        This is the single public API for move generation. It delegates to either:
+        - Frontier-based generator (default): Uses frontier cells and bitboard legality
+        - Naive generator: Full-board scan with grid-based legality (for debugging)
+        
+        The generator choice is controlled by USE_FRONTIER_MOVEGEN flag (default: True).
+        When using frontier generator, bitboard legality is used by default (USE_BITBOARD_LEGALITY=True).
         
         Args:
             board: Current board state
