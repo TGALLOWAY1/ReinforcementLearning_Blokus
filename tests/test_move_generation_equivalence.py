@@ -7,6 +7,7 @@ import random
 import unittest
 from engine.board import Board, Player, Position
 from engine.move_generator import LegalMoveGenerator, Move
+from tests.utils_game_states import generate_random_valid_state
 
 
 def moves_to_set(moves: list) -> set:
@@ -249,6 +250,53 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
                 self.assertEqual(naive_set, frontier_set,
                                 f"Moves differ for {player.name} on random state (seed={seed}): "
                                 f"naive has {len(naive_set)}, frontier has {len(frontier_set)}")
+    
+    def test_frontier_bitboard_vs_naive_random_states(self):
+        """Test that frontier+bitboard move generation matches naive on random states."""
+        import engine.move_generator as move_gen_module
+        
+        # Save original flags
+        original_frontier = move_gen_module.USE_FRONTIER_MOVEGEN
+        original_bitboard = move_gen_module.USE_BITBOARD_LEGALITY
+        
+        try:
+            # Enable both frontier and bitboard
+            move_gen_module.USE_FRONTIER_MOVEGEN = True
+            move_gen_module.USE_BITBOARD_LEGALITY = True
+            
+            num_states = 15
+            num_moves_range = (3, 10)
+            
+            for seed in range(num_states):
+                num_moves = random.randint(*num_moves_range)
+                board, current_player = generate_random_valid_state(num_moves, seed=seed)
+                
+                # Generate moves with naive (grid-based)
+                naive_moves = self.generator._get_legal_moves_naive(board, current_player)
+                naive_set = moves_to_set(naive_moves)
+                
+                # Generate moves with frontier+bitboard
+                frontier_bitboard_moves = self.generator._get_legal_moves_frontier(board, current_player)
+                frontier_bitboard_set = moves_to_set(frontier_bitboard_moves)
+                
+                # They should be identical
+                self.assertEqual(naive_set, frontier_bitboard_set,
+                                f"Moves differ for random state (seed={seed}, player={current_player.name}, "
+                                f"num_moves={num_moves}): naive has {len(naive_set)}, "
+                                f"frontier+bitboard has {len(frontier_bitboard_set)}")
+                
+                # Check for discrepancies
+                if naive_set != frontier_bitboard_set:
+                    extra = frontier_bitboard_set - naive_set
+                    missing = naive_set - frontier_bitboard_set
+                    if extra:
+                        self.fail(f"Frontier+bitboard has {len(extra)} extra moves: {list(extra)[:5]}")
+                    if missing:
+                        self.fail(f"Frontier+bitboard missing {len(missing)} moves: {list(missing)[:5]}")
+        finally:
+            # Restore original flags
+            move_gen_module.USE_FRONTIER_MOVEGEN = original_frontier
+            move_gen_module.USE_BITBOARD_LEGALITY = original_bitboard
 
 
 if __name__ == "__main__":
