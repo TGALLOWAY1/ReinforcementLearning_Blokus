@@ -249,6 +249,22 @@ class BlokusEnv(AECEnv):
         """Get info for an agent."""
         player = self._agent_to_player(agent)
         
+        # If agent is already terminated, return safe info with a valid mask
+        # (This prevents all-False masks from being exposed to MaskablePPO)
+        if self.terminations.get(agent, False) or self.truncations.get(agent, False):
+            # Return a safe mask with at least one action enabled for terminated agents
+            # This prevents errors when the policy tries to sample from a terminated state
+            safe_mask = np.zeros(self.action_space_size, dtype=bool)
+            safe_mask[0] = True  # Enable first action as a safe fallback
+            return {
+                "legal_action_mask": safe_mask,
+                "legal_moves_count": 0,
+                "score": self.game.get_score(player),
+                "pieces_used": len(self.game.board.player_pieces_used[player]),
+                "pieces_remaining": 21 - len(self.game.board.player_pieces_used[player]),
+                "can_move": False,
+            }
+        
         # Get legal moves (with optional profiling)
         if self._movegen_profiling_enabled:
             start_time = time.perf_counter()
@@ -263,14 +279,28 @@ class BlokusEnv(AECEnv):
             legal_moves = self.move_generator.get_legal_moves(self.game.board, player)
         legal_action_mask = np.zeros(self.action_space_size, dtype=bool)
         
-        # DIAGNOSTIC: Log when no legal moves are found
+        # If no legal moves, mark agent as terminated BEFORE building mask
+        # This ensures we never expose an all-False mask to MaskablePPO
         if len(legal_moves) == 0:
             if MASK_DEBUG_LOGGING:
-                _mask_logger.warning(
+                _mask_logger.info(
                     f"BlokusEnv: NO LEGAL MOVES for {agent} (player {player.name}) "
-                    f"at step {self.step_count}. "
-                    f"Mask will be all False - this will break MaskablePPO!"
+                    f"at step {self.step_count}. Marking agent as terminated."
                 )
+            # Mark agent as terminated immediately
+            self.terminations[agent] = True
+            # Return a safe mask with at least one action enabled
+            # This prevents errors when the policy tries to sample from a terminated state
+            safe_mask = np.zeros(self.action_space_size, dtype=bool)
+            safe_mask[0] = True  # Enable first action as a safe fallback
+            return {
+                "legal_action_mask": safe_mask,
+                "legal_moves_count": 0,
+                "score": self.game.get_score(player),
+                "pieces_used": len(self.game.board.player_pieces_used[player]),
+                "pieces_remaining": 21 - len(self.game.board.player_pieces_used[player]),
+                "can_move": False,
+            }
         
         # Build the mask by marking legal actions as True
         mapped_count = 0
@@ -338,10 +368,57 @@ class BlokusEnv(AECEnv):
         player_idx = player.value - 1
         return f"player_{player_idx}"
         
-    def step(self, action: int) -> None:
+    def _advance_to_next_live_agent(self) -> bool:
+        """
+        Advance agent_selection to the next live (non-terminated) agent.
+        
+        Returns:
+            True if a live agent was found, False if all agents are terminated/truncated
+        """
+        max_iterations = len(self.agents) * 2  # Safety limit
+        iterations = 0
+        
+        while iterations < max_iterations:
+            if (not self.terminations.get(self.agent_selection, False) and 
+                not self.truncations.get(self.agent_selection, False)):
+                # Found a live agent
+                return True
+            # Advance to next agent
+            self.agent_selection = self._agent_selector.next()
+            iterations += 1
+        
+        # All agents are terminated/truncated
+        return False
+    
+    def step(self, action: Optional[int] = None) -> None:
         """Execute one step in the environment."""
-        if self.terminations[self.agent_selection] or self.truncations[self.agent_selection]:
-            self._was_dead_step(action)
+        # If current agent is dead, handle according to PettingZoo semantics
+        if self.terminations.get(self.agent_selection, False) or self.truncations.get(self.agent_selection, False):
+            # PettingZoo expects None for dead agents
+            if action is not None:
+                # Gracefully handle non-None action for dead agent by skipping
+                # (This can happen with wrappers that don't check agent state)
+                if MASK_DEBUG_LOGGING:
+                    _mask_logger.warning(
+                        f"BlokusEnv.step(): Received non-None action {action} for dead agent "
+                        f"{self.agent_selection}. Skipping and advancing to next live agent."
+                    )
+            # Advance to next live agent
+            if not self._advance_to_next_live_agent():
+                # All agents are done - game is over
+                for agent in self.agents:
+                    self.terminations[agent] = True
+                # Update observations and infos one final time
+                for agent in self.agents:
+                    self.observations[agent] = self._get_observation(agent)
+                    self.infos[agent] = self._get_info(agent)
+                return
+            # Update observations and infos for the newly selected agent
+            for agent in self.agents:
+                self.observations[agent] = self._get_observation(agent)
+                self.infos[agent] = self._get_info(agent)
+            # Don't process the action meant for the dead agent
+            # The caller should call step() again with an action for the new agent
             return
             
         # Convert action to move
@@ -381,8 +458,13 @@ class BlokusEnv(AECEnv):
         # Check for termination/truncation
         self._check_termination_truncation()
         
-        # Move to next agent
+        # Move to next agent, skipping dead agents
         self.agent_selection = self._agent_selector.next()
+        # Advance past any dead agents
+        if not self._advance_to_next_live_agent():
+            # All agents are done
+            for agent in self.agents:
+                self.terminations[agent] = True
         self.step_count += 1
         
     def _skip_turn(self):
@@ -395,8 +477,13 @@ class BlokusEnv(AECEnv):
             self.observations[agent] = self._get_observation(agent)
             self.infos[agent] = self._get_info(agent)
             
-        # Move to next agent
+        # Move to next agent, skipping dead agents
         self.agent_selection = self._agent_selector.next()
+        # Advance past any dead agents
+        if not self._advance_to_next_live_agent():
+            # All agents are done
+            for agent in self.agents:
+                self.terminations[agent] = True
         self.step_count += 1
         
     def _check_termination_truncation(self):
@@ -576,8 +663,45 @@ class GymnasiumBlokusWrapper(gym.Env):
         Returns:
             Tuple of (observation, reward, terminated, truncated, info)
         """
-        # Execute action for current agent
-        self.env.step(action)
+        # Ensure we only step when the current agent is our controlled agent (player_0)
+        # If the AEC env has selected a different agent, advance until we reach player_0
+        max_iterations = len(self.env.agents) * 2  # Safety limit
+        iterations = 0
+        
+        while self.env.agent_selection != self.agent_name and iterations < max_iterations:
+            # Current agent is not our agent
+            current_agent = self.env.agent_selection
+            
+            # Check if it's dead
+            if (self.env.terminations.get(current_agent, False) or 
+                self.env.truncations.get(current_agent, False)):
+                # Dead agent - advance to next live agent
+                if not self.env._advance_to_next_live_agent():
+                    # All agents are done
+                    break
+            else:
+                # Live agent but not ours - step with None to advance (AEC semantics)
+                # This will advance to the next agent
+                self.env.step(None)
+                # After stepping, check if we've reached our agent or all are done
+                if self.env.agent_selection == self.agent_name:
+                    break
+                # If all agents are terminated, break
+                if all(self.env.terminations.get(agent, False) or self.env.truncations.get(agent, False) 
+                       for agent in self.env.agents):
+                    break
+            iterations += 1
+        
+        # Now step for our agent (or skip if all agents are done)
+        if self.env.agent_selection == self.agent_name:
+            # Execute action for our agent
+            self.env.step(action)
+        else:
+            # All agents are done or we couldn't reach our agent
+            # Just update observations/infos
+            for agent in self.env.agents:
+                self.env.observations[agent] = self.env._get_observation(agent)
+                self.env.infos[agent] = self.env._get_info(agent)
         
         # Get observation and info for our agent
         obs = self.env.observe(self.agent_name)
