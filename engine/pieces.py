@@ -3,9 +3,10 @@ Blokus piece definitions with all 21 polyominoes and their rotations/reflections
 """
 
 import numpy as np
-from typing import List, Tuple, Set, Optional
+from typing import List, Tuple, Set, Optional, Dict
 from dataclasses import dataclass
 from enum import Enum
+from .bitboard import coords_to_mask, coord_to_bit
 
 
 @dataclass
@@ -22,6 +23,231 @@ class Piece:
             raise ValueError("Piece shape must be 2D")
         if np.sum(self.shape) != self.size:
             raise ValueError("Piece shape sum must equal size")
+
+
+@dataclass
+class PieceOrientation:
+    """
+    Precomputed orientation data for a piece.
+    
+    Contains normalized offsets, bitmasks, and other precomputed data
+    for efficient move generation.
+    """
+    piece_id: int
+    orientation_id: int
+    offsets: List[Tuple[int, int]]  # (row, col) offsets anchored at (0,0), normalized
+    shape_mask: int  # Bitmask for the shape cells
+    diag_mask: int  # Bitmask for diagonal neighbors (not including shape cells)
+    orth_mask: int  # Bitmask for orthogonal neighbors (not including shape cells)
+    anchor_indices: List[int]  # Indices into offsets for anchor points (placeholder for now)
+
+
+def shape_to_offsets(shape: np.ndarray) -> List[Tuple[int, int]]:
+    """
+    Convert a numpy shape array to a list of (row, col) offsets.
+    
+    Args:
+        shape: 2D numpy array with 1s where cells are occupied
+        
+    Returns:
+        List of (row, col) tuples for occupied cells
+    """
+    offsets = []
+    rows, cols = shape.shape
+    for i in range(rows):
+        for j in range(cols):
+            if shape[i, j] == 1:
+                offsets.append((i, j))
+    return offsets
+
+
+def normalize_offsets(offsets: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    """
+    Normalize offsets so that min_row = 0 and min_col = 0 (anchor at (0,0)).
+    
+    Args:
+        offsets: List of (row, col) tuples
+        
+    Returns:
+        Normalized list of offsets, sorted for canonical ordering
+    """
+    if not offsets:
+        return []
+    
+    min_row = min(r for r, c in offsets)
+    min_col = min(c for r, c in offsets)
+    
+    normalized = [(r - min_row, c - min_col) for r, c in offsets]
+    return sorted(normalized)  # Sort for canonical ordering
+
+
+def _compute_anchor_indices(offsets: List[Tuple[int, int]], max_anchors: int = 4) -> List[int]:
+    """
+    Compute heuristic anchor indices for a piece orientation.
+    
+    Selects strategic anchor points that are more likely to produce valid placements
+    when aligned with frontier cells. This reduces redundant anchor attempts.
+    
+    Heuristic:
+    - Top-left cell (min row+col)
+    - Bottom-right cell (max row+col)
+    - Furthest-from-centroid cell (max distance from average position)
+    
+    Args:
+        offsets: List of normalized (row, col) offsets
+        max_anchors: Maximum number of anchors to select (default 4)
+        
+    Returns:
+        List of indices into offsets for anchor points
+    """
+    if not offsets:
+        return []
+    
+    if len(offsets) <= max_anchors:
+        # If piece is small, use all offsets as anchors
+        return list(range(len(offsets)))
+    
+    anchor_set = set()
+    
+    # 1. Top-left cell: minimum (row + col)
+    top_left_idx = min(range(len(offsets)), 
+                      key=lambda i: offsets[i][0] + offsets[i][1])
+    anchor_set.add(top_left_idx)
+    
+    # 2. Bottom-right cell: maximum (row + col)
+    bottom_right_idx = max(range(len(offsets)),
+                          key=lambda i: offsets[i][0] + offsets[i][1])
+    anchor_set.add(bottom_right_idx)
+    
+    # 3. Furthest-from-centroid cell
+    if len(offsets) > 2:
+        # Compute centroid
+        avg_row = sum(r for r, c in offsets) / len(offsets)
+        avg_col = sum(c for r, c in offsets) / len(offsets)
+        
+        # Find cell with max distance squared from centroid
+        furthest_idx = max(range(len(offsets)),
+                          key=lambda i: (offsets[i][0] - avg_row)**2 + 
+                                       (offsets[i][1] - avg_col)**2)
+        anchor_set.add(furthest_idx)
+    
+    # Convert to sorted list and cap at max_anchors
+    anchor_list = sorted(anchor_set)
+    if len(anchor_list) > max_anchors:
+        anchor_list = anchor_list[:max_anchors]
+    
+    return anchor_list
+
+
+def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> List[PieceOrientation]:
+    """
+    Generate all unique orientations for a piece with precomputed bitmasks.
+    
+    Args:
+        piece_id: ID of the piece
+        base_shape: Base numpy array shape of the piece
+        
+    Returns:
+        List of PieceOrientation instances, one per unique orientation
+    """
+    orientations = []
+    
+    # Generate all rotations and reflections using existing logic
+    current_shape = base_shape.copy()
+    shape_variants = [current_shape.copy()]
+    
+    # Add 90, 180, 270 degree rotations
+    for _ in range(3):
+        current_shape = np.rot90(current_shape)
+        shape_variants.append(current_shape.copy())
+    
+    # Add reflections
+    reflected = np.fliplr(base_shape)
+    shape_variants.append(reflected.copy())
+    
+    # Add reflected rotations
+    for _ in range(3):
+        reflected = np.rot90(reflected)
+        shape_variants.append(reflected.copy())
+    
+    # Deduplicate by converting to normalized offsets and using as key
+    seen_offsets = {}
+    orientation_id = 0
+    
+    for shape in shape_variants:
+        # Convert to offsets
+        offsets = shape_to_offsets(shape)
+        normalized = normalize_offsets(offsets)
+        
+        # Use sorted tuple as key for deduplication
+        offsets_key = tuple(normalized)
+        if offsets_key in seen_offsets:
+            continue
+        
+        seen_offsets[offsets_key] = True
+        
+        # Compute shape mask
+        shape_mask = coords_to_mask(normalized)
+        
+        # Compute diagonal neighbor coords (excluding shape cells)
+        # Include ALL neighbors relative to the normalized offsets.
+        # Note: Some neighbors may have negative coordinates, which is fine -
+        # they represent neighbors that exist when the piece is placed at positions
+        # where the normalized anchor (0,0) maps to a board position > 0.
+        # When we shift the mask later, shift_mask will filter out any that go off-board.
+        diag_coords = set()
+        for r, c in normalized:
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                nr, nc = r + dr, c + dc
+                diag_coords.add((nr, nc))
+        # Remove shape cells from diag_coords
+        diag_coords -= set(normalized)
+        # For bitmask representation, we can only represent coordinates in [0, BOARD_SIZE)
+        # So we filter to non-negative coordinates for the mask.
+        # This means we'll miss some neighbors when the piece is at the edge, but
+        # that's acceptable - those neighbors would be off-board anyway.
+        # The key insight: we need to include neighbors that could be valid when
+        # the piece is placed anywhere on the board. Since normalized offsets start at (0,0),
+        # neighbors with negative coordinates are only valid when the piece anchor is > 0.
+        # We'll include neighbors in a wider range to capture most cases.
+        diag_coords_for_mask = {(r, c) for r, c in diag_coords if r >= 0 and c >= 0}
+        diag_mask = coords_to_mask(diag_coords_for_mask) if diag_coords_for_mask else 0
+        
+        # Compute orthogonal neighbor coords (excluding shape cells)
+        orth_coords = set()
+        for r, c in normalized:
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nr, nc = r + dr, c + dc
+                orth_coords.add((nr, nc))
+        # Remove shape cells from orth_coords
+        orth_coords -= set(normalized)
+        orth_coords_for_mask = {(r, c) for r, c in orth_coords if r >= 0 and c >= 0}
+        orth_mask = coords_to_mask(orth_coords_for_mask) if orth_coords_for_mask else 0
+        
+        # Compute anchor indices using heuristic selection
+        # This reduces redundant anchor attempts by selecting strategic anchor points
+        # that are more likely to produce valid placements when aligned with frontier cells
+        anchor_indices = _compute_anchor_indices(normalized)
+        
+        # Create PieceOrientation
+        orientation = PieceOrientation(
+            piece_id=piece_id,
+            orientation_id=orientation_id,
+            offsets=normalized,
+            shape_mask=shape_mask,
+            diag_mask=diag_mask,
+            orth_mask=orth_mask,
+            anchor_indices=anchor_indices
+        )
+        
+        orientations.append(orientation)
+        orientation_id += 1
+    
+    return orientations
+
+
+# Global registry of all piece orientations
+ALL_PIECE_ORIENTATIONS: Dict[int, List[PieceOrientation]] = {}
 
 
 class PieceType(Enum):
@@ -258,3 +484,23 @@ class PiecePlacement:
                     valid_positions.append((row, col))
         
         return valid_positions
+
+
+def init_piece_orientations():
+    """
+    Initialize the global ALL_PIECE_ORIENTATIONS registry.
+    
+    This should be called once during module import or engine setup.
+    """
+    global ALL_PIECE_ORIENTATIONS
+    if ALL_PIECE_ORIENTATIONS:
+        return  # Already initialized
+    
+    pieces = PieceGenerator.get_all_pieces()
+    for piece in pieces:
+        orientations = generate_orientations_for_piece(piece.id, piece.shape)
+        ALL_PIECE_ORIENTATIONS[piece.id] = orientations
+
+
+# Initialize on import (after PieceGenerator is defined)
+init_piece_orientations()

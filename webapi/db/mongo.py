@@ -6,10 +6,10 @@ for use with FastAPI. The connection is established once at startup and reused a
 
 Environment Variables:
     MONGODB_URI: MongoDB connection string (default: mongodb://localhost:27017)
-    MONGODB_DB_NAME: Database name (default: blokus_rl)
+    MONGODB_DB_NAME: Database name (default: blokusdb)
 
 Example local connection string:
-    mongodb://localhost:27017/blokus_rl
+    mongodb://localhost:27017/blokusdb
 
 For production, use a connection string like:
     mongodb://username:password@host:port/database?authSource=admin
@@ -18,46 +18,29 @@ For production, use a connection string like:
 import os
 import logging
 from typing import Optional
+from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
-# Try to load .env file if python-dotenv is available
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    # python-dotenv not installed, skip .env loading
-    pass
+# Load .env file if present (development)
+# Production should use OS environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Global client instance (singleton)
+# Environment variables with defaults
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "blokusdb")
+
+# Global client and database instances (singleton pattern)
+# These are initialized in connect_to_mongo() and should be accessed via get_client() and get_database()
 _client: Optional[AsyncIOMotorClient] = None
 _database: Optional[AsyncIOMotorDatabase] = None
 
-
-def get_mongodb_uri() -> str:
-    """
-    Get MongoDB URI from environment variable with fallback to default.
-    
-    Returns:
-        MongoDB connection string
-    """
-    uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-    logger.info(f"Using MongoDB URI: {uri.split('@')[-1] if '@' in uri else uri}")  # Log without credentials
-    return uri
-
-
-def get_mongodb_db_name() -> str:
-    """
-    Get MongoDB database name from environment variable with fallback to default.
-    
-    Returns:
-        Database name
-    """
-    db_name = os.getenv("MONGODB_DB_NAME", "blokus_rl")
-    logger.info(f"Using MongoDB database: {db_name}")
-    return db_name
+# Module-level client and db for direct access (initialized lazily)
+# These will be set when connect_to_mongo() is called
+client: Optional[AsyncIOMotorClient] = None
+db: Optional[AsyncIOMotorDatabase] = None
 
 
 async def connect_to_mongo() -> None:
@@ -71,35 +54,48 @@ async def connect_to_mongo() -> None:
         ConnectionFailure: If connection to MongoDB fails
         ServerSelectionTimeoutError: If MongoDB server is not reachable
     """
-    global _client, _database
+    global _client, _database, client, db
     
     if _client is not None:
         logger.warning("MongoDB client already initialized, skipping connection")
         return
     
     try:
-        uri = get_mongodb_uri()
-        db_name = get_mongodb_db_name()
+        logger.info(f"Connecting to MongoDB: {MONGODB_URI.split('@')[-1] if '@' in MONGODB_URI else MONGODB_URI}")
+        logger.info(f"Using database: {MONGODB_DB_NAME}")
         
-        logger.info("Connecting to MongoDB...")
-        _client = AsyncIOMotorClient(uri, serverSelectionTimeoutMS=5000)
+        _client = AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
         
-        # Test connection with a ping
-        await _client.admin.command("ping")
+        # Test connection with server_info()
+        try:
+            await _client.server_info()
+            logger.info("✅ MongoDB connection successful")
+        except Exception as e:
+            logger.error(f"❌ MongoDB connection failed: {e}")
+            raise
         
-        _database = _client[db_name]
-        logger.info(f"Successfully connected to MongoDB database: {db_name}")
+        _database = _client[MONGODB_DB_NAME]
+        
+        # Set module-level client and db for direct access
+        client = _client
+        db = _database
+        
+        logger.info(f"Successfully connected to MongoDB database: {MONGODB_DB_NAME}")
         
     except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-        logger.error(f"Failed to connect to MongoDB: {e}")
+        logger.error(f"❌ MongoDB connection failed: {e}")
         logger.error("Please ensure MongoDB is running and MONGODB_URI is correct")
         _client = None
         _database = None
+        client = None
+        db = None
         raise
     except Exception as e:
-        logger.error(f"Unexpected error connecting to MongoDB: {e}")
+        logger.error(f"❌ Unexpected error connecting to MongoDB: {e}")
         _client = None
         _database = None
+        client = None
+        db = None
         raise
 
 
@@ -109,13 +105,15 @@ async def close_mongo_connection() -> None:
     
     This should be called during FastAPI lifespan shutdown.
     """
-    global _client, _database
+    global _client, _database, client, db
     
     if _client is not None:
         logger.info("Closing MongoDB connection...")
         _client.close()
         _client = None
         _database = None
+        client = None
+        db = None
         logger.info("MongoDB connection closed")
     else:
         logger.debug("MongoDB client not initialized, skipping close")

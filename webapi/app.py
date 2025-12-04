@@ -717,7 +717,7 @@ async def lifespan(app: FastAPI):
     Application lifespan manager.
     
     Handles startup and shutdown tasks:
-    - Startup: Connect to MongoDB
+    - Startup: Connect to MongoDB and validate connection
     - Shutdown: Close MongoDB connection gracefully
     """
     # Startup
@@ -725,6 +725,22 @@ async def lifespan(app: FastAPI):
     try:
         await connect_to_mongo()
         logger.info("MongoDB connection established")
+        
+        # Validate connection using get_database() to ensure we get the current db instance
+        try:
+            database = get_database()
+            await database.command("ping")
+            print("✅ MongoDB connected successfully")
+            logger.info("✅ MongoDB connection validated successfully")
+        except RuntimeError as e:
+            # Database not initialized
+            print(f"❌ MongoDB failed to connect on startup: {e}")
+            logger.error(f"❌ MongoDB connection validation failed: {e}")
+            raise
+        except Exception as e:
+            print(f"❌ MongoDB failed to connect on startup: {e}")
+            logger.error(f"❌ MongoDB connection validation failed: {e}")
+            raise
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB during startup: {e}")
         logger.warning("Server will start without MongoDB connection. Some features may be unavailable.")
@@ -827,6 +843,26 @@ async def health_check_db():
                 "message": "Unable to connect to MongoDB"
             }
         )
+
+
+@app.get("/debug/mongo")
+async def mongo_debug():
+    """
+    Debug endpoint to verify MongoDB connectivity and list collections.
+    
+    This endpoint helps confirm:
+    - MongoDB credentials are correct
+    - The db object is accessible and functional
+    - Available collections in the database
+    """
+    try:
+        database = get_database()
+        collections = await database.list_collection_names()
+        return {"ok": True, "collections": collections, "database": database.name}
+    except RuntimeError as e:
+        return {"ok": False, "error": f"MongoDB not initialized: {str(e)}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 @app.get("/api/games/{game_id}", response_model=GameState)

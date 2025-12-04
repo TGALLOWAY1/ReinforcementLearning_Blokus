@@ -27,6 +27,8 @@ from pettingzoo.utils.agent_selector import agent_selector
 from typing import Dict, List, Optional, Tuple, Any, Union
 import warnings
 import logging
+import os
+import time
 
 from engine.board import Board, Player, Position
 from engine.pieces import PieceGenerator
@@ -36,6 +38,10 @@ from engine.game import BlokusGame
 # Diagnostic logging for action masking (can be disabled)
 MASK_DEBUG_LOGGING = True  # Set to False to disable diagnostic logging
 _mask_logger = logging.getLogger(__name__ + ".mask_diagnostics")
+
+# Move generation profiling (enabled via BLOKUS_PROFILE_MOVEGEN env var)
+PROFILE_MOVEGEN = os.getenv("BLOKUS_PROFILE_MOVEGEN", "0") == "1"
+_movegen_profiler_logger = logging.getLogger(__name__ + ".movegen_profiler")
 
 
 class BlokusEnv(AECEnv):
@@ -84,6 +90,14 @@ class BlokusEnv(AECEnv):
         self.step_count = 0
         self.last_scores = {agent: 0 for agent in self.possible_agents}
         self.last_move_info = {agent: None for agent in self.possible_agents}
+        
+        # Move generation profiling (if enabled)
+        self._movegen_profiling_enabled = PROFILE_MOVEGEN
+        self._movegen_total_time = 0.0  # Total time in seconds
+        self._movegen_call_count = 0
+        self._movegen_max_time = 0.0  # Maximum single call time
+        self._episode_count = 0
+        self._profile_log_interval = 10  # Log every N episodes
         
         # Agent selector for turn management
         self._agent_selector = agent_selector(self.agents)
@@ -142,6 +156,29 @@ class BlokusEnv(AECEnv):
         # Also accept **kwargs for compatibility with wrappers that pass additional arguments
         if seed is not None:
             np.random.seed(seed)
+        
+        # Log move generation profiling summary before resetting (if enabled)
+        if self._movegen_profiling_enabled and self._movegen_call_count > 0:
+            # Log summary before resetting
+            avg_time_ms = (self._movegen_total_time / self._movegen_call_count) * 1000.0
+            total_time_ms = self._movegen_total_time * 1000.0
+            max_time_ms = self._movegen_max_time * 1000.0
+            
+            # Log every N episodes (or on first episode with data)
+            if self._episode_count % self._profile_log_interval == 0 or self._episode_count == 0:
+                _movegen_profiler_logger.info(
+                    f"MoveGen profiling (episode {self._episode_count}): "
+                    f"total_ms={total_time_ms:.2f}, calls={self._movegen_call_count}, "
+                    f"avg_ms={avg_time_ms:.2f}, max_ms={max_time_ms:.2f}"
+                )
+            
+            # Reset stats for next episode
+            self._movegen_total_time = 0.0
+            self._movegen_call_count = 0
+            self._movegen_max_time = 0.0
+        
+        # Increment episode count
+        self._episode_count += 1
             
         # Reset game state
         self.game.reset_game()
@@ -210,8 +247,18 @@ class BlokusEnv(AECEnv):
         """Get info for an agent."""
         player = self._agent_to_player(agent)
         
-        # Get legal moves
-        legal_moves = self.move_generator.get_legal_moves(self.game.board, player)
+        # Get legal moves (with optional profiling)
+        if self._movegen_profiling_enabled:
+            start_time = time.perf_counter()
+            legal_moves = self.move_generator.get_legal_moves(self.game.board, player)
+            elapsed_time = time.perf_counter() - start_time
+            
+            # Accumulate profiling stats
+            self._movegen_total_time += elapsed_time
+            self._movegen_call_count += 1
+            self._movegen_max_time = max(self._movegen_max_time, elapsed_time)
+        else:
+            legal_moves = self.move_generator.get_legal_moves(self.game.board, player)
         legal_action_mask = np.zeros(self.action_space_size, dtype=bool)
         
         # DIAGNOSTIC: Log when no legal moves are found

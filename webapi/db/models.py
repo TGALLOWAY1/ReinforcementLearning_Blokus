@@ -10,27 +10,17 @@ as the RL training and evaluation features are implemented.
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Literal
+from typing import Optional, List, Dict, Any
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 from pydantic import BaseModel, Field
 from bson import ObjectId
 
 
-class PyObjectId(ObjectId):
-    """Custom ObjectId type for Pydantic models."""
-    
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-    
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-        return ObjectId(v)
-    
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
+# Simplified ObjectId handling for Pydantic V2 compatibility
+# We'll use Optional[str] for id fields and convert to ObjectId when needed
 
 
 class EpisodeMetric(BaseModel):
@@ -70,14 +60,14 @@ class TrainingRun(BaseModel):
     This schema stores information about RL training sessions, including
     configuration, metrics, and checkpoints.
     """
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[str] = Field(default=None, alias="_id")
     run_id: str = Field(..., description="Unique identifier for the training run (UUID)")
     agent_id: str = Field(..., description="Identifier for the agent (e.g., 'dqn_agent', 'ppo_agent')")
     algorithm: str = Field(..., description="RL algorithm used (e.g., 'DQN', 'PPO', 'A2C')")
     config: Dict[str, Any] = Field(default_factory=dict, description="Hyperparameters and training configuration")
-    status: Literal["running", "completed", "stopped", "failed"] = Field(
+    status: str = Field(
         default="running",
-        description="Current status of the training run"
+        description="Current status of the training run (running, completed, stopped, or failed)"
     )
     start_time: datetime = Field(default_factory=datetime.utcnow, description="Training start time")
     end_time: Optional[datetime] = Field(None, description="Training end time (null if still running)")
@@ -95,10 +85,10 @@ class TrainingRun(BaseModel):
     )
     
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str, datetime: lambda v: v.isoformat()}
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "run_id": "550e8400-e29b-41d4-a716-446655440000",
                 "agent_id": "ppo_agent",
@@ -148,7 +138,7 @@ class EvaluationRun(BaseModel):
     This schema stores information about model evaluation sessions,
     including performance metrics against different opponents.
     """
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[str] = Field(default=None, alias="_id")
     training_run_id: str = Field(..., description="Reference to the TrainingRun that was evaluated")
     checkpoint_path: str = Field(..., description="Path to the model checkpoint used for evaluation")
     opponent_type: str = Field(..., description="Type of opponent (e.g., 'random', 'heuristic', 'self_play')")
@@ -159,10 +149,10 @@ class EvaluationRun(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Evaluation run creation time")
     
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str, datetime: lambda v: v.isoformat()}
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "training_run_id": "550e8400-e29b-41d4-a716-446655440000",
                 "checkpoint_path": "checkpoints/ppo_agent_ep100.zip",
