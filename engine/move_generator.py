@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 # Debug flag for move generation timing (controlled via environment variable)
 MOVEGEN_DEBUG = bool(os.getenv("BLOKUS_MOVEGEN_DEBUG", ""))
 
+# Feature flag to toggle between naive and frontier-based move generation
+USE_FRONTIER_MOVEGEN = bool(os.getenv("BLOKUS_USE_FRONTIER_MOVEGEN", ""))
+
 
 class Move:
     """Represents a legal move in Blokus."""
@@ -59,7 +62,28 @@ class LegalMoveGenerator:
         """
         Get all legal moves for a given player on the current board.
         
-        OPTIMIZED: Uses fast bounds/overlap checks before expensive adjacency validation.
+        This is a thin wrapper that delegates to either the naive or frontier-based
+        generator based on the USE_FRONTIER_MOVEGEN feature flag.
+        
+        Args:
+            board: Current board state
+            player: Player to generate moves for
+        
+        Returns:
+            List of legal moves
+        """
+        if USE_FRONTIER_MOVEGEN:
+            return self._get_legal_moves_frontier(board, player)
+        else:
+            return self._get_legal_moves_naive(board, player)
+    
+    def _get_legal_moves_naive(self, board: Board, player: Player) -> List[Move]:
+        """
+        Get all legal moves using the original full-board scan implementation.
+        
+        This is the naive generator that scans all possible anchor positions for
+        each piece and orientation. It serves as the baseline for correctness
+        and performance comparison.
         
         Args:
             board: Current board state
@@ -141,18 +165,142 @@ class LegalMoveGenerator:
         
         # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
         if MOVEGEN_DEBUG:
-            logger.info(f"MoveGen: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}")
+            logger.info(f"MoveGen[naive]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}")
             if piece_timings and len(piece_timings) > 0:
                 max_piece_time = max(piece_timings.values())
                 max_piece_id = max(piece_timings, key=piece_timings.get)
-                logger.info(f"MoveGen: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
+                logger.info(f"MoveGen[naive]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
         
         # Existing debug logging (always at DEBUG level)
-        logger.debug(f"Legal move generation: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, pieces_checked={len(available_pieces)}")
+        logger.debug(f"Legal move generation [naive]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, pieces_checked={len(available_pieces)}")
         if piece_timings and len(piece_timings) > 0:
             max_piece_time = max(piece_timings.values())
             max_piece_id = max(piece_timings, key=piece_timings.get)
-            logger.debug(f"Legal move generation: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
+            logger.debug(f"Legal move generation [naive]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
+        
+        return legal_moves
+    
+    def _get_legal_moves_frontier(self, board: Board, player: Player) -> List[Move]:
+        """
+        Get all legal moves using frontier-based generation.
+        
+        This generator uses frontier cells (empty cells diagonally adjacent to
+        player's pieces but not orthogonally adjacent) as starting points instead
+        of scanning every board cell. This should significantly reduce the search
+        space, especially in later game stages.
+        
+        The implementation uses the same legality checking logic as the naive
+        generator to preserve correctness.
+        
+        Args:
+            board: Current board state
+            player: Player to generate moves for
+        
+        Returns:
+            List of legal moves
+        """
+        start = time.perf_counter()
+        legal_moves = []
+        
+        # Get pieces that haven't been used yet
+        available_pieces = [piece for piece in self.all_pieces 
+                          if piece.id not in board.player_pieces_used[player]]
+        
+        # Get frontier cells for this player
+        frontier_cells = board.get_frontier(player)
+        
+        # Direct grid access for faster checks
+        grid = board.grid
+        player_value = player.value
+        is_first_move = board.player_first_move[player]
+        start_corner = board.player_start_corners[player] if is_first_move else None
+        
+        piece_timings = {}
+        for piece in available_pieces:
+            piece_start = time.perf_counter()
+            orientations = self.piece_orientations_cache[piece.id]
+            cached_positions = self.piece_position_cache[piece.id]
+            
+            for orientation_idx, orientation in enumerate(orientations):
+                # Get cached relative positions for this orientation
+                relative_positions = cached_positions[orientation_idx]
+                
+                # For each frontier cell, try anchoring the piece at different positions
+                # Simple strategy: try anchoring each cell of the piece to the frontier cell
+                for frontier_row, frontier_col in frontier_cells:
+                    # Try each position in the piece as a potential anchor
+                    for rel_r, rel_c in relative_positions:
+                        # Calculate anchor position: frontier cell minus relative position
+                        anchor_row = frontier_row - rel_r
+                        anchor_col = frontier_col - rel_c
+                        
+                        # Bounds check
+                        if anchor_row < 0 or anchor_row >= board.SIZE or anchor_col < 0 or anchor_col >= board.SIZE:
+                            continue
+                        
+                        # Check if piece would be within bounds at this anchor
+                        # (get_valid_anchor_positions already does this, but we need to check manually here)
+                        if not PiecePlacement.can_place_piece_at(
+                            (board.SIZE, board.SIZE), orientation, anchor_row, anchor_col
+                        ):
+                            continue
+                        
+                        # Fast bounds and overlap check using cached positions and direct grid access
+                        has_overlap = False
+                        covers_start_corner = False
+                        
+                        for check_rel_r, check_rel_c in relative_positions:
+                            r = anchor_row + check_rel_r
+                            c = anchor_col + check_rel_c
+                            
+                            # Bounds check
+                            if r < 0 or r >= board.SIZE or c < 0 or c >= board.SIZE:
+                                has_overlap = True
+                                break
+                            
+                            # Overlap check - direct grid access
+                            if grid[r, c] != 0:
+                                has_overlap = True
+                                break
+                            
+                            # Check if covers start corner (for first move)
+                            if is_first_move and start_corner and r == start_corner.row and c == start_corner.col:
+                                covers_start_corner = True
+                        
+                        # Early exit if overlap or (first move and doesn't cover start corner)
+                        if has_overlap:
+                            continue
+                        if is_first_move and not covers_start_corner:
+                            continue
+                        
+                        # Check adjacency rules using relative positions directly
+                        if self._check_adjacency_fast_inline(relative_positions, anchor_row, anchor_col, 
+                                                             player_value, grid, board.SIZE, 
+                                                             is_first_move, start_corner):
+                            move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
+                            legal_moves.append(move)
+            
+            piece_end = time.perf_counter()
+            piece_timings[piece.id] = piece_end - piece_start
+        
+        end = time.perf_counter()
+        total_time = end - start
+        elapsed_ms = total_time * 1000.0
+        
+        # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
+        if MOVEGEN_DEBUG:
+            logger.info(f"MoveGen[frontier]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}, frontier_size={len(frontier_cells)}")
+            if piece_timings and len(piece_timings) > 0:
+                max_piece_time = max(piece_timings.values())
+                max_piece_id = max(piece_timings, key=piece_timings.get)
+                logger.info(f"MoveGen[frontier]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
+        
+        # Existing debug logging (always at DEBUG level)
+        logger.debug(f"Legal move generation [frontier]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, frontier_size={len(frontier_cells)}, pieces_checked={len(available_pieces)}")
+        if piece_timings and len(piece_timings) > 0:
+            max_piece_time = max(piece_timings.values())
+            max_piece_id = max(piece_timings, key=piece_timings.get)
+            logger.debug(f"Legal move generation [frontier]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
         
         return legal_moves
     
