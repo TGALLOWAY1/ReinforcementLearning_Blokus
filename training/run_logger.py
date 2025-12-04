@@ -124,7 +124,7 @@ class TrainingRunLogger:
         episode: int,
         total_reward: float,
         steps: int,
-        win: Optional[bool] = None,
+        win: Optional[float] = None,
         epsilon: Optional[float] = None
     ) -> bool:
         """
@@ -134,7 +134,7 @@ class TrainingRunLogger:
             episode: Episode number
             total_reward: Total reward for the episode
             steps: Number of steps in the episode
-            win: Whether the agent won (if applicable)
+            win: Win value (1.0=win, 0.5=tie, 0.0=loss) or None if unavailable
             epsilon: Exploration rate (if applicable)
             
         Returns:
@@ -170,16 +170,24 @@ class TrainingRunLogger:
             logger.error(f"Failed to log episode {episode}: {e}")
             return False
     
-    def _update_rolling_win_rate(self, episode: int, win: bool):
-        """Update rolling win rate calculation."""
+    def _update_rolling_win_rate(self, episode: int, win: float):
+        """
+        Update rolling win rate calculation.
+        
+        Win values: 1.0 = win, 0.5 = tie, 0.0 = loss
+        Win rate is calculated as: (wins + 0.5 * ties) / total_episodes
+        This gives partial credit for ties.
+        """
         # Calculate win rate over last N episodes
         recent_episodes = [e for e in self.episodes if e.get("win") is not None]
         if len(recent_episodes) >= self.window_size:
             recent_wins = recent_episodes[-self.window_size:]
-            win_rate = sum(1 for e in recent_wins if e["win"]) / len(recent_wins)
+            # Win rate = (wins + 0.5 * ties) / total
+            # win > 0.5 counts as full win, win == 0.5 counts as half, win < 0.5 counts as loss
+            win_rate = sum(e["win"] for e in recent_wins) / len(recent_wins)
         else:
             recent_wins = recent_episodes
-            win_rate = sum(1 for e in recent_wins if e["win"]) / len(recent_wins) if recent_wins else 0.0
+            win_rate = sum(e["win"] for e in recent_wins) / len(recent_wins) if recent_wins else 0.0
         
         self.rolling_win_rates.append({
             "episode": episode,
