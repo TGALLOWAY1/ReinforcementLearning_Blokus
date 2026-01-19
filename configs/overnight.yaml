@@ -1,0 +1,20 @@
+seed: 42
+total_timesteps: 300000
+learning_rate: 0.0003
+n_steps: 2048
+batch_size: 256
+gamma: 0.99
+num_envs: 2
+vec_env_type: dummy
+max_episode_steps: 1000
+opponents:
+  - heuristic
+  - random
+  - random
+eval_interval_steps: 20000
+eval_matches: 10
+checkpoint_interval_steps: 50000
+checkpoint_dir: checkpoints/rl
+log_dir: logs/rl
+league_db: league.db
+tensorboard: false

@@ -206,6 +206,17 @@ while not done:
     done = terminated or truncated
 ```
 
+### Self-Play Training (MaskablePPO)
+Run an overnight training job with periodic Elo evaluation:
+```bash
+python -m rl.train --config configs/overnight.yaml
+```
+
+Run a quick smoke test (~1 minute) that trains briefly and updates Elo across 10 matches:
+```bash
+python -m rl.smoke_test
+```
+
 ### Running Agent Arena
 
 Run round-robin tournaments between agents:
@@ -559,4 +570,3 @@ This project is part of a reinforcement learning research environment.
 
 Old Mockups 
 <img width="2816" height="1536" alt="BlokusRL" src="https://github.com/user-attachments/assets/93e85cd8-c5fe-4785-ae13-810327a1aa07" />
-
