@@ -391,6 +391,18 @@ def train(config: TrainConfig) -> None:
             seed_dir = config.stage3_league.resolve_seed_dir()
             extra_dirs = [seed_dir] if seed_dir else None
             league_manager.discover_checkpoints(extra_dirs=extra_dirs)
+        if config.resume_path and config.stage3_league.strict_resume:
+            rng_path = Path(config.resume_path).with_suffix(".rng.pkl")
+            if not rng_path.exists():
+                raise RuntimeError(
+                    f"Stage 3 strict resume requires RNG state at {rng_path}. "
+                    "Provide the matching .rng.pkl or disable strict_resume."
+                )
+            if resume_step <= 0:
+                raise RuntimeError(
+                    "Stage 3 strict resume could not infer checkpoint step. "
+                    "Ensure the checkpoint filename includes step or .meta.json has 'step'."
+                )
         if config.opponents:
             logger.info("Stage 3 ignores config.opponents (checkpoint-only league)")
         if config.stage3_league.save_every_steps and (

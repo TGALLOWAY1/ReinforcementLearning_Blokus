@@ -47,6 +47,7 @@ stage3_league:
   opponent_device: auto
   # Optional override for vec env mode in Stage 3 (dummy|subproc)
   vecenv_mode:
+  strict_resume: true
   discover_on_start: true
   eval_pool_size: 3
   eval_pool_strategy: old_mid_recent

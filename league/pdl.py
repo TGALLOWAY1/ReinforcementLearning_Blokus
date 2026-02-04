@@ -92,6 +92,7 @@ class Stage3LeagueConfig:
     opponent_device: str = "auto"
     vecenv_mode: Optional[str] = None
     discover_on_start: bool = True
+    strict_resume: bool = True
     eval_pool_size: int = 3
     eval_pool_strategy: str = "old_mid_recent"
     sampling: LeagueSamplingConfig = field(default_factory=LeagueSamplingConfig)

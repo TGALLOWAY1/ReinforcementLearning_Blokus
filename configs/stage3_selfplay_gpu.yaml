@@ -36,6 +36,7 @@ stage3_league:
   lru_cache_size: 4
   opponent_device: cuda
   vecenv_mode: dummy
+  strict_resume: true
   sampling:
     recent_band_pct: 0.7
     mid_band_pct: 0.25

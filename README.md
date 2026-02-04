@@ -86,6 +86,7 @@ Key config fields in `configs/stage3_selfplay.yaml`:
 6. `stage3_league.window_schedule`: progressive window shrink schedule (recent-focus over time)
 7. `stage3_league.sampling`: band weights for old/mid/recent checkpoints
 8. `stage3_league.vecenv_mode`: optional override for Stage 3 vec env (`dummy` or `subproc`)
+9. `stage3_league.strict_resume`: require RNG + step metadata when resuming Stage 3
 
 League metadata:
 1. Registry file: `stage3_league.league_dir/league_registry.jsonl`
