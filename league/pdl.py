@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import random
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -80,6 +80,7 @@ class WindowScheduleConfig:
 @dataclass
 class Stage3LeagueConfig:
     enabled: bool = True
+    seed_dir: Optional[str] = None
     league_dir: Optional[str] = None
     registry_filename: str = "league_registry.jsonl"
     state_filename: str = "league_state.json"
@@ -89,6 +90,7 @@ class Stage3LeagueConfig:
     min_checkpoints: int = 3
     lru_cache_size: int = 4
     opponent_device: str = "auto"
+    vecenv_mode: Optional[str] = None
     discover_on_start: bool = True
     eval_pool_size: int = 3
     eval_pool_strategy: str = "old_mid_recent"
@@ -97,6 +99,9 @@ class Stage3LeagueConfig:
 
     def resolve_league_dir(self, checkpoint_dir: str) -> Path:
         return Path(self.league_dir or checkpoint_dir)
+
+    def resolve_seed_dir(self) -> Optional[Path]:
+        return Path(self.seed_dir) if self.seed_dir else None
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "Stage3LeagueConfig":
@@ -149,20 +154,42 @@ class CheckpointPolicyCache:
         self.max_size = max_size
         self.device = device
         self._cache: "OrderedDict[str, Any]" = OrderedDict()
+        self.hits = 0
+        self.misses = 0
+        self.load_time_sec = 0.0
 
     def get(self, path: str):
         if path in self._cache:
             self._cache.move_to_end(path)
+            self.hits += 1
             return self._cache[path]
         if MaskablePPO is None:
             raise RuntimeError("MaskablePPO not available for checkpoint loading")
+        self.misses += 1
+        start = datetime.utcnow().timestamp()
         model = MaskablePPO.load(path, device=self.device)
+        self.load_time_sec += max(datetime.utcnow().timestamp() - start, 0.0)
         if hasattr(model, "policy"):
             model.policy.set_training_mode(False)
         self._cache[path] = model
         if len(self._cache) > self.max_size:
             self._cache.popitem(last=False)
         return model
+
+    def stats(self) -> Dict[str, Any]:
+        total = self.hits + self.misses
+        hit_rate = self.hits / total if total > 0 else 0.0
+        return {
+            "hits": self.hits,
+            "misses": self.misses,
+            "hit_rate": hit_rate,
+            "load_time_sec": self.load_time_sec,
+        }
+
+    def reset_stats(self) -> None:
+        self.hits = 0
+        self.misses = 0
+        self.load_time_sec = 0.0
 
 
 class CheckpointOpponentPolicy(AgentProtocol):
@@ -257,10 +284,14 @@ class LeagueManager:
         self.registry = LeagueRegistry(self.registry_path)
         self._cache = CheckpointPolicyCache(max_size=config.lru_cache_size, device=config.opponent_device)
 
-    def discover_checkpoints(self) -> int:
-        if not self.league_dir.exists():
-            return 0
-        candidates = list(self.league_dir.glob("**/*.zip"))
+    def discover_checkpoints(self, extra_dirs: Optional[Sequence[Path]] = None) -> int:
+        directories = [self.league_dir]
+        if extra_dirs:
+            directories.extend(extra_dirs)
+        candidates: List[Path] = []
+        for directory in directories:
+            if directory.exists():
+                candidates.extend(list(directory.glob("**/*.zip")))
         added = 0
         for path in candidates:
             if path.name.startswith("checkpoint_") or path.name.startswith("ep"):
@@ -373,6 +404,8 @@ class CheckpointOpponentSampler:
         self._total_timesteps: int = 0
         self._sample_count: int = 0
         self._cache = CheckpointPolicyCache(max_size=lru_cache_size, device=opponent_device)
+        self._band_counts = {"recent": 0, "mid": 0, "old": 0}
+        self._recent_steps = deque(maxlen=100)
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -404,18 +437,46 @@ class CheckpointOpponentSampler:
         rng = random.Random(base_seed + self._sample_count)
         self._sample_count += 1
         entries = list(self._entries)
-        if not self.sampling_config.allow_duplicates and len(entries) >= num_opponents:
-            chosen: List[LeagueCheckpoint] = []
-            candidates = entries[:]
+        windowed = _window_entries(entries, self._training_step, self.window_schedule)
+        old_band, mid_band, recent_band = _split_bands(windowed, self.sampling_config)
+        bands = {"recent": recent_band, "mid": mid_band, "old": old_band}
+
+        def pick_from(bands_map, allow_duplicates: bool) -> List[LeagueCheckpoint]:
+            chosen_local: List[LeagueCheckpoint] = []
+            available = {k: list(v) for k, v in bands_map.items()}
             for _ in range(num_opponents):
-                entry = _sample_entry(candidates, self._training_step, self._total_timesteps, rng, self.window_schedule, self.sampling_config)
-                chosen.append(entry)
-                candidates = [e for e in candidates if e.path != entry.path]
-            return chosen
-        return [
-            _sample_entry(entries, self._training_step, self._total_timesteps, rng, self.window_schedule, self.sampling_config)
-            for _ in range(num_opponents)
-        ]
+                entry, band = _sample_from_bands(available, rng, self.sampling_config)
+                chosen_local.append(entry)
+                self._band_counts[band] += 1
+                self._recent_steps.append(entry.step)
+                if not allow_duplicates:
+                    available[band] = [e for e in available[band] if e.path != entry.path]
+            return chosen_local
+
+        if not self.sampling_config.allow_duplicates and len(entries) >= num_opponents:
+            return pick_from(bands, allow_duplicates=False)
+        return pick_from(bands, allow_duplicates=True)
+
+    def sampling_stats(self) -> Dict[str, Any]:
+        total = sum(self._band_counts.values())
+        return {
+            "total_samples": total,
+            "band_counts": dict(self._band_counts),
+            "band_pct": {
+                k: (v / total if total > 0 else 0.0) for k, v in self._band_counts.items()
+            },
+            "recent_steps_mean": float(np.mean(self._recent_steps)) if self._recent_steps else None,
+        }
+
+    def reset_stats(self) -> None:
+        self._band_counts = {"recent": 0, "mid": 0, "old": 0}
+        self._recent_steps.clear()
+
+    def cache_stats(self) -> Dict[str, Any]:
+        return self._cache.stats()
+
+    def reset_cache_stats(self) -> None:
+        self._cache.reset_stats()
 
     def _refresh_registry(self) -> None:
         if not self.registry_path.exists():
@@ -478,7 +539,7 @@ def _window_entries(entries: Sequence[LeagueCheckpoint], step: int, schedule: Wi
     if not entries:
         return []
     latest_step = max(e.step for e in entries)
-    target_step = max(step, latest_step)
+    target_step = min(max(step, 0), latest_step)
     window_frac = schedule.current_window_frac(target_step)
     window_start = max(0, int(target_step * (1.0 - window_frac)))
     windowed = [e for e in entries if e.step >= window_start]
@@ -528,28 +589,43 @@ def _sample_entry(
 ) -> LeagueCheckpoint:
     windowed = _window_entries(entries, step, schedule)
     old_band, mid_band, recent_band = _split_bands(windowed, config)
+    entry, _ = _sample_from_bands(
+        {"recent": recent_band, "mid": mid_band, "old": old_band},
+        rng,
+        config,
+    )
+    return entry
 
+
+def _sample_from_bands(
+    bands: Dict[str, List[LeagueCheckpoint]],
+    rng: random.Random,
+    config: LeagueSamplingConfig,
+) -> Tuple[LeagueCheckpoint, str]:
     band_choices = [
-        ("recent", config.recent_band_pct, recent_band),
-        ("mid", config.mid_band_pct, mid_band),
-        ("old", config.old_band_pct, old_band),
+        ("recent", config.recent_band_pct, bands.get("recent", [])),
+        ("mid", config.mid_band_pct, bands.get("mid", [])),
+        ("old", config.old_band_pct, bands.get("old", [])),
     ]
     pick = rng.random()
     cumulative = 0.0
-    for _, weight, band in band_choices:
+    for name, weight, band in band_choices:
         cumulative += weight
         if pick <= cumulative:
             if band:
-                return rng.choice(band)
+                return rng.choice(band), name
             break
-    # Fallbacks: prefer recent, then mid, then old
-    if recent_band:
-        return rng.choice(recent_band)
-    if mid_band:
-        return rng.choice(mid_band)
-    if old_band:
-        return rng.choice(old_band)
-    return rng.choice(list(entries))
+    if bands.get("recent"):
+        return rng.choice(bands["recent"]), "recent"
+    if bands.get("mid"):
+        return rng.choice(bands["mid"]), "mid"
+    if bands.get("old"):
+        return rng.choice(bands["old"]), "old"
+    # Fallback: any entry
+    all_entries = [e for group in bands.values() for e in group]
+    if all_entries:
+        return rng.choice(all_entries), "recent"
+    raise RuntimeError("No entries available to sample")
 
 
 def _is_within(path: Path, parent: Path) -> bool:

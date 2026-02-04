@@ -1,5 +1,4 @@
-# Stage 3 Training Configuration: checkpoint-only self-play league
-# NOTE: opponents list is ignored when training_stage=3.
+# Stage 3 GPU-first configuration: single-process DummyVecEnv + GPU opponents
 
 seed: 42
 training_stage: 3
@@ -10,19 +9,12 @@ n_steps: 2048
 batch_size: 256
 gamma: 0.99
 num_envs: 4
-vec_env_type: subproc
+vec_env_type: dummy
 max_episode_steps: 1000
 
-# Opponents are ignored in Stage 3 (checkpoint league only)
 opponents: []
 
-# Optional: resume from existing checkpoint (recommended to seed league)
-# resume_path: checkpoints/stage2_rl_v1_mcts/checkpoint_500000.zip
-
 # Evaluation and Checkpointing
-# Checkpoint cadence is still driven by checkpoint_interval_steps
-# Stage 3 league registration is controlled by stage3_league.save_every_steps
-
 eval_interval_steps: 10000
 eval_matches: 10
 checkpoint_interval_steps: 10000
@@ -33,9 +25,7 @@ tensorboard: true
 
 stage3_league:
   enabled: true
-  # Seed checkpoints (Stage 2 output)
   seed_dir: checkpoints/stage2_rl_v1_mcts
-  # League registry/checkpoints live here (Stage 3 output)
   league_dir: checkpoints/stage3_selfplay_league
   registry_filename: league_registry.jsonl
   state_filename: league_state.json
@@ -44,12 +34,8 @@ stage3_league:
   keep_every_k:
   min_checkpoints: 3
   lru_cache_size: 4
-  opponent_device: auto
-  # Optional override for vec env mode in Stage 3 (dummy|subproc)
-  vecenv_mode:
-  discover_on_start: true
-  eval_pool_size: 3
-  eval_pool_strategy: old_mid_recent
+  opponent_device: cuda
+  vecenv_mode: dummy
   sampling:
     recent_band_pct: 0.7
     mid_band_pct: 0.25
@@ -57,7 +43,6 @@ stage3_league:
     recent_window_frac: 0.2
     mid_window_frac: 0.3
     old_window_frac: 0.5
-    allow_duplicates: false
   window_schedule:
     schedule_type: linear
     start_window_frac: 1.0

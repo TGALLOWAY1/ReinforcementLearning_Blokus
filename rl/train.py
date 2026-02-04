@@ -379,6 +379,8 @@ def train(config: TrainConfig) -> None:
     league_manager: Optional[LeagueManager] = None
     opponent_sampler: Optional[CheckpointOpponentSampler] = None
     if config.training_stage == 3:
+        if config.stage3_league.vecenv_mode:
+            config.vec_env_type = config.stage3_league.vecenv_mode
         if config.stage3_league.opponent_device == "auto" and config.vec_env_type == "subproc":
             config.stage3_league.opponent_device = "cpu"
             logger.info("Stage 3 opponent_device auto-resolved to cpu for SubprocVecEnv")
@@ -386,7 +388,9 @@ def train(config: TrainConfig) -> None:
             config.stage3_league.window_schedule.schedule_steps = config.total_timesteps
         league_manager = LeagueManager(config.stage3_league, config.checkpoint_dir)
         if config.stage3_league.discover_on_start:
-            league_manager.discover_checkpoints()
+            seed_dir = config.stage3_league.resolve_seed_dir()
+            extra_dirs = [seed_dir] if seed_dir else None
+            league_manager.discover_checkpoints(extra_dirs=extra_dirs)
         if config.opponents:
             logger.info("Stage 3 ignores config.opponents (checkpoint-only league)")
         if config.stage3_league.save_every_steps and (
@@ -457,6 +461,8 @@ def train(config: TrainConfig) -> None:
             config.stage3_league.resolve_league_dir(config.checkpoint_dir),
             config.league_db,
         )
+        if config.stage3_league.seed_dir:
+            logger.info("Stage 3 seed_dir: %s", config.stage3_league.seed_dir)
         logger.info(
             "Stage 3 sampling: recent/mid/old=%.2f/%.2f/%.2f | window_frac=%.2f→%.2f (%s)",
             config.stage3_league.sampling.recent_band_pct,
@@ -548,6 +554,20 @@ def train(config: TrainConfig) -> None:
             metrics["league_size"] = len(league_manager.registry.entries)
         with open(metrics_path, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(metrics) + "\n")
+
+        if config.training_stage == 3 and opponent_sampler is not None and config.vec_env_type == "dummy":
+            sampling_stats = opponent_sampler.sampling_stats()
+            cache_stats = opponent_sampler.cache_stats()
+            logger.info(
+                "Stage 3 sampling stats: bands=%s pct=%s recent_step_mean=%s cache_hit_rate=%.2f load_time=%.3fs",
+                sampling_stats.get("band_counts"),
+                sampling_stats.get("band_pct"),
+                sampling_stats.get("recent_steps_mean"),
+                cache_stats.get("hit_rate", 0.0),
+                cache_stats.get("load_time_sec", 0.0),
+            )
+            opponent_sampler.reset_stats()
+            opponent_sampler.reset_cache_stats()
 
         progress_pct = 100.0 * steps_done / config.total_timesteps
         games_str = f"~{games_est} train games" if games_est is not None else ""

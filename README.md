@@ -71,13 +71,21 @@ Quick start:
 PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay.yaml
 ```
 
+GPU-first (DummyVecEnv) variant:
+
+```bash
+PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay_gpu.yaml
+```
+
 Key config fields in `configs/stage3_selfplay.yaml`:
 1. `training_stage: 3`
-2. `stage3_league.league_dir`: where to discover prior checkpoints
-3. `stage3_league.save_every_steps`: how often to register new checkpoints into the league
-4. `stage3_league.max_checkpoints_to_keep`: retention cap for league snapshots
-5. `stage3_league.window_schedule`: progressive window shrink schedule (recent-focus over time)
-6. `stage3_league.sampling`: band weights for old/mid/recent checkpoints
+2. `stage3_league.seed_dir`: where to discover prior checkpoints (Stage 2 output)
+3. `stage3_league.league_dir`: where Stage 3 checkpoints + registry live
+4. `stage3_league.save_every_steps`: how often to register new checkpoints into the league
+5. `stage3_league.max_checkpoints_to_keep`: retention cap for league snapshots
+6. `stage3_league.window_schedule`: progressive window shrink schedule (recent-focus over time)
+7. `stage3_league.sampling`: band weights for old/mid/recent checkpoints
+8. `stage3_league.vecenv_mode`: optional override for Stage 3 vec env (`dummy` or `subproc`)
 
 League metadata:
 1. Registry file: `stage3_league.league_dir/league_registry.jsonl`

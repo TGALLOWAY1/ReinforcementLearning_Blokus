@@ -8,7 +8,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -23,6 +23,11 @@ try:
     import psutil
 except Exception:  # pragma: no cover
     psutil = None
+
+try:
+    import pynvml
+except Exception:  # pragma: no cover
+    pynvml = None
 
 
 def _make_model(env, config: TrainConfig, device: str) -> MaskablePPO:
@@ -44,6 +49,7 @@ def _rollout_steps(env, model: MaskablePPO, steps: int) -> Dict[str, Any]:
 
     step_count = 0
     predict_times = []
+    episode_lengths: List[float] = []
     start = time.time()
     while step_count < steps:
         masks = get_action_masks(env)
@@ -53,6 +59,12 @@ def _rollout_steps(env, model: MaskablePPO, steps: int) -> Dict[str, Any]:
         predict_times.append(t1 - t0)
 
         obs, rewards, dones, infos = env.step(action)
+        if isinstance(infos, (list, tuple)):
+            for info in infos:
+                if isinstance(info, dict) and "episode" in info:
+                    episode_lengths.append(info["episode"].get("l", 0))
+        elif isinstance(infos, dict) and "episode" in infos:
+            episode_lengths.append(infos["episode"].get("l", 0))
         if isinstance(dones, (list, np.ndarray)):
             if np.any(dones):
                 obs = env.reset()
@@ -67,29 +79,49 @@ def _rollout_steps(env, model: MaskablePPO, steps: int) -> Dict[str, Any]:
         "steps": step_count,
         "elapsed_sec": elapsed,
         "steps_per_sec": steps_per_sec,
+        "step_time_ms_mean": (elapsed / max(step_count, 1)) * 1000.0,
         "predict_ms_mean": float(np.mean(predict_times) * 1000.0),
         "predict_ms_p95": float(np.percentile(predict_times, 95) * 1000.0),
+        "episode_len_mean": float(np.mean(episode_lengths)) if episode_lengths else None,
     }
 
 
 def _cpu_metrics(start_cpu, end_cpu, elapsed: float) -> Dict[str, Any]:
     if psutil is None:
         return {"cpu_util_pct": None}
-    cpu_time = (end_cpu.user + end_cpu.system) - (start_cpu.user + start_cpu.system)
-    cpu_cores = psutil.cpu_count(logical=True) or 1
-    cpu_util = 100.0 * cpu_time / max(elapsed, 1e-6) / cpu_cores
-    return {"cpu_util_pct": cpu_util}
+    try:
+        cpu_time = (end_cpu.user + end_cpu.system) - (start_cpu.user + start_cpu.system)
+        cpu_cores = psutil.cpu_count(logical=True) or 1
+        cpu_util = 100.0 * cpu_time / max(elapsed, 1e-6) / cpu_cores
+        return {"cpu_util_pct": cpu_util}
+    except Exception:
+        return {"cpu_util_pct": None}
 
 
 def _gpu_metrics() -> Dict[str, Any]:
     if not torch.cuda.is_available():
-        return {"gpu_available": False}
-    return {
+        return {"gpu_available": False, "gpu_util_pct": None}
+    metrics = {
         "gpu_available": True,
         "gpu_device": torch.cuda.get_device_name(0),
         "gpu_mem_allocated_mb": torch.cuda.max_memory_allocated() / (1024 ** 2),
         "gpu_mem_reserved_mb": torch.cuda.max_memory_reserved() / (1024 ** 2),
+        "gpu_util_pct": None,
     }
+    if pynvml is not None:
+        try:
+            pynvml.nvmlInit()
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+            util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+            metrics["gpu_util_pct"] = float(util.gpu)
+        except Exception:
+            metrics["gpu_util_pct"] = None
+        finally:
+            try:
+                pynvml.nvmlShutdown()
+            except Exception:
+                pass
+    return metrics
 
 
 def _prepare_stage3_sampler(config: TrainConfig, tmp_dir: Path, device: str) -> CheckpointOpponentSampler:
@@ -122,7 +154,15 @@ def _prepare_stage3_sampler(config: TrainConfig, tmp_dir: Path, device: str) -> 
     return sampler
 
 
-def run_benchmark(stage2_config: TrainConfig, stage3_config: TrainConfig, steps: int, device: str) -> Dict[str, Any]:
+def run_benchmark(
+    stage2_config: TrainConfig,
+    stage3_config: TrainConfig,
+    steps: int,
+    device: str,
+    stage2_vecenv: Optional[str] = None,
+    stage3_vecenv: Optional[str] = None,
+    stage3_opponent_device: Optional[str] = None,
+) -> Dict[str, Any]:
     results: Dict[str, Any] = {"steps": steps}
 
     # Stage 2 baseline
@@ -132,6 +172,8 @@ def run_benchmark(stage2_config: TrainConfig, stage3_config: TrainConfig, steps:
     else:
         cpu_start = None
 
+    if stage2_vecenv:
+        stage2_config.vec_env_type = stage2_vecenv
     env_stage2 = _make_vec_env(stage2_config)
     model_stage2 = _make_model(env_stage2, stage2_config, device=device)
     stage2_metrics = _rollout_steps(env_stage2, model_stage2, steps)
@@ -146,6 +188,10 @@ def run_benchmark(stage2_config: TrainConfig, stage3_config: TrainConfig, steps:
     # Stage 3 self-play league
     tmp_dir = Path("/tmp/blokus_stage3_bench")
     tmp_dir.mkdir(parents=True, exist_ok=True)
+    if stage3_vecenv:
+        stage3_config.vec_env_type = stage3_vecenv
+    if stage3_opponent_device:
+        stage3_config.stage3_league.opponent_device = stage3_opponent_device
     sampler = _prepare_stage3_sampler(stage3_config, tmp_dir, device=device)
     if psutil:
         proc = psutil.Process(os.getpid())
@@ -173,12 +219,26 @@ def main() -> None:
     parser.add_argument("--stage3-config", default="configs/stage3_selfplay.yaml")
     parser.add_argument("--steps", type=int, default=5000)
     parser.add_argument("--device", type=str, default="auto")
+    parser.add_argument("--stage2-vecenv", choices=["dummy", "subproc"], default=None)
+    parser.add_argument("--stage3-vecenv", choices=["dummy", "subproc"], default=None)
+    parser.add_argument("--stage3-opponent-device", choices=["auto", "cpu", "cuda"], default=None)
     args = parser.parse_args()
+
+    from torch.distributions.distribution import Distribution
+    Distribution.set_default_validate_args(False)
 
     stage2_config = load_config(args.stage2_config)
     stage3_config = load_config(args.stage3_config)
 
-    results = run_benchmark(stage2_config, stage3_config, args.steps, args.device)
+    results = run_benchmark(
+        stage2_config,
+        stage3_config,
+        args.steps,
+        args.device,
+        stage2_vecenv=args.stage2_vecenv,
+        stage3_vecenv=args.stage3_vecenv,
+        stage3_opponent_device=args.stage3_opponent_device,
+    )
 
     results_dir = Path("benchmarks/results")
     results_dir.mkdir(parents=True, exist_ok=True)
