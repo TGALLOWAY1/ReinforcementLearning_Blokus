@@ -64,7 +64,7 @@ Stage 3 is a GPU-first self-play regime where the learning agent plays only agai
 
 Quick start:
 1. Produce Stage 2 checkpoints (e.g., `configs/v1_rl_vs_mcts.yaml`).
-2. Point `stage3_league.league_dir` at the Stage 2 checkpoint directory.
+2. Set `stage3_league.seed_dir` to the Stage 2 checkpoint directory and `stage3_league.league_dir` to a new Stage 3 output directory.
 3. Run Stage 3:
 
 ```bash
@@ -82,11 +82,19 @@ On macOS, GPU acceleration uses `mps`. The `stage3_selfplay_gpu.yaml` config is 
 Additional Stage 3 configs:
 1. `configs/stage3_selfplay_gpu_small.yaml`: smaller policy net for throughput testing.
 2. `configs/stage3_selfplay_subproc.yaml`: SubprocVecEnv for parallel env stepping (opponents on CPU).
+3. `configs/stage3_selfplay_fast.yaml`: reduced eval overhead (SubprocVecEnv).
+4. `configs/stage3_selfplay_gpu_fast.yaml`: reduced eval overhead (DummyVecEnv + MPS).
 
 Profiling Stage 3 rollout:
 
 ```bash
 PYTHONPATH=. python benchmarks/profile_stage3.py --config configs/stage3_selfplay_gpu.yaml --steps 200
+```
+
+Scan Stage 3 throughput across vecenv/num_envs combinations:
+
+```bash
+PYTHONPATH=. python benchmarks/scan_stage3_envs.py --config configs/stage3_selfplay_gpu.yaml --steps 500 --num-envs 2,4,8 --vecenvs dummy,subproc
 ```
 
 Key config fields in `configs/stage3_selfplay.yaml`:

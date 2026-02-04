@@ -1,0 +1,55 @@
+# Stage 3 GPU-first fast-run config (no policy architecture changes)
+
+seed: 42
+training_stage: 3
+
+total_timesteps: 500000
+learning_rate: 0.0003
+n_steps: 2048
+batch_size: 256
+gamma: 0.99
+device: mps
+num_envs: 4
+vec_env_type: dummy
+max_episode_steps: 1000
+
+opponents: []
+
+# Reduce eval overhead while training fast
+
+eval_interval_steps: 50000
+eval_matches: 5
+checkpoint_interval_steps: 20000
+checkpoint_dir: checkpoints/stage3_selfplay_league
+log_dir: logs/stage3_selfplay_fast
+league_db: league_stage3.db
+tensorboard: true
+
+stage3_league:
+  enabled: true
+  seed_dir: checkpoints/stage2_rl_v1_mcts
+  league_dir: checkpoints/stage3_selfplay_league
+  registry_filename: league_registry.jsonl
+  state_filename: league_state.json
+  save_every_steps: 20000
+  max_checkpoints_to_keep: 50
+  keep_every_k:
+  min_checkpoints: 3
+  lru_cache_size: 4
+  opponent_device: mps
+  vecenv_mode: dummy
+  strict_resume: true
+  sampling:
+    recent_band_pct: 0.7
+    mid_band_pct: 0.25
+    old_band_pct: 0.05
+    recent_window_frac: 0.2
+    mid_window_frac: 0.3
+    old_window_frac: 0.5
+  window_schedule:
+    schedule_type: linear
+    start_window_frac: 1.0
+    end_window_frac: 0.2
+    schedule_steps: 500000
+    min_window_frac: 0.1
+    max_window_frac: 1.0
