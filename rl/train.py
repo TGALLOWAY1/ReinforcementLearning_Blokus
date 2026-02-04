@@ -11,7 +11,8 @@ import os
 import pickle
 import random
 import time
-from dataclasses import dataclass, field
+from datetime import datetime
+from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -23,8 +24,9 @@ from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
-from agents.registry import RLPolicyAgent, build_baseline_agent, AgentSpec
+from agents.registry import RLPolicyAgent, build_baseline_agent, AgentSpec, AgentProtocol
 from league.league import League, build_league_agents
+from league.pdl import Stage3LeagueConfig, LeagueManager, CheckpointOpponentSampler, LeagueCheckpoint
 from rl.env_wrapper import SelfPlayBlokusEnv
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TrainConfig:
     seed: int = 0
+    training_stage: int = 2
     total_timesteps: int = 200_000
     learning_rate: float = 3e-4
     n_steps: int = 2048
@@ -50,6 +53,7 @@ class TrainConfig:
     league_db: str = "league.db"
     tensorboard: bool = False
     resume_path: Optional[str] = None
+    stage3_league: Stage3LeagueConfig = field(default_factory=Stage3LeagueConfig)
 
 
 def set_seeds(seed: int) -> None:
@@ -63,16 +67,32 @@ def load_config(path: str) -> TrainConfig:
         raw = yaml.safe_load(handle) or {}
     config = TrainConfig()
     for key, value in raw.items():
-        if hasattr(config, key):
+        if key == "stage3_league" and isinstance(value, dict):
+            config.stage3_league = Stage3LeagueConfig.from_dict(value)
+        elif hasattr(config, key):
             setattr(config, key, value)
     return config
 
 
-def make_env(config: TrainConfig, seed_offset: int = 0):
+def _config_to_dict(config: TrainConfig) -> Dict[str, Any]:
+    data = asdict(config)
+    return data
+
+
+def make_env(config: TrainConfig, seed_offset: int = 0, opponent_sampler: Optional[CheckpointOpponentSampler] = None):
     def _init():
+        if config.training_stage == 3:
+            if opponent_sampler is None:
+                raise ValueError("Stage 3 requires a checkpoint opponent sampler")
+            opponents = None
+            sampler = opponent_sampler
+        else:
+            opponents = _build_opponents(config, config.seed + seed_offset)
+            sampler = None
         env = SelfPlayBlokusEnv(
             max_episode_steps=config.max_episode_steps,
-            opponents=_build_opponents(config, config.seed + seed_offset),
+            opponents=opponents,
+            opponent_sampler=sampler,
             seed=config.seed + seed_offset,
         )
         env = Monitor(env)
@@ -90,16 +110,22 @@ def _build_opponents(config: TrainConfig, seed: int):
     return opponent_agents
 
 
-def _make_vec_env(config: TrainConfig):
+def _make_vec_env(config: TrainConfig, opponent_sampler: Optional[CheckpointOpponentSampler] = None):
     if config.num_envs <= 1:
-        return DummyVecEnv([make_env(config, seed_offset=0)])
-    env_fns = [make_env(config, seed_offset=i) for i in range(config.num_envs)]
+        return DummyVecEnv([make_env(config, seed_offset=0, opponent_sampler=opponent_sampler)])
+    env_fns = [make_env(config, seed_offset=i, opponent_sampler=opponent_sampler) for i in range(config.num_envs)]
     if config.vec_env_type == "subproc":
         return SubprocVecEnv(env_fns)
     return DummyVecEnv(env_fns)
 
 
-def _save_checkpoint(model: MaskablePPO, path: Path) -> None:
+def _save_checkpoint(
+    model: MaskablePPO,
+    path: Path,
+    step: int,
+    config: TrainConfig,
+    extra_metadata: Optional[Dict[str, Any]] = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     model.save(str(path))
     rng_state = {
@@ -109,6 +135,19 @@ def _save_checkpoint(model: MaskablePPO, path: Path) -> None:
     }
     with open(path.with_suffix(".rng.pkl"), "wb") as handle:
         pickle.dump(rng_state, handle)
+
+    metadata = {
+        "step": int(step),
+        "timestamp": datetime.utcnow().isoformat(),
+        "training_stage": int(config.training_stage),
+        "total_timesteps": int(config.total_timesteps),
+        "checkpoint_path": str(path),
+        "config": _config_to_dict(config),
+    }
+    if extra_metadata:
+        metadata.update(extra_metadata)
+    with open(path.with_suffix(".meta.json"), "w", encoding="utf-8") as handle:
+        json.dump(metadata, handle)
 
 
 def _load_checkpoint(model_path: str, env, tensorboard_log: Optional[str] = None):
@@ -123,6 +162,32 @@ def _load_checkpoint(model_path: str, env, tensorboard_log: Optional[str] = None
         np.random.set_state(rng_state["numpy"])
         torch.set_rng_state(rng_state["torch"])
     return model
+
+
+def _load_checkpoint_metadata(model_path: str) -> Dict[str, Any]:
+    meta_path = Path(model_path).with_suffix(".meta.json")
+    if not meta_path.exists():
+        return {}
+    try:
+        with open(meta_path, "r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        return {}
+
+
+def _infer_step_from_checkpoint_path(model_path: str) -> Optional[int]:
+    name = Path(model_path).stem
+    if name.startswith("checkpoint_") and name.replace("checkpoint_", "").isdigit():
+        return int(name.replace("checkpoint_", ""))
+    if name.startswith("ep") and name.replace("ep", "").isdigit():
+        return int(name.replace("ep", ""))
+    meta = _load_checkpoint_metadata(model_path)
+    if "step" in meta:
+        try:
+            return int(meta["step"])
+        except Exception:
+            return None
+    return None
 
 
 def _get_episode_lengths(env) -> List[float]:
@@ -165,6 +230,25 @@ def _estimate_games_played(env, steps_done: int) -> Optional[int]:
         return int(steps_done / avg)
     # SubprocVecEnv: workers don't share episode_lengths, so fall back to steps-based estimate
     return int(steps_done / ESTIMATED_STEPS_PER_GAME)
+
+
+def _select_eval_pool(
+    entries: List[LeagueCheckpoint],
+    size: int,
+    strategy: str = "old_mid_recent",
+) -> List[LeagueCheckpoint]:
+    if len(entries) < size:
+        raise ValueError(f"Need at least {size} checkpoints for eval pool, got {len(entries)}")
+    entries = sorted(entries, key=lambda e: e.step)
+    if strategy == "old_mid_recent":
+        if size == 1:
+            return [entries[-1]]
+        indices = np.linspace(0, len(entries) - 1, size).round().astype(int)
+        return [entries[i] for i in indices]
+    if strategy == "recent":
+        return entries[-size:]
+    rng = random.Random(0)
+    return rng.sample(entries, size)
 
 
 def evaluate_and_update_league(
@@ -213,6 +297,67 @@ def evaluate_and_update_league(
     return results
 
 
+def evaluate_and_update_league_stage3(
+    model: MaskablePPO,
+    league: League,
+    config: TrainConfig,
+    league_manager: LeagueManager,
+    step: int,
+    eval_entries: Optional[List[LeagueCheckpoint]] = None,
+) -> Dict[str, Any]:
+    if eval_entries is not None:
+        entries = list(eval_entries)
+    else:
+        entries = league_manager.sample_opponents(num_opponents=3, step=step, seed=config.seed + step)
+    if len(entries) != 3:
+        raise ValueError("Stage 3 evaluation requires exactly 3 checkpoint opponents")
+
+    agents: Dict[str, AgentProtocol] = {}
+    specs: List[AgentSpec] = []
+
+    rl_name = "rl_checkpoint"
+    agents[rl_name] = RLPolicyAgent(model)
+    specs.append(AgentSpec(name=rl_name, agent_type="rl", version=str(step)))
+
+    opponent_agents = league_manager.build_opponent_agents(entries)
+    opponent_names: List[str] = []
+    for idx, (entry, opponent) in enumerate(zip(entries, opponent_agents)):
+        name = f"ckpt_{entry.step}_{idx}"
+        opponent_names.append(name)
+        agents[name] = opponent
+        specs.append(
+            AgentSpec(name=name, agent_type="checkpoint", version=str(entry.step), checkpoint_path=entry.path)
+        )
+
+    ordered_4p_names = [rl_name] + opponent_names
+    ordered_agents = [agents[n] for n in ordered_4p_names]
+
+    for spec in specs:
+        league.register_agent(spec)
+
+    results = {"wins": 0, "losses": 0, "draws": 0}
+    for match_id in range(config.eval_matches):
+        seed = config.seed + step + match_id
+        indices = list(range(4))
+        random.shuffle(indices)
+        names = [ordered_4p_names[i] for i in indices]
+        ags = [ordered_agents[i] for i in indices]
+        match = league.play_match(names, ags, seed=seed, max_moves=config.max_episode_steps)
+        if match.winner == rl_name:
+            results["wins"] += 1
+        elif match.winner is None:
+            results["draws"] += 1
+        else:
+            results["losses"] += 1
+        league.update_elo_after_4p_match(match, seed)
+
+    rl_agent_id = league.db.get_agent_id(rl_name)
+    current_elo = league.db.get_rating(rl_agent_id) if rl_agent_id else 1200.0
+    results["elo"] = current_elo
+
+    return results
+
+
 def train(config: TrainConfig) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     # Reduce noise from SB3 and other libs; we log progress ourselves
@@ -224,7 +369,64 @@ def train(config: TrainConfig) -> None:
     from torch.distributions.distribution import Distribution
     Distribution.set_default_validate_args(False)
 
-    env = _make_vec_env(config)
+    resume_step = 0
+    if config.resume_path:
+        resume_metadata = _load_checkpoint_metadata(config.resume_path)
+        resume_step = resume_metadata.get("step", 0) or _infer_step_from_checkpoint_path(config.resume_path) or 0
+        if resume_step:
+            logger.info("Resume metadata step: %s", resume_step)
+
+    league_manager: Optional[LeagueManager] = None
+    opponent_sampler: Optional[CheckpointOpponentSampler] = None
+    if config.training_stage == 3:
+        if config.stage3_league.opponent_device == "auto" and config.vec_env_type == "subproc":
+            config.stage3_league.opponent_device = "cpu"
+            logger.info("Stage 3 opponent_device auto-resolved to cpu for SubprocVecEnv")
+        if config.stage3_league.window_schedule.schedule_steps <= 0:
+            config.stage3_league.window_schedule.schedule_steps = config.total_timesteps
+        league_manager = LeagueManager(config.stage3_league, config.checkpoint_dir)
+        if config.stage3_league.discover_on_start:
+            league_manager.discover_checkpoints()
+        if config.opponents:
+            logger.info("Stage 3 ignores config.opponents (checkpoint-only league)")
+        if config.stage3_league.save_every_steps and (
+            config.stage3_league.save_every_steps % config.checkpoint_interval_steps != 0
+        ):
+            logger.warning(
+                "stage3_league.save_every_steps (%s) is not aligned with checkpoint_interval_steps (%s); "
+                "league registration occurs only when checkpoints are saved.",
+                config.stage3_league.save_every_steps,
+                config.checkpoint_interval_steps,
+            )
+        if config.resume_path and resume_step:
+            if not any(entry.path == config.resume_path for entry in league_manager.registry.entries):
+                league_manager.register_checkpoint(
+                    checkpoint_path=Path(config.resume_path),
+                    step=resume_step,
+                    metadata={"source": "resume"},
+                )
+        if len(league_manager.registry.entries) < config.stage3_league.min_checkpoints:
+            raise RuntimeError(
+                "Stage 3 requires existing checkpoints. "
+                f"Found {len(league_manager.registry.entries)} but need at least "
+                f"{config.stage3_league.min_checkpoints}. "
+                "Point stage3_league.league_dir to a directory with prior checkpoints "
+                "or resume from a saved checkpoint."
+            )
+        league_manager.write_state(resume_step, config.total_timesteps)
+        league_dir = config.stage3_league.resolve_league_dir(config.checkpoint_dir)
+        opponent_sampler = CheckpointOpponentSampler(
+            registry_path=league_dir / config.stage3_league.registry_filename,
+            state_path=league_dir / config.stage3_league.state_filename,
+            sampling_config=config.stage3_league.sampling,
+            window_schedule=config.stage3_league.window_schedule,
+            lru_cache_size=config.stage3_league.lru_cache_size,
+            opponent_device=config.stage3_league.opponent_device,
+            seed=config.seed,
+        )
+        opponent_sampler.refresh()
+
+    env = _make_vec_env(config, opponent_sampler=opponent_sampler)
     tensorboard_log = config.log_dir if config.tensorboard else None
 
     if config.resume_path:
@@ -247,16 +449,47 @@ def train(config: TrainConfig) -> None:
     log_path.mkdir(parents=True, exist_ok=True)
     metrics_path = log_path / "train_metrics.jsonl"
 
-    logger.info(
-        "Training: %s steps | opponents %s | checkpoint_dir %s | league_db %s",
-        config.total_timesteps,
-        config.opponents,
-        config.checkpoint_dir,
-        config.league_db,
-    )
+    if config.training_stage == 3:
+        logger.info(
+            "Training Stage 3: %s steps | checkpoint league (%s entries) | league_dir %s | league_db %s",
+            config.total_timesteps,
+            len(league_manager.registry.entries) if league_manager else 0,
+            config.stage3_league.resolve_league_dir(config.checkpoint_dir),
+            config.league_db,
+        )
+        logger.info(
+            "Stage 3 sampling: recent/mid/old=%.2f/%.2f/%.2f | window_frac=%.2f→%.2f (%s)",
+            config.stage3_league.sampling.recent_band_pct,
+            config.stage3_league.sampling.mid_band_pct,
+            config.stage3_league.sampling.old_band_pct,
+            config.stage3_league.window_schedule.start_window_frac,
+            config.stage3_league.window_schedule.end_window_frac,
+            config.stage3_league.window_schedule.schedule_type,
+        )
+    else:
+        logger.info(
+            "Training: %s steps | opponents %s | checkpoint_dir %s | league_db %s",
+            config.total_timesteps,
+            config.opponents,
+            config.checkpoint_dir,
+            config.league_db,
+        )
+
+    eval_pool_entries: Optional[List[LeagueCheckpoint]] = None
+    if config.training_stage == 3 and league_manager is not None:
+        eval_pool_entries = _select_eval_pool(
+            league_manager.registry.entries,
+            size=config.stage3_league.eval_pool_size,
+            strategy=config.stage3_league.eval_pool_strategy,
+        )
+        logger.info(
+            "Stage 3 eval pool (%s): %s",
+            config.stage3_league.eval_pool_strategy,
+            [entry.step for entry in eval_pool_entries],
+        )
 
     start_time = time.time()
-    steps_done = 0
+    steps_done = int(resume_step) if resume_step else 0
     while steps_done < config.total_timesteps:
         remaining = config.total_timesteps - steps_done
         chunk = min(config.eval_interval_steps, remaining)
@@ -272,12 +505,36 @@ def train(config: TrainConfig) -> None:
         if lengths:
             env._last_avg_episode_length = float(np.mean(lengths))
         games_est = _estimate_games_played(env, steps_done)
-        eval_results = evaluate_and_update_league(model, league, config, steps_done)
+        if config.training_stage == 3:
+            if league_manager is None:
+                raise RuntimeError("Stage 3 requires a LeagueManager")
+            eval_results = evaluate_and_update_league_stage3(
+                model,
+                league,
+                config,
+                league_manager,
+                steps_done,
+                eval_entries=eval_pool_entries,
+            )
+        else:
+            eval_results = evaluate_and_update_league(model, league, config, steps_done)
 
         checkpoint_path = Path(config.checkpoint_dir) / f"checkpoint_{steps_done}.zip"
         if steps_done % config.checkpoint_interval_steps == 0 or steps_done >= config.total_timesteps:
-            _save_checkpoint(model, checkpoint_path)
+            _save_checkpoint(model, checkpoint_path, steps_done, config, extra_metadata={"eval": eval_results})
             logger.info("Checkpoint saved: %s", checkpoint_path)
+            if config.training_stage == 3 and league_manager is not None:
+                league_save_interval = config.stage3_league.save_every_steps or config.checkpoint_interval_steps
+                if steps_done % league_save_interval == 0 or steps_done >= config.total_timesteps:
+                    league_manager.register_checkpoint(
+                        checkpoint_path=checkpoint_path,
+                        step=steps_done,
+                        metadata={"eval": eval_results},
+                        elo=eval_results.get("elo"),
+                    )
+
+        if config.training_stage == 3 and league_manager is not None:
+            league_manager.write_state(steps_done, config.total_timesteps)
 
         metrics = {
             "step": steps_done,
@@ -287,24 +544,42 @@ def train(config: TrainConfig) -> None:
             "games_est": games_est,
             "eval": eval_results,
         }
+        if config.training_stage == 3 and league_manager is not None:
+            metrics["league_size"] = len(league_manager.registry.entries)
         with open(metrics_path, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(metrics) + "\n")
 
         progress_pct = 100.0 * steps_done / config.total_timesteps
         games_str = f"~{games_est} train games" if games_est is not None else ""
-        logger.info(
-            "%.1f%% | %s / %s steps%s | %.1f steps/s | league W/L/D %s/%s/%s (%s eval) | Elo %.0f",
-            progress_pct,
-            steps_done,
-            config.total_timesteps,
-            f" | {games_str}" if games_str else "",
-            steps_per_sec,
-            eval_results["wins"],
-            eval_results["losses"],
-            eval_results["draws"],
-            config.eval_matches,
-            eval_results.get("elo", 1200.0),
-        )
+        if config.training_stage == 3 and league_manager is not None:
+            logger.info(
+                "%.1f%% | %s / %s steps%s | %.1f steps/s | league_size %s | W/L/D %s/%s/%s (%s eval) | Elo %.0f",
+                progress_pct,
+                steps_done,
+                config.total_timesteps,
+                f" | {games_str}" if games_str else "",
+                steps_per_sec,
+                len(league_manager.registry.entries),
+                eval_results["wins"],
+                eval_results["losses"],
+                eval_results["draws"],
+                config.eval_matches,
+                eval_results.get("elo", 1200.0),
+            )
+        else:
+            logger.info(
+                "%.1f%% | %s / %s steps%s | %.1f steps/s | league W/L/D %s/%s/%s (%s eval) | Elo %.0f",
+                progress_pct,
+                steps_done,
+                config.total_timesteps,
+                f" | {games_str}" if games_str else "",
+                steps_per_sec,
+                eval_results["wins"],
+                eval_results["losses"],
+                eval_results["draws"],
+                config.eval_matches,
+                eval_results.get("elo", 1200.0),
+            )
 
     elapsed = time.time() - start_time
     logger.info("Training complete: %s steps in %.1f min | final Elo %.0f", steps_done, elapsed / 60.0, eval_results.get("elo", 1200.0))
