@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.maskable.utils import get_action_masks
@@ -16,6 +17,12 @@ def _extract_action(action) -> int:
         return int(np.asarray(action).flatten()[0])
     return int(action)
 
+def _resolve_test_device() -> str:
+    if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+        return "mps"
+    if torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
 
 def test_checkpoint_integrity_roundtrip():
     from torch.distributions.distribution import Distribution
@@ -33,6 +40,7 @@ def test_checkpoint_integrity_roundtrip():
         gamma=0.99,
     )
     env = _make_vec_env(config)
+    device = _resolve_test_device()
     model = MaskablePPO(
         "MlpPolicy",
         env,
@@ -41,6 +49,7 @@ def test_checkpoint_integrity_roundtrip():
         batch_size=config.batch_size,
         gamma=config.gamma,
         verbose=0,
+        device=device,
     )
 
     obs = env.reset()

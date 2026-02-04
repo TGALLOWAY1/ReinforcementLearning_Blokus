@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 from sb3_contrib import MaskablePPO
+import torch
 
 from rl.train import TrainConfig, _make_vec_env, _save_checkpoint, train
 
@@ -22,6 +23,7 @@ def _seed_stage2_checkpoints(seed_dir: Path, count: int = 3) -> None:
         checkpoint_dir=str(seed_dir),
     )
     env = _make_vec_env(config)
+    device = "mps" if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available() else "cpu"
     model = MaskablePPO(
         "MlpPolicy",
         env,
@@ -30,6 +32,7 @@ def _seed_stage2_checkpoints(seed_dir: Path, count: int = 3) -> None:
         batch_size=config.batch_size,
         gamma=config.gamma,
         verbose=0,
+        device=device,
     )
     for idx in range(count):
         ckpt_path = seed_dir / f"checkpoint_{idx}.zip"
@@ -62,6 +65,7 @@ def test_stage3_smoke():
             log_dir=str(stage3_dir / "logs"),
             league_db=str(stage3_dir / "league.db"),
         )
+        config.device = "mps" if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available() else "cpu"
         config.stage3_league.seed_dir = str(seed_dir)
         config.stage3_league.league_dir = str(stage3_dir)
         config.stage3_league.save_every_steps = 32
