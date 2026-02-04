@@ -58,6 +58,46 @@ This project provides a full-stack implementation of Blokus with:
 - Agent performance statistics
 - Match result logging and analysis
 
+## Stage 3 Self-Play League (Checkpoint-Only)
+
+Stage 3 is a GPU-first self-play regime where the learning agent plays only against a league of its own prior checkpoints. No MCTS or random opponents are used during training.
+
+Quick start:
+1. Produce Stage 2 checkpoints (e.g., `configs/v1_rl_vs_mcts.yaml`).
+2. Point `stage3_league.league_dir` at the Stage 2 checkpoint directory.
+3. Run Stage 3:
+
+```bash
+PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay.yaml
+```
+
+Key config fields in `configs/stage3_selfplay.yaml`:
+1. `training_stage: 3`
+2. `stage3_league.league_dir`: where to discover prior checkpoints
+3. `stage3_league.save_every_steps`: how often to register new checkpoints into the league
+4. `stage3_league.max_checkpoints_to_keep`: retention cap for league snapshots
+5. `stage3_league.window_schedule`: progressive window shrink schedule (recent-focus over time)
+6. `stage3_league.sampling`: band weights for old/mid/recent checkpoints
+
+League metadata:
+1. Registry file: `stage3_league.league_dir/league_registry.jsonl`
+2. State file: `stage3_league.league_dir/league_state.json`
+
+Note: when using `vec_env_type: subproc`, Stage 3 auto-resolves `opponent_device` to `cpu` to avoid multi-process GPU memory duplication. Use `vec_env_type: dummy` if you want opponents on GPU.
+
+## Benchmarks
+
+Compare Stage 2 (MCTS baseline) vs Stage 3 (checkpoint league) rollout throughput:
+
+```bash
+PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
+  --stage2-config configs/v1_rl_vs_mcts.yaml \\
+  --stage3-config configs/stage3_selfplay.yaml \\
+  --steps 5000
+```
+
+Results are saved to `benchmarks/results/*.json`.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
