@@ -8,6 +8,7 @@ learning_rate: 0.0003
 n_steps: 2048
 batch_size: 256
 gamma: 0.99
+device: mps
 num_envs: 4
 vec_env_type: dummy
 max_episode_steps: 1000
@@ -34,7 +35,7 @@ stage3_league:
   keep_every_k:
   min_checkpoints: 3
   lru_cache_size: 4
-  opponent_device: cuda
+  opponent_device: mps
   vecenv_mode: dummy
   strict_resume: true
   sampling:

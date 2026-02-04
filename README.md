@@ -77,6 +77,8 @@ GPU-first (DummyVecEnv) variant:
 PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay_gpu.yaml
 ```
 
+On macOS, GPU acceleration uses `mps`. The `stage3_selfplay_gpu.yaml` config is set up for MPS (DummyVecEnv + `device: mps`, opponent_device `mps`).
+
 Key config fields in `configs/stage3_selfplay.yaml`:
 1. `training_stage: 3`
 2. `stage3_league.seed_dir`: where to discover prior checkpoints (Stage 2 output)
@@ -87,6 +89,7 @@ Key config fields in `configs/stage3_selfplay.yaml`:
 7. `stage3_league.sampling`: band weights for old/mid/recent checkpoints
 8. `stage3_league.vecenv_mode`: optional override for Stage 3 vec env (`dummy` or `subproc`)
 9. `stage3_league.strict_resume`: require RNG + step metadata when resuming Stage 3
+10. `device`: training device (`auto`, `cuda`, `mps`, `cpu`)
 
 League metadata:
 1. Registry file: `stage3_league.league_dir/league_registry.jsonl`
@@ -106,6 +109,18 @@ PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
 ```
 
 Results are saved to `benchmarks/results/*.json`.
+
+macOS MPS fast path:
+
+```bash
+PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
+  --stage2-config configs/v1_rl_vs_mcts.yaml \\
+  --stage2-vecenv dummy \\
+  --stage3-config configs/stage3_selfplay_gpu.yaml \\
+  --stage3-vecenv dummy \\
+  --stage3-opponent-device mps \\
+  --steps 2000
+```
 
 ## 🚀 Quick Start
 

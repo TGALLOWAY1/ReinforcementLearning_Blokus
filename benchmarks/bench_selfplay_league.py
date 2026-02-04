@@ -30,7 +30,28 @@ except Exception:  # pragma: no cover
     pynvml = None
 
 
+def _resolve_device(requested: str) -> str:
+    if requested is None:
+        requested = "auto"
+    if requested == "auto":
+        if torch.cuda.is_available():
+            return "cuda"
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
+    if requested == "cuda" and not torch.cuda.is_available():
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
+    if requested == "mps" and not (getattr(torch.backends, "mps", None) and torch.backends.mps.is_available()):
+        if torch.cuda.is_available():
+            return "cuda"
+        return "cpu"
+    return requested
+
+
 def _make_model(env, config: TrainConfig, device: str) -> MaskablePPO:
+    resolved = _resolve_device(device)
     return MaskablePPO(
         "MlpPolicy",
         env,
@@ -39,7 +60,7 @@ def _make_model(env, config: TrainConfig, device: str) -> MaskablePPO:
         batch_size=min(config.batch_size, 128),
         gamma=config.gamma,
         verbose=0,
-        device=device,
+        device=resolved,
     )
 
 
@@ -98,29 +119,44 @@ def _cpu_metrics(start_cpu, end_cpu, elapsed: float) -> Dict[str, Any]:
         return {"cpu_util_pct": None}
 
 
-def _gpu_metrics() -> Dict[str, Any]:
-    if not torch.cuda.is_available():
-        return {"gpu_available": False, "gpu_util_pct": None}
+def _accelerator_metrics() -> Dict[str, Any]:
+    cuda_available = torch.cuda.is_available()
+    mps_available = bool(getattr(torch.backends, "mps", None) and torch.backends.mps.is_available())
     metrics = {
-        "gpu_available": True,
-        "gpu_device": torch.cuda.get_device_name(0),
-        "gpu_mem_allocated_mb": torch.cuda.max_memory_allocated() / (1024 ** 2),
-        "gpu_mem_reserved_mb": torch.cuda.max_memory_reserved() / (1024 ** 2),
+        "cuda_available": cuda_available,
+        "mps_available": mps_available,
+        "accelerator": "cpu",
+        "gpu_device": None,
         "gpu_util_pct": None,
+        "gpu_mem_allocated_mb": None,
+        "gpu_mem_reserved_mb": None,
+        "mps_mem_allocated_mb": None,
     }
-    if pynvml is not None:
-        try:
-            pynvml.nvmlInit()
-            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-            util = pynvml.nvmlDeviceGetUtilizationRates(handle)
-            metrics["gpu_util_pct"] = float(util.gpu)
-        except Exception:
-            metrics["gpu_util_pct"] = None
-        finally:
+    if cuda_available:
+        metrics["accelerator"] = "cuda"
+        metrics["gpu_device"] = torch.cuda.get_device_name(0)
+        metrics["gpu_mem_allocated_mb"] = torch.cuda.max_memory_allocated() / (1024 ** 2)
+        metrics["gpu_mem_reserved_mb"] = torch.cuda.max_memory_reserved() / (1024 ** 2)
+        if pynvml is not None:
             try:
-                pynvml.nvmlShutdown()
+                pynvml.nvmlInit()
+                handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                metrics["gpu_util_pct"] = float(util.gpu)
             except Exception:
-                pass
+                metrics["gpu_util_pct"] = None
+            finally:
+                try:
+                    pynvml.nvmlShutdown()
+                except Exception:
+                    pass
+    elif mps_available:
+        metrics["accelerator"] = "mps"
+        if hasattr(torch, "mps") and hasattr(torch.mps, "current_allocated_memory"):
+            try:
+                metrics["mps_mem_allocated_mb"] = torch.mps.current_allocated_memory() / (1024 ** 2)
+            except Exception:
+                metrics["mps_mem_allocated_mb"] = None
     return metrics
 
 
@@ -182,7 +218,7 @@ def run_benchmark(
     if psutil and cpu_start is not None:
         stage2_metrics.update(_cpu_metrics(cpu_start, proc.cpu_times(), stage2_metrics["elapsed_sec"]))
 
-    stage2_metrics.update(_gpu_metrics())
+    stage2_metrics.update(_accelerator_metrics())
     results["stage2"] = stage2_metrics
 
     # Stage 3 self-play league
@@ -207,7 +243,7 @@ def run_benchmark(
     if psutil and cpu_start is not None:
         stage3_metrics.update(_cpu_metrics(cpu_start, proc.cpu_times(), stage3_metrics["elapsed_sec"]))
 
-    stage3_metrics.update(_gpu_metrics())
+    stage3_metrics.update(_accelerator_metrics())
     results["stage3"] = stage3_metrics
 
     return results
@@ -229,6 +265,9 @@ def main() -> None:
 
     stage2_config = load_config(args.stage2_config)
     stage3_config = load_config(args.stage3_config)
+
+    stage2_config.device = _resolve_device(stage2_config.device)
+    stage3_config.device = _resolve_device(stage3_config.device)
 
     results = run_benchmark(
         stage2_config,

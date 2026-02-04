@@ -41,6 +41,7 @@ class TrainConfig:
     n_steps: int = 2048
     batch_size: int = 256
     gamma: float = 0.99
+    device: str = "auto"
     num_envs: int = 1
     vec_env_type: str = "dummy"
     max_episode_steps: int = 1000
@@ -150,8 +151,8 @@ def _save_checkpoint(
         json.dump(metadata, handle)
 
 
-def _load_checkpoint(model_path: str, env, tensorboard_log: Optional[str] = None):
-    model = MaskablePPO.load(model_path, env=env)
+def _load_checkpoint(model_path: str, env, tensorboard_log: Optional[str] = None, device: str = "auto"):
+    model = MaskablePPO.load(model_path, env=env, device=device)
     if tensorboard_log:
         model.tensorboard_log = tensorboard_log
     rng_path = Path(model_path).with_suffix(".rng.pkl")
@@ -162,6 +163,34 @@ def _load_checkpoint(model_path: str, env, tensorboard_log: Optional[str] = None
         np.random.set_state(rng_state["numpy"])
         torch.set_rng_state(rng_state["torch"])
     return model
+
+
+def _resolve_device(requested: str) -> str:
+    if requested is None:
+        requested = "auto"
+    if requested == "auto":
+        if torch.cuda.is_available():
+            return "cuda"
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
+    if requested == "cuda":
+        if torch.cuda.is_available():
+            return "cuda"
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            logger.warning("CUDA requested but unavailable; falling back to MPS")
+            return "mps"
+        logger.warning("CUDA requested but unavailable; falling back to CPU")
+        return "cpu"
+    if requested == "mps":
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            return "mps"
+        if torch.cuda.is_available():
+            logger.warning("MPS requested but unavailable; falling back to CUDA")
+            return "cuda"
+        logger.warning("MPS requested but unavailable; falling back to CPU")
+        return "cpu"
+    return requested
 
 
 def _load_checkpoint_metadata(model_path: str) -> Dict[str, Any]:
@@ -370,6 +399,8 @@ def train(config: TrainConfig) -> None:
     Distribution.set_default_validate_args(False)
 
     resume_step = 0
+    training_device = _resolve_device(config.device)
+    logger.info("Training device resolved to: %s", training_device)
     if config.resume_path:
         resume_metadata = _load_checkpoint_metadata(config.resume_path)
         resume_step = resume_metadata.get("step", 0) or _infer_step_from_checkpoint_path(config.resume_path) or 0
@@ -381,9 +412,18 @@ def train(config: TrainConfig) -> None:
     if config.training_stage == 3:
         if config.stage3_league.vecenv_mode:
             config.vec_env_type = config.stage3_league.vecenv_mode
-        if config.stage3_league.opponent_device == "auto" and config.vec_env_type == "subproc":
-            config.stage3_league.opponent_device = "cpu"
-            logger.info("Stage 3 opponent_device auto-resolved to cpu for SubprocVecEnv")
+        if config.vec_env_type == "subproc":
+            if config.stage3_league.opponent_device in ("cuda", "mps"):
+                logger.warning(
+                    "Stage 3 opponent_device=%s with SubprocVecEnv may duplicate accelerator memory; forcing CPU",
+                    config.stage3_league.opponent_device,
+                )
+                config.stage3_league.opponent_device = "cpu"
+            elif config.stage3_league.opponent_device == "auto":
+                config.stage3_league.opponent_device = "cpu"
+                logger.info("Stage 3 opponent_device auto-resolved to cpu for SubprocVecEnv")
+        elif config.stage3_league.opponent_device == "auto":
+            config.stage3_league.opponent_device = _resolve_device("auto")
         if config.stage3_league.window_schedule.schedule_steps <= 0:
             config.stage3_league.window_schedule.schedule_steps = config.total_timesteps
         league_manager = LeagueManager(config.stage3_league, config.checkpoint_dir)
@@ -447,7 +487,7 @@ def train(config: TrainConfig) -> None:
 
     if config.resume_path:
         logger.info("Resuming from checkpoint: %s", config.resume_path)
-        model = _load_checkpoint(config.resume_path, env, tensorboard_log=tensorboard_log)
+        model = _load_checkpoint(config.resume_path, env, tensorboard_log=tensorboard_log, device=training_device)
     else:
         model = MaskablePPO(
             "MlpPolicy",
@@ -458,6 +498,7 @@ def train(config: TrainConfig) -> None:
             gamma=config.gamma,
             verbose=0,
             tensorboard_log=tensorboard_log,
+            device=training_device,
         )
 
     league = League(db_path=config.league_db)

@@ -17,6 +17,11 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 
 try:
+    import torch
+except Exception:  # pragma: no cover
+    torch = None  # type: ignore
+
+try:
     from sb3_contrib import MaskablePPO
 except Exception:  # pragma: no cover - optional at import time
     MaskablePPO = None  # type: ignore
@@ -153,7 +158,7 @@ class LeagueCheckpoint:
 class CheckpointPolicyCache:
     def __init__(self, max_size: int = 4, device: str = "auto") -> None:
         self.max_size = max_size
-        self.device = device
+        self.device = _resolve_device(device)
         self._cache: "OrderedDict[str, Any]" = OrderedDict()
         self.hits = 0
         self.misses = 0
@@ -636,3 +641,33 @@ def _is_within(path: Path, parent: Path) -> bool:
     except Exception:
         return False
     return str(path).startswith(str(parent))
+
+
+def _resolve_device(requested: str) -> str:
+    if requested is None:
+        requested = "auto"
+    if torch is None:
+        return "cpu"
+    if requested == "auto":
+        if torch.cuda.is_available():
+            return "cuda"
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
+    if requested == "cuda":
+        if torch.cuda.is_available():
+            return "cuda"
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            logger.warning("CUDA requested but unavailable; falling back to MPS")
+            return "mps"
+        logger.warning("CUDA requested but unavailable; falling back to CPU")
+        return "cpu"
+    if requested == "mps":
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            return "mps"
+        if torch.cuda.is_available():
+            logger.warning("MPS requested but unavailable; falling back to CUDA")
+            return "cuda"
+        logger.warning("MPS requested but unavailable; falling back to CPU")
+        return "cpu"
+    return requested
