@@ -1,6 +1,7 @@
 """Checkpoint integrity test for MaskablePPO self-play pipeline."""
 
 import tempfile
+from pathlib import Path
 
 import numpy as np
 
@@ -17,6 +18,9 @@ def _extract_action(action) -> int:
 
 
 def test_checkpoint_integrity_roundtrip():
+    from torch.distributions.distribution import Distribution
+    Distribution.set_default_validate_args(False)
+
     config = TrainConfig(
         seed=123,
         training_stage=2,
@@ -44,9 +48,9 @@ def test_checkpoint_integrity_roundtrip():
     action_before, _ = model.predict(obs, action_masks=masks, deterministic=True)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        checkpoint_path = f"{tmp_dir}/checkpoint_0.zip"
+        checkpoint_path = Path(tmp_dir) / "checkpoint_0.zip"
         _save_checkpoint(model, checkpoint_path, step=0, config=config)
-        reloaded = _load_checkpoint(checkpoint_path, env)
+        reloaded = _load_checkpoint(str(checkpoint_path), env)
         action_after, _ = reloaded.predict(obs, action_masks=masks, deterministic=True)
 
     action_before = _extract_action(action_before)
