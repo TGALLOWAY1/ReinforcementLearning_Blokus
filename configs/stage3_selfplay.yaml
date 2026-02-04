@@ -1,0 +1,63 @@
+# Stage 3 Training Configuration: checkpoint-only self-play league
+# NOTE: opponents list is ignored when training_stage=3.
+
+seed: 42
+training_stage: 3
+
+total_timesteps: 500000
+learning_rate: 0.0003
+n_steps: 2048
+batch_size: 256
+gamma: 0.99
+num_envs: 4
+vec_env_type: subproc
+max_episode_steps: 1000
+
+# Opponents are ignored in Stage 3 (checkpoint league only)
+opponents: []
+
+# Optional: resume from existing checkpoint (recommended to seed league)
+# resume_path: checkpoints/stage2_rl_v1_mcts/checkpoint_500000.zip
+
+# Evaluation and Checkpointing
+# Checkpoint cadence is still driven by checkpoint_interval_steps
+# Stage 3 league registration is controlled by stage3_league.save_every_steps
+
+eval_interval_steps: 10000
+eval_matches: 10
+checkpoint_interval_steps: 10000
+checkpoint_dir: checkpoints/stage3_selfplay
+log_dir: logs/stage3_selfplay
+league_db: league_stage3.db
+tensorboard: true
+
+stage3_league:
+  enabled: true
+  # Directory to discover prior checkpoints for the league (Stage 2 output)
+  league_dir: checkpoints/stage2_rl_v1_mcts
+  registry_filename: league_registry.jsonl
+  state_filename: league_state.json
+  save_every_steps: 10000
+  max_checkpoints_to_keep: 50
+  keep_every_k:
+  min_checkpoints: 3
+  lru_cache_size: 4
+  opponent_device: auto
+  discover_on_start: true
+  eval_pool_size: 3
+  eval_pool_strategy: old_mid_recent
+  sampling:
+    recent_band_pct: 0.7
+    mid_band_pct: 0.25
+    old_band_pct: 0.05
+    recent_window_frac: 0.2
+    mid_window_frac: 0.3
+    old_window_frac: 0.5
+    allow_duplicates: false
+  window_schedule:
+    schedule_type: linear
+    start_window_frac: 1.0
+    end_window_frac: 0.2
+    schedule_steps: 500000
+    min_window_frac: 0.1
+    max_window_frac: 1.0

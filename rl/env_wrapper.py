@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 from collections import OrderedDict
-from typing import Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -33,6 +33,7 @@ class SelfPlayBlokusEnv(gym.Env):
         render_mode: Optional[str] = None,
         max_episode_steps: int = 1000,
         opponents: Optional[Dict[str, AgentProtocol]] = None,
+        opponent_sampler: Optional[Callable[[Optional[int]], Dict[str, AgentProtocol]]] = None,
         cache_size: int = 2048,
         seed: Optional[int] = None,
     ):
@@ -41,7 +42,12 @@ class SelfPlayBlokusEnv(gym.Env):
         self.action_space = self.env.action_space
         self.observation_space = self.env.observation_space
         self.render_mode = render_mode
-        self._opponents = opponents or self._default_opponents(seed)
+        self._opponent_sampler = opponent_sampler
+        self._episode_count = 0
+        if self._opponent_sampler is not None:
+            self._opponents = self._opponent_sampler(seed)
+        else:
+            self._opponents = opponents or self._default_opponents(seed)
         self._zobrist = ZobristHash(seed=seed)
         self._move_cache: "OrderedDict[Tuple[int, int], Tuple[list, list]]" = OrderedDict()
         self._cache_size = cache_size
@@ -56,6 +62,9 @@ class SelfPlayBlokusEnv(gym.Env):
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         self.env.reset(seed=seed, options=options)
         self._move_cache.clear()
+        if self._opponent_sampler is not None:
+            self._opponents = self._opponent_sampler(seed)
+        self._episode_count += 1
         obs = self.env.observe(self.agent_name)
         info = self.env.infos[self.agent_name]
         return obs, info
