@@ -4,8 +4,8 @@ learning_rate: 0.0003
 n_steps: 2048
 batch_size: 256
 gamma: 0.99
-num_envs: 2
-vec_env_type: dummy
+num_envs: 8
+vec_env_type: subproc
 max_episode_steps: 1000
 opponents:
   - heuristic

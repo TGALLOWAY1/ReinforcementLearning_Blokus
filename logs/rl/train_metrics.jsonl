@@ -1,0 +1,11 @@
+{"step": 20000, "elapsed_sec": 8676.97955417633, "steps_per_sec": 6.729062504363586, "games_per_sec_est": 0.0, "eval": {"wins": 1, "losses": 4, "draws": 5, "elo": 1156.4304779431602}}
+{"step": 40000, "elapsed_sec": 17029.40894126892, "steps_per_sec": 6.597357872401621, "games_per_sec_est": 0.0, "eval": {"wins": 4, "losses": 6, "draws": 0, "elo": 1163.905817374879}}
+{"step": 60000, "elapsed_sec": 25511.60408806801, "steps_per_sec": 6.36729005074444, "games_per_sec_est": 0.0, "eval": {"wins": 0, "losses": 10, "draws": 0, "elo": 1057.0154011317695}}
+{"step": 80000, "elapsed_sec": 33549.32591629028, "steps_per_sec": 7.090246322116866, "games_per_sec_est": 0.0, "eval": {"wins": 0, "losses": 10, "draws": 0, "elo": 991.5750749511103}}
+{"step": 100000, "elapsed_sec": 41456.180210351944, "steps_per_sec": 7.07470094697667, "games_per_sec_est": 0.0, "eval": {"wins": 4, "losses": 6, "draws": 0, "elo": 1047.0721462533695}}
+{"step": 120000, "elapsed_sec": 49363.296790122986, "steps_per_sec": 7.0988419421031415, "games_per_sec_est": 0.0, "eval": {"wins": 3, "losses": 5, "draws": 2, "elo": 1088.3404142097193}}
+{"step": 140000, "elapsed_sec": 57371.84051322937, "steps_per_sec": 7.1055327214787525, "games_per_sec_est": 0.0, "eval": {"wins": 8, "losses": 2, "draws": 0, "elo": 1216.831504553075}}
+{"step": 160000, "elapsed_sec": 65721.01698327065, "steps_per_sec": 7.09504041165211, "games_per_sec_est": 0.0, "eval": {"wins": 9, "losses": 1, "draws": 0, "elo": 1296.8485175215608}}
+{"step": 180000, "elapsed_sec": 73996.43389129639, "steps_per_sec": 7.13985313387859, "games_per_sec_est": 0.0, "eval": {"wins": 6, "losses": 4, "draws": 0, "elo": 1278.9274797182427}}
+{"step": 200000, "elapsed_sec": 85235.72225928307, "steps_per_sec": 6.478826664902066, "games_per_sec_est": 0.0, "eval": {"wins": 3, "losses": 7, "draws": 0, "elo": 1199.173906083856}}
+{"step": 220000, "elapsed_sec": 93510.6260843277, "steps_per_sec": 7.099154977656287, "games_per_sec_est": 0.0, "eval": {"wins": 7, "losses": 3, "draws": 0, "elo": 1258.3885725684827}}

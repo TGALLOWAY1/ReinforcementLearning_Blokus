@@ -1,0 +1,31 @@
+# Stage 2 Training Configuration: RL vs MCTS + 2 random (4 individual players)
+# League is 4-player: RL, MCTS, random, random. RL learns against stronger opponents.
+# Use fast_mcts (0.1s per move) not mcts (200 iter/move) so training reaches first eval in reasonable time.
+
+seed: 42
+total_timesteps: 500000
+learning_rate: 0.0003
+n_steps: 2048
+batch_size: 256
+gamma: 0.99
+num_envs: 4
+vec_env_type: subproc
+max_episode_steps: 1000
+
+# Opponents: exactly 3 for 4-player league. fast_mcts = 0.1s/move; mcts = 200 iter/move (very slow).
+opponents:
+  - fast_mcts
+  - random
+  - random
+
+# Optional: resume from existing checkpoint (e.g. from overnight/portfolio run)
+# resume_path: checkpoints/rl/checkpoint_200000.zip
+
+# Evaluation and Checkpointing
+eval_interval_steps: 10000
+eval_matches: 10
+checkpoint_interval_steps: 10000
+checkpoint_dir: checkpoints/stage2_rl_v1_mcts
+log_dir: logs/stage2_rl_v1_mcts
+league_db: league_stage2.db
+tensorboard: true

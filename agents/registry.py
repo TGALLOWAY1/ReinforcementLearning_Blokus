@@ -86,7 +86,7 @@ class MCTSAgentAdapter:
 
 
 class FastMCTSAgentAdapter:
-    def __init__(self, seed: Optional[int] = None, time_limit: float = 0.05):
+    def __init__(self, seed: Optional[int] = None, time_limit: float = 0.1):
         self.agent = FastMCTSAgent(time_limit=time_limit, seed=seed)
 
     def act(self, observation: np.ndarray, legal_mask: np.ndarray, env=None) -> Optional[int]:

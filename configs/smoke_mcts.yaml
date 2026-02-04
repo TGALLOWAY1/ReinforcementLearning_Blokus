@@ -1,0 +1,20 @@
+seed: 42
+total_timesteps: 100
+learning_rate: 0.0003
+n_steps: 64
+batch_size: 32
+gamma: 0.99
+num_envs: 1
+vec_env_type: dummy
+max_episode_steps: 10
+opponents:
+  - mcts
+  - heuristic
+  - random
+eval_interval_steps: 50
+eval_matches: 1
+checkpoint_interval_steps: 50
+checkpoint_dir: checkpoints/smoke_mcts
+log_dir: logs/smoke_mcts
+league_db: league_smoke.db
+tensorboard: false

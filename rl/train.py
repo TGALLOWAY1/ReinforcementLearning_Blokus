@@ -24,7 +24,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 from agents.registry import RLPolicyAgent, build_baseline_agent, AgentSpec
-from league.league import League
+from league.league import League, build_league_agents
 from rl.env_wrapper import SelfPlayBlokusEnv
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,7 @@ def make_env(config: TrainConfig, seed_offset: int = 0):
             seed=config.seed + seed_offset,
         )
         env = Monitor(env)
-        env = ActionMasker(env, lambda e: e.get_action_mask())
+        env = ActionMasker(env, lambda e: e.get_wrapper_attr("get_action_mask")())
         return env
 
     return _init
@@ -111,8 +111,10 @@ def _save_checkpoint(model: MaskablePPO, path: Path) -> None:
         pickle.dump(rng_state, handle)
 
 
-def _load_checkpoint(model_path: str, env):
+def _load_checkpoint(model_path: str, env, tensorboard_log: Optional[str] = None):
     model = MaskablePPO.load(model_path, env=env)
+    if tensorboard_log:
+        model.tensorboard_log = tensorboard_log
     rng_path = Path(model_path).with_suffix(".rng.pkl")
     if rng_path.exists():
         with open(rng_path, "rb") as handle:
@@ -123,7 +125,8 @@ def _load_checkpoint(model_path: str, env):
     return model
 
 
-def _estimate_games_per_sec(env) -> float:
+def _get_episode_lengths(env) -> List[float]:
+    """Collect episode lengths from Monitor wrappers in (possibly vectorized) env."""
     episode_lengths = []
     if hasattr(env, "envs"):
         for sub_env in env.envs:
@@ -135,11 +138,33 @@ def _estimate_games_per_sec(env) -> float:
                 monitor = monitor.env
     elif hasattr(env, "episode_lengths"):
         episode_lengths.extend(env.episode_lengths)
+    return episode_lengths
+
+
+def _estimate_games_per_sec(env) -> float:
+    episode_lengths = _get_episode_lengths(env)
     if not episode_lengths:
         return 0.0
     avg_length = float(np.mean(episode_lengths))
     steps_per_sec = getattr(env, "steps_per_sec", 0.0)
     return steps_per_sec / max(avg_length, 1.0)
+
+
+# Typical RL steps per completed game (one step = one RL move). Used when SubprocVecEnv
+# doesn't expose episode_lengths from workers.
+ESTIMATED_STEPS_PER_GAME = 250
+
+
+def _estimate_games_played(env, steps_done: int) -> Optional[int]:
+    """Estimate total training games: from monitor episode counts, or steps/avg_length, or steps/ESTIMATED_STEPS_PER_GAME."""
+    lengths = _get_episode_lengths(env)
+    if lengths:
+        return len(lengths)
+    avg = getattr(env, "_last_avg_episode_length", None)
+    if avg and avg > 0:
+        return int(steps_done / avg)
+    # SubprocVecEnv: workers don't share episode_lengths, so fall back to steps-based estimate
+    return int(steps_done / ESTIMATED_STEPS_PER_GAME)
 
 
 def evaluate_and_update_league(
@@ -148,60 +173,72 @@ def evaluate_and_update_league(
     config: TrainConfig,
     step: int,
 ) -> Dict[str, Any]:
-    baseline_types = list({*config.opponents, "mcts"})
-    agents = {}
-    for agent_type in baseline_types:
-        name = f"{agent_type}_baseline"
-        agents[name] = build_baseline_agent(agent_type, seed=config.seed)
-        league.register_agent(AgentSpec(name=name, agent_type=agent_type))
-    agents["rl_checkpoint"] = RLPolicyAgent(model)
-    league.register_agent(AgentSpec(name="rl_checkpoint", agent_type="rl", version=str(step)))
+    # 4-player league: RL + 3 opponents (e.g. mcts, random, random). Opponents must have length 3.
+    if len(config.opponents) != 3:
+        raise ValueError(
+            "League evaluation expects exactly 3 opponents for 4-player matches "
+            "(e.g. opponents: [mcts, random, random])"
+        )
+    agents, specs, ordered_4p_names = build_league_agents(
+        config.opponents, config.seed, model, "rl_checkpoint"
+    )
+    if len(ordered_4p_names) != 4:
+        raise ValueError("build_league_agents must return 4 names for 4-player league")
+    for spec in specs:
+        league.register_agent(spec)
+    ordered_agents = [agents[n] for n in ordered_4p_names]
 
     results = {"wins": 0, "losses": 0, "draws": 0}
+    rl_name = "rl_checkpoint"
     for match_id in range(config.eval_matches):
-        opponent_type = random.choice(baseline_types)
-        opponent_name = f"{opponent_type}_baseline"
-        rl_name = "rl_checkpoint"
         seed = config.seed + step + match_id
-        match = league.play_match(
-            rl_name,
-            opponent_name,
-            agents[rl_name],
-            agents[opponent_name],
-            seed=seed,
-        )
+        # Shuffle player order so RL is not always player_0 (fairness)
+        indices = list(range(4))
+        random.shuffle(indices)
+        names = [ordered_4p_names[i] for i in indices]
+        ags = [ordered_agents[i] for i in indices]
+        match = league.play_match(names, ags, seed=seed, max_moves=config.max_episode_steps)
         if match.winner == rl_name:
             results["wins"] += 1
-            result = 1.0
         elif match.winner is None:
             results["draws"] += 1
-            result = 0.5
         else:
             results["losses"] += 1
-            result = 0.0
-        league.update_elo(rl_name, opponent_name, result, seed)
+        league.update_elo_after_4p_match(match, seed)
+
+    rl_agent_id = league.db.get_agent_id(rl_name)
+    current_elo = league.db.get_rating(rl_agent_id) if rl_agent_id else 1200.0
+    results["elo"] = current_elo
 
     return results
 
 
 def train(config: TrainConfig) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    # Reduce noise from SB3 and other libs; we log progress ourselves
+    logging.getLogger("stable_baselines3").setLevel(logging.WARNING)
+    logging.getLogger("sb3_contrib").setLevel(logging.WARNING)
     set_seeds(config.seed)
+
+    # Disable PyTorch distribution validation for large action space (Simplex rounding errors)
+    from torch.distributions.distribution import Distribution
+    Distribution.set_default_validate_args(False)
 
     env = _make_vec_env(config)
     tensorboard_log = config.log_dir if config.tensorboard else None
 
     if config.resume_path:
-        model = _load_checkpoint(config.resume_path, env)
+        logger.info("Resuming from checkpoint: %s", config.resume_path)
+        model = _load_checkpoint(config.resume_path, env, tensorboard_log=tensorboard_log)
     else:
         model = MaskablePPO(
-            "CnnPolicy",
+            "MlpPolicy",
             env,
             learning_rate=config.learning_rate,
             n_steps=config.n_steps,
             batch_size=config.batch_size,
             gamma=config.gamma,
-            verbose=1,
+            verbose=0,
             tensorboard_log=tensorboard_log,
         )
 
@@ -209,6 +246,14 @@ def train(config: TrainConfig) -> None:
     log_path = Path(config.log_dir)
     log_path.mkdir(parents=True, exist_ok=True)
     metrics_path = log_path / "train_metrics.jsonl"
+
+    logger.info(
+        "Training: %s steps | opponents %s | checkpoint_dir %s | league_db %s",
+        config.total_timesteps,
+        config.opponents,
+        config.checkpoint_dir,
+        config.league_db,
+    )
 
     start_time = time.time()
     steps_done = 0
@@ -222,30 +267,47 @@ def train(config: TrainConfig) -> None:
         steps_per_sec = chunk / max(chunk_time, 1e-6)
         env.steps_per_sec = steps_per_sec
 
+        games_per_sec = _estimate_games_per_sec(env)
+        lengths = _get_episode_lengths(env)
+        if lengths:
+            env._last_avg_episode_length = float(np.mean(lengths))
+        games_est = _estimate_games_played(env, steps_done)
         eval_results = evaluate_and_update_league(model, league, config, steps_done)
+
         checkpoint_path = Path(config.checkpoint_dir) / f"checkpoint_{steps_done}.zip"
         if steps_done % config.checkpoint_interval_steps == 0 or steps_done >= config.total_timesteps:
             _save_checkpoint(model, checkpoint_path)
+            logger.info("Checkpoint saved: %s", checkpoint_path)
 
         metrics = {
             "step": steps_done,
             "elapsed_sec": time.time() - start_time,
             "steps_per_sec": steps_per_sec,
-            "games_per_sec_est": _estimate_games_per_sec(env),
+            "games_per_sec_est": games_per_sec,
+            "games_est": games_est,
             "eval": eval_results,
         }
         with open(metrics_path, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(metrics) + "\n")
 
+        progress_pct = 100.0 * steps_done / config.total_timesteps
+        games_str = f"~{games_est} train games" if games_est is not None else ""
         logger.info(
-            "Step %s | %s steps/s | eval W/L/D: %s/%s/%s",
+            "%.1f%% | %s / %s steps%s | %.1f steps/s | league W/L/D %s/%s/%s (%s eval) | Elo %.0f",
+            progress_pct,
             steps_done,
-            f"{steps_per_sec:.1f}",
+            config.total_timesteps,
+            f" | {games_str}" if games_str else "",
+            steps_per_sec,
             eval_results["wins"],
             eval_results["losses"],
             eval_results["draws"],
+            config.eval_matches,
+            eval_results.get("elo", 1200.0),
         )
 
+    elapsed = time.time() - start_time
+    logger.info("Training complete: %s steps in %.1f min | final Elo %.0f", steps_done, elapsed / 60.0, eval_results.get("elo", 1200.0))
     league.close()
 
 
