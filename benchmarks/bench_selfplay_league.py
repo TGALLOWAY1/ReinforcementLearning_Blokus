@@ -61,6 +61,7 @@ def _make_model(env, config: TrainConfig, device: str) -> MaskablePPO:
         gamma=config.gamma,
         verbose=0,
         device=resolved,
+        policy_kwargs=config.policy_kwargs,
     )
 
 
@@ -70,6 +71,7 @@ def _rollout_steps(env, model: MaskablePPO, steps: int) -> Dict[str, Any]:
 
     step_count = 0
     predict_times = []
+    env_step_times = []
     episode_lengths: List[float] = []
     start = time.time()
     while step_count < steps:
@@ -79,7 +81,10 @@ def _rollout_steps(env, model: MaskablePPO, steps: int) -> Dict[str, Any]:
         t1 = time.perf_counter()
         predict_times.append(t1 - t0)
 
+        t2 = time.perf_counter()
         obs, rewards, dones, infos = env.step(action)
+        t3 = time.perf_counter()
+        env_step_times.append(t3 - t2)
         if isinstance(infos, (list, tuple)):
             for info in infos:
                 if isinstance(info, dict) and "episode" in info:
@@ -103,6 +108,8 @@ def _rollout_steps(env, model: MaskablePPO, steps: int) -> Dict[str, Any]:
         "step_time_ms_mean": (elapsed / max(step_count, 1)) * 1000.0,
         "predict_ms_mean": float(np.mean(predict_times) * 1000.0),
         "predict_ms_p95": float(np.percentile(predict_times, 95) * 1000.0),
+        "env_step_ms_mean": float(np.mean(env_step_times) * 1000.0),
+        "env_step_ms_p95": float(np.percentile(env_step_times, 95) * 1000.0),
         "episode_len_mean": float(np.mean(episode_lengths)) if episode_lengths else None,
     }
 
@@ -257,7 +264,7 @@ def main() -> None:
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--stage2-vecenv", choices=["dummy", "subproc"], default=None)
     parser.add_argument("--stage3-vecenv", choices=["dummy", "subproc"], default=None)
-    parser.add_argument("--stage3-opponent-device", choices=["auto", "cpu", "cuda"], default=None)
+    parser.add_argument("--stage3-opponent-device", choices=["auto", "cpu", "cuda", "mps"], default=None)
     args = parser.parse_args()
 
     from torch.distributions.distribution import Distribution

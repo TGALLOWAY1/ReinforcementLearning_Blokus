@@ -79,6 +79,16 @@ PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay_gpu.yaml
 
 On macOS, GPU acceleration uses `mps`. The `stage3_selfplay_gpu.yaml` config is set up for MPS (DummyVecEnv + `device: mps`, opponent_device `mps`).
 
+Additional Stage 3 configs:
+1. `configs/stage3_selfplay_gpu_small.yaml`: smaller policy net for throughput testing.
+2. `configs/stage3_selfplay_subproc.yaml`: SubprocVecEnv for parallel env stepping (opponents on CPU).
+
+Profiling Stage 3 rollout:
+
+```bash
+PYTHONPATH=. python benchmarks/profile_stage3.py --config configs/stage3_selfplay_gpu.yaml --steps 200
+```
+
 Key config fields in `configs/stage3_selfplay.yaml`:
 1. `training_stage: 3`
 2. `stage3_league.seed_dir`: where to discover prior checkpoints (Stage 2 output)

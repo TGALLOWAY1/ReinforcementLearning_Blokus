@@ -42,6 +42,7 @@ class TrainConfig:
     batch_size: int = 256
     gamma: float = 0.99
     device: str = "auto"
+    policy_kwargs: Optional[Dict[str, Any]] = None
     num_envs: int = 1
     vec_env_type: str = "dummy"
     max_episode_steps: int = 1000
@@ -499,6 +500,7 @@ def train(config: TrainConfig) -> None:
             verbose=0,
             tensorboard_log=tensorboard_log,
             device=training_device,
+            policy_kwargs=config.policy_kwargs,
         )
 
     league = League(db_path=config.league_db)
