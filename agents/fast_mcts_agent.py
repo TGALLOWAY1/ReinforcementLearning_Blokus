@@ -88,23 +88,56 @@ class FastMCTSAgent:
         
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
         """Select action using fast MCTS."""
+        result = self.think(board, player, legal_moves, int(self.time_limit * 1000))
+        return result["move"]
+
+    def think(self, board: Board, player: Player, legal_moves: List[Move], time_budget_ms: int) -> Dict[str, Any]:
+        """Run MCTS with an explicit wall-clock budget and return move + stats."""
+        budget_s = max(time_budget_ms, 1) / 1000.0
+        start_time = time.perf_counter()
+
         if not legal_moves:
-            return None
+            return {
+                "move": None,
+                "stats": {
+                    "timeBudgetMs": time_budget_ms,
+                    "timeSpentMs": 0,
+                    "nodesEvaluated": 0,
+                    "maxDepthReached": 0,
+                },
+            }
             
         if len(legal_moves) == 1:
-            return legal_moves[0]
+            return {
+                "move": legal_moves[0],
+                "stats": {
+                    "timeBudgetMs": time_budget_ms,
+                    "timeSpentMs": int((time.perf_counter() - start_time) * 1000),
+                    "nodesEvaluated": 1,
+                    "maxDepthReached": 1,
+                },
+            }
             
         # Use even faster fallback for very limited time
         if len(legal_moves) <= 5:
-            return self._quick_heuristic_selection(board, player, legal_moves)
+            move = self._quick_heuristic_selection(board, player, legal_moves)
+            return {
+                "move": move,
+                "stats": {
+                    "timeBudgetMs": time_budget_ms,
+                    "timeSpentMs": int((time.perf_counter() - start_time) * 1000),
+                    "nodesEvaluated": len(legal_moves),
+                    "maxDepthReached": 1,
+                },
+            }
             
-        start_time = time.time()
+        start_wall = time.perf_counter()
         root = FastMCTSNode()
         root.untried_moves = legal_moves.copy()
         
         # Run MCTS with strict time limit
         iteration = 0
-        while (time.time() - start_time < self.time_limit and 
+        while (time.perf_counter() - start_wall < budget_s and 
                iteration < self.iterations and 
                not root.is_fully_expanded()):
             self._fast_mcts_iteration(root, board, player)
@@ -112,10 +145,27 @@ class FastMCTSAgent:
             
         # If we didn't get enough iterations, use heuristic fallback
         if iteration < 5:
-            return self._quick_heuristic_selection(board, player, legal_moves)
+            move = self._quick_heuristic_selection(board, player, legal_moves)
+            return {
+                "move": move,
+                "stats": {
+                    "timeBudgetMs": time_budget_ms,
+                    "timeSpentMs": int((time.perf_counter() - start_time) * 1000),
+                    "nodesEvaluated": max(iteration, 1),
+                    "maxDepthReached": 2,
+                },
+            }
             
         best_move = root.get_best_move()
-        return best_move if best_move else legal_moves[0]
+        return {
+            "move": best_move if best_move else legal_moves[0],
+            "stats": {
+                "timeBudgetMs": time_budget_ms,
+                "timeSpentMs": int((time.perf_counter() - start_time) * 1000),
+                "nodesEvaluated": max(iteration, 1),
+                "maxDepthReached": 2,
+            },
+        }
         
     def _fast_mcts_iteration(self, root: FastMCTSNode, board: Board, player: Player):
         """Run one fast MCTS iteration without board copying."""

@@ -18,6 +18,8 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
+import urllib.request
+import urllib.error
 
 # Configure logging
 logging.basicConfig(
@@ -66,13 +68,19 @@ class GameManager:
         game = BlokusGame()
         
         # Store game data
+        now = datetime.now()
         self.games[game_id] = {
             'game': game,
             'config': config,
             'status': GameStatus.WAITING,
-            'created_at': datetime.now(),
-            'updated_at': datetime.now(),
-            'websocket_connections': []
+            'created_at': now,
+            'updated_at': now,
+            'websocket_connections': [],
+            'move_records': [],
+            'last_turn_started_at': time.perf_counter(),
+            'last_turn_player': game.get_current_player(),
+            'winner': None,
+            'configured_players': {self._convert_player(player_cfg.player) for player_cfg in config.players},
         }
         
         # Initialize agent instances
@@ -97,9 +105,10 @@ class GameManager:
             elif agent_type == AgentType.HEURISTIC:
                 agents[player] = HeuristicAgent()
             elif agent_type == AgentType.MCTS:
+                budget_ms = int((player_config.agent_config or {}).get('time_budget_ms', 1000))
                 agents[player] = FastMCTSAgent(
-                    iterations=30,   # Ultra-fast iterations
-                    time_limit=0.5,  # 500ms timeout
+                    iterations=5000,
+                    time_limit=max(budget_ms, 1) / 1000.0,
                     exploration_constant=1.414
                 )
             elif agent_type == AgentType.HUMAN:
@@ -109,6 +118,17 @@ class GameManager:
         
         self.agent_instances[game_id] = agents
     
+    def _all_configured_players_blocked(self, game_data: Dict[str, Any]) -> bool:
+        """True if all configured players have no legal moves."""
+        game = game_data['game']
+        configured_players = game_data.get('configured_players', set(EnginePlayer))
+        if not configured_players:
+            return True
+        for pl in configured_players:
+            if game.get_legal_moves(pl):
+                return False
+        return True
+
     def _start_game(self, game_id: str):
         """Start the game."""
         if game_id not in self.games:
@@ -128,7 +148,7 @@ class GameManager:
                 game_data = self.games[game_id]
                 game = game_data['game']
                 
-                if game.is_game_over():
+                if game.is_game_over() or self._all_configured_players_blocked(game_data):
                     logger.info(f"Game {game_id} is over")
                     await self._end_game(game_id)
                     break
@@ -139,6 +159,12 @@ class GameManager:
                 
                 logger.debug(f"Current player: {current_player.name}, Agent: {type(agent).__name__ if agent else 'None'}")
                 
+                configured_players = game_data.get('configured_players', set(EnginePlayer))
+                if current_player not in configured_players:
+                    game.board._update_current_player()
+                    await self._broadcast_game_state(game_id, "player_skipped_inactive")
+                    continue
+
                 if agent is not None:
                     # Agent move
                     await self._make_agent_move(game_id, current_player, agent)
@@ -186,27 +212,69 @@ class GameManager:
                 await self._broadcast_game_state(game_id, "player_skipped")
                 return
             
-            # Get agent's move with timeout
+            # Get agent's move with timeout / budget
             start_agent = time.perf_counter()
+            player_config = next((p for p in game_data['config'].players if self._convert_player(p.player) == player), None)
+            budget_ms = int((player_config.agent_config or {}).get('time_budget_ms', 1000)) if player_config else 1000
+            think_timeout_s = max(2.0, budget_ms / 1000.0 + 1.0)
+            stats = {
+                "timeBudgetMs": budget_ms,
+                "timeSpentMs": 0,
+                "nodesEvaluated": 0,
+                "maxDepthReached": 0,
+            }
             try:
-                # Run agent selection with a timeout
-                move = await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(
-                        None, agent.select_action, game.board, player, legal_moves
-                    ),
-                    timeout=5.0  # 5 second timeout
+                def run_think():
+                    engine_url = os.getenv("ENGINE_URL")
+                    if engine_url:
+                        body = json.dumps({
+                            "gameState": {
+                                "board": game.board.grid.tolist(),
+                                "pieces_used": {pl.name: list(game.board.player_pieces_used[pl]) for pl in EnginePlayer},
+                                "current_player": player.name,
+                                "move_count": int(game.get_move_count()),
+                            },
+                            "legalMoves": [self._convert_move_back(m).dict() for m in legal_moves],
+                            "timeBudgetMs": budget_ms,
+                        }).encode("utf-8")
+                        req = urllib.request.Request(
+                            f"{engine_url.rstrip('/')}/think",
+                            data=body,
+                            headers={"Content-Type": "application/json"},
+                            method="POST",
+                        )
+                        try:
+                            with urllib.request.urlopen(req, timeout=max(2.0, budget_ms / 1000.0 + 1.0)) as resp:
+                                payload = json.loads(resp.read().decode("utf-8"))
+                                mv = payload.get("move")
+                                move_obj = EngineMove(**mv) if mv else None
+                                return move_obj, payload.get("stats", {})
+                        except Exception as engine_exc:
+                            logger.warning(f"Engine service failed, falling back local MCTS: {engine_exc}")
+                    think_fn = getattr(agent, 'think', None)
+                    if callable(think_fn) and 'think' in getattr(agent, '__dict__', {}):
+                        result = think_fn(game.board, player, legal_moves, budget_ms)
+                        return result.get('move'), result.get('stats', {})
+                    move_result = agent.select_action(game.board, player, legal_moves)
+                    return move_result, {}
+
+                move, think_stats = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(None, run_think),
+                    timeout=think_timeout_s
                 )
+                if isinstance(think_stats, dict):
+                    stats.update(think_stats)
+                stats['timeBudgetMs'] = budget_ms
+                stats['timeSpentMs'] = int((time.perf_counter() - start_agent) * 1000)
                 end_agent = time.perf_counter()
                 agent_time = end_agent - start_agent
                 logger.info(f"AGENT MOVE agent_selection: move={move} selected in {agent_time:.4f}s")
             except asyncio.TimeoutError:
-                # Agent timed out - pass turn instead of making random move
-                logger.warning(f"AGENT MOVE: Agent {type(agent).__name__} timed out after 5 seconds in game {game_id} for player {player.name}")
+                logger.warning(f"AGENT MOVE: Agent {type(agent).__name__} timed out after {think_timeout_s:.2f}s in game {game_id} for player {player.name}")
                 game.board._update_current_player()
                 await self._broadcast_game_state(game_id, "player_skipped_timeout")
                 return
             except Exception as e:
-                # Agent raised exception - pass turn instead of making random move
                 logger.error(f"AGENT MOVE: Agent {type(agent).__name__} raised exception in game {game_id} for player {player.name}: {e}")
                 import traceback
                 traceback.print_exc()
@@ -232,9 +300,20 @@ class GameManager:
                     "orientation": move.orientation,
                     "anchor_row": move.anchor_row,
                     "anchor_col": move.anchor_col,
-                    "player": player_name
+                    "player": player_name,
+                    "stats": stats,
                 }
-                
+                game_data['move_records'].append({
+                    "moveIndex": game.get_move_count(),
+                    "player": player_name,
+                    "agentType": type(agent).__name__,
+                    "isHuman": False,
+                    "move": last_move,
+                    "stats": stats,
+                })
+                game_data['last_turn_started_at'] = time.perf_counter()
+                game_data['last_turn_player'] = game.get_current_player()
+
                 start_broadcast = time.perf_counter()
                 await self._broadcast_game_state(game_id, "move_made", last_move=last_move)
                 end_broadcast = time.perf_counter()
@@ -254,13 +333,37 @@ class GameManager:
             await self._broadcast_error(game_id, f"Agent error: {str(e)}")
     
     async def _end_game(self, game_id: str):
-        """End the game."""
+        """End the game and persist analysis payload."""
         if game_id not in self.games:
             return
-        
-        self.games[game_id]['status'] = GameStatus.FINISHED
-        self.games[game_id]['updated_at'] = datetime.now()
-        
+
+        game_data = self.games[game_id]
+        game = game_data['game']
+        game_data['status'] = GameStatus.FINISHED
+        game_data['updated_at'] = datetime.now()
+        winner = game.board.get_winner()
+        game_data['winner'] = self._convert_player_back(winner).value if winner else None
+
+        try:
+            db = get_database()
+            game_doc = {
+                "game_id": game_id,
+                "created_at": game_data['created_at'],
+                "finished_at": game_data['updated_at'],
+                "winner": game_data['winner'],
+                "move_count": int(game.get_move_count()),
+                "scores": {player.name: int(game.get_score(player)) for player in EnginePlayer},
+                "players": [p.dict() for p in game_data['config'].players],
+            }
+            await db.game_records.update_one({"game_id": game_id}, {"$set": game_doc}, upsert=True)
+            await db.move_records.delete_many({"game_id": game_id})
+            if game_data.get('move_records'):
+                await db.move_records.insert_many([
+                    {"game_id": game_id, **record} for record in game_data['move_records']
+                ])
+        except Exception as exc:
+            logger.warning(f"Could not persist game analytics for {game_id}: {exc}")
+
         await self._broadcast_game_state(game_id, "game_over")
     
     async def make_move(self, game_id: str, move_request: MoveRequest) -> MoveResponse:
@@ -471,7 +574,20 @@ class GameManager:
                 
                 # Update game data
                 game_data['updated_at'] = datetime.now()
-                
+                user_move_time_ms = int((time.perf_counter() - game_data.get('last_turn_started_at', time.perf_counter())) * 1000)
+                game_data['move_records'].append({
+                    "moveIndex": game.get_move_count(),
+                    "player": player_name,
+                    "agentType": "human",
+                    "isHuman": True,
+                    "move": last_move,
+                    "stats": {
+                        "userMoveTimeMs": max(user_move_time_ms, 0),
+                    },
+                })
+                game_data['last_turn_started_at'] = time.perf_counter()
+                game_data['last_turn_player'] = game.get_current_player()
+
                 # Broadcast the updated game state immediately
                 start_broadcast = time.perf_counter()
                 await self._broadcast_game_state(game_id, "move_made", last_move=last_move)
@@ -515,6 +631,12 @@ class GameManager:
                 game_over=False
             )
     
+    async def force_finish_game(self, game_id: str) -> None:
+        """Force-complete a game and persist analytics."""
+        if game_id not in self.games:
+            raise HTTPException(status_code=404, detail="Game not found")
+        await self._end_game(game_id)
+
     def get_game_state(self, game_id: str) -> GameState:
         """Get the current game state."""
         if game_id not in self.games:
@@ -585,6 +707,7 @@ class GameManager:
             legal_moves=legal_moves,
             created_at=game_data['created_at'],
             updated_at=game_data['updated_at'],
+            players=[p.dict() for p in game_data['config'].players],
             heatmap=heatmap
         )
     
@@ -877,6 +1000,13 @@ async def make_move(game_id: str, move_request: MoveRequest):
     return await game_manager.make_move(game_id, move_request)
 
 
+@app.post("/api/games/{game_id}/finish")
+async def finish_game(game_id: str):
+    """Force-finish a game (for smoke tests/admin tooling)."""
+    await game_manager.force_finish_game(game_id)
+    return {"ok": True, "game_id": game_id}
+
+
 @app.get("/api/agents", response_model=List[AgentInfo])
 async def get_agents():
     """Get list of available agents."""
@@ -890,6 +1020,170 @@ async def list_games():
     for game_id in game_manager.games:
         games.append(game_manager.get_game_state(game_id))
     return games
+
+
+@app.get("/api/analysis/{game_id}")
+async def get_game_analysis(game_id: str):
+    """Return per-move AI/user metrics and aggregate game analysis."""
+    try:
+        db = get_database()
+        game_doc = await db.game_records.find_one({"game_id": game_id})
+        move_docs = await db.move_records.find({"game_id": game_id}).sort("moveIndex", 1).to_list(length=2000)
+    except Exception:
+        game_doc = None
+        move_docs = []
+
+    if not game_doc:
+        game_data = game_manager.games.get(game_id)
+        if not game_data:
+            raise HTTPException(status_code=404, detail="Game not found")
+        game_doc = {
+            "game_id": game_id,
+            "created_at": game_data["created_at"],
+            "finished_at": game_data["updated_at"],
+            "winner": game_data.get("winner"),
+            "move_count": int(game_data["game"].get_move_count()),
+            "scores": {player.name: game_data["game"].get_score(player) for player in EnginePlayer},
+        }
+        move_docs = game_data.get("move_records", [])
+
+    ai_moves = [m for m in move_docs if not m.get("isHuman")]
+    user_moves = [m for m in move_docs if m.get("isHuman")]
+    total_ai_nodes = sum((m.get("stats") or {}).get("nodesEvaluated", 0) for m in ai_moves)
+    total_ai_think = sum((m.get("stats") or {}).get("timeSpentMs", 0) for m in ai_moves)
+    max_depth = max([((m.get("stats") or {}).get("maxDepthReached", 0)) for m in ai_moves] + [0])
+    game_duration_ms = int((game_doc["finished_at"] - game_doc["created_at"]).total_seconds() * 1000) if game_doc.get("finished_at") and game_doc.get("created_at") else 0
+    avg_user_move_ms = int(sum((m.get("stats") or {}).get("userMoveTimeMs", 0) for m in user_moves) / max(len(user_moves), 1))
+
+    return {
+        "game": game_doc,
+        "moves": move_docs,
+        "aggregates": {
+            "totalAiThinkTimeMs": total_ai_think,
+            "totalAiNodesEvaluated": total_ai_nodes,
+            "nodesPerSecond": round((total_ai_nodes / max(total_ai_think, 1)) * 1000, 2),
+            "maxDepthReached": max_depth,
+            "gameDurationMs": game_duration_ms,
+            "avgUserMoveTimeMs": avg_user_move_ms,
+            "userMoveCount": len(user_moves),
+        },
+    }
+
+
+
+
+@app.get("/api/history")
+async def get_history(limit: int = 20):
+    """List recently finished games with summary metrics."""
+    records = []
+    try:
+        db = get_database()
+        docs = await db.game_records.find({}).sort("finished_at", -1).limit(limit).to_list(length=limit)
+        move_docs = await db.move_records.find({}).to_list(length=200000)
+        move_map = {}
+        for move in move_docs:
+            gid = move.get("game_id")
+            move_map.setdefault(gid, []).append(move)
+        for doc in docs:
+            gid = doc.get("game_id")
+            moves = move_map.get(gid, [])
+            ai_moves = [m for m in moves if not m.get("isHuman")]
+            user_moves = [m for m in moves if m.get("isHuman")]
+            total_ai_nodes = sum((m.get("stats") or {}).get("nodesEvaluated", 0) for m in ai_moves)
+            total_ai_think = sum((m.get("stats") or {}).get("timeSpentMs", 0) for m in ai_moves)
+            records.append({
+                "game_id": gid,
+                "winner": doc.get("winner"),
+                "move_count": doc.get("move_count", 0),
+                "finished_at": doc.get("finished_at"),
+                "gameDurationMs": int((doc["finished_at"] - doc["created_at"]).total_seconds() * 1000) if doc.get("created_at") and doc.get("finished_at") else 0,
+                "avgUserMoveTimeMs": int(sum((m.get("stats") or {}).get("userMoveTimeMs", 0) for m in user_moves) / max(len(user_moves), 1)),
+                "totalAiThinkTimeMs": total_ai_think,
+                "totalAiNodesEvaluated": total_ai_nodes,
+            })
+        if records:
+            return {"games": records}
+    except Exception:
+        pass
+
+    finished = []
+    for gid, g in game_manager.games.items():
+        if g.get('status') != GameStatus.FINISHED:
+            continue
+        moves = g.get('move_records', [])
+        ai_moves = [m for m in moves if not m.get("isHuman")]
+        user_moves = [m for m in moves if m.get("isHuman")]
+        total_ai_nodes = sum((m.get("stats") or {}).get("nodesEvaluated", 0) for m in ai_moves)
+        total_ai_think = sum((m.get("stats") or {}).get("timeSpentMs", 0) for m in ai_moves)
+        finished.append({
+            "game_id": gid,
+            "winner": g.get("winner"),
+            "move_count": int(g['game'].get_move_count()),
+            "finished_at": g.get('updated_at'),
+            "gameDurationMs": int((g['updated_at'] - g['created_at']).total_seconds() * 1000),
+            "avgUserMoveTimeMs": int(sum((m.get("stats") or {}).get("userMoveTimeMs", 0) for m in user_moves) / max(len(user_moves), 1)),
+            "totalAiThinkTimeMs": total_ai_think,
+            "totalAiNodesEvaluated": total_ai_nodes,
+        })
+    finished.sort(key=lambda x: x.get('finished_at') or datetime.min, reverse=True)
+    return {"games": finished[:limit]}
+
+@app.get("/api/trends")
+async def get_trends():
+    """Cross-game aggregate trends for analysis dashboard."""
+    try:
+        db = get_database()
+        games = await db.game_records.find({}).to_list(length=5000)
+        moves = await db.move_records.find({}).to_list(length=200000)
+    except Exception:
+        games = []
+        moves = []
+
+    if not games:
+        for gid, g in game_manager.games.items():
+            if g.get('status') != GameStatus.FINISHED:
+                continue
+            games.append({
+                "game_id": gid,
+                "winner": g.get("winner"),
+                "created_at": g.get("created_at"),
+                "finished_at": g.get("updated_at"),
+            })
+            for m in g.get("move_records", []):
+                moves.append({"game_id": gid, **m})
+
+    if not games:
+        return {
+            "gamesPlayed": 0,
+            "winRate": {},
+            "avgAiNodesByBudget": {},
+            "avgUserMoveTimeMs": 0,
+            "avgGameDurationMs": 0,
+        }
+
+    win_counts = {}
+    durations = []
+    for g in games:
+        winner = g.get("winner") or "NONE"
+        win_counts[winner] = win_counts.get(winner, 0) + 1
+        if g.get("created_at") and g.get("finished_at"):
+            durations.append((g["finished_at"] - g["created_at"]).total_seconds() * 1000)
+
+    ai_moves = [m for m in moves if not m.get("isHuman")]
+    user_moves = [m for m in moves if m.get("isHuman")]
+    by_budget = {}
+    for m in ai_moves:
+        stats = m.get("stats") or {}
+        budget = str(stats.get("timeBudgetMs", 0))
+        by_budget.setdefault(budget, []).append(stats.get("nodesEvaluated", 0))
+
+    return {
+        "gamesPlayed": len(games),
+        "winRate": {k: round(v / len(games), 3) for k, v in win_counts.items()},
+        "avgAiNodesByBudget": {k: round(sum(v) / max(len(v), 1), 2) for k, v in by_budget.items()},
+        "avgUserMoveTimeMs": round(sum((m.get("stats") or {}).get("userMoveTimeMs", 0) for m in user_moves) / max(len(user_moves), 1), 2),
+        "avgGameDurationMs": round(sum(durations) / max(len(durations), 1), 2),
+    }
 
 
 # Training Runs API Endpoints

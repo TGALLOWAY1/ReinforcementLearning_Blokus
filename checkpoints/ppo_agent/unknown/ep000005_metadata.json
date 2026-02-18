@@ -1,0 +1,33 @@
+{
+  "episode": 5,
+  "run_id": null,
+  "config": {
+    "mode": "full",
+    "max_episodes": 10,
+    "max_steps_per_episode": 1000,
+    "total_timesteps": 100000,
+    "n_steps": 2048,
+    "learning_rate": 0.0003,
+    "batch_size": 64,
+    "logging_verbosity": 1,
+    "random_seed": 42,
+    "env_seed": null,
+    "agent_seed": null,
+    "checkpoint_dir": "checkpoints",
+    "tensorboard_log_dir": "./logs",
+    "checkpoint_interval": null,
+    "checkpoint_interval_episodes": 5,
+    "keep_last_n_checkpoints": 3,
+    "resume_from_checkpoint": null,
+    "agent_config_path": null,
+    "enable_sanity_checks": true,
+    "log_action_details": true,
+    "disable_distribution_validation": true,
+    "num_envs": 1,
+    "vec_env_type": "dummy",
+    "agent_id": "ppo_agent",
+    "algorithm": "MaskablePPO"
+  },
+  "timestamp": "2025-12-04T22:06:58.995117",
+  "extra_state": {}
+}

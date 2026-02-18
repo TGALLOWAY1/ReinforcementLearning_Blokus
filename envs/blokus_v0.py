@@ -36,7 +36,7 @@ from engine.move_generator import LegalMoveGenerator, Move
 from engine.game import BlokusGame
 
 # Diagnostic logging for action masking (can be disabled)
-MASK_DEBUG_LOGGING = True  # Set to False to disable diagnostic logging
+MASK_DEBUG_LOGGING = False  # Set to False to disable diagnostic logging
 _mask_logger = logging.getLogger(__name__ + ".mask_diagnostics")
 
 # Move generation profiling (enabled via BLOKUS_PROFILE_MOVEGEN env var)
@@ -146,9 +146,9 @@ class BlokusEnv(AECEnv):
         obs_channels = board_channels + remaining_pieces_channels + last_move_channels
         
         self.observation_space = spaces.Box(
-            low=0, high=1, 
+            low=0, high=255, 
             shape=(obs_channels, obs_height, obs_width), 
-            dtype=np.float32
+            dtype=np.uint8
         )
         
     def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None, **kwargs) -> None:
@@ -215,7 +215,7 @@ class BlokusEnv(AECEnv):
         
         # Initialize observation array
         obs_channels, height, width = self.observation_space.shape
-        obs = np.zeros((obs_channels, height, width), dtype=np.float32)
+        obs = np.zeros((obs_channels, height, width), dtype=np.uint8)
         
         # Board channels (0-4)
         board_channels = 5
@@ -223,25 +223,25 @@ class BlokusEnv(AECEnv):
             for col in range(width):
                 cell_value = self.game.board.get_cell(Position(row, col))
                 if cell_value == 0:
-                    obs[0, row, col] = 1  # Empty channel
+                    obs[0, row, col] = 255  # Empty channel
                 else:
-                    obs[cell_value, row, col] = 1  # Player channel
+                    obs[cell_value, row, col] = 255  # Player channel
                     
         # Remaining pieces channels (5-25)
         remaining_start = board_channels
         used_pieces = self.game.board.player_pieces_used[player]
         for i, piece_id in enumerate(range(1, 22)):
             if piece_id not in used_pieces:
-                obs[remaining_start + i, :, :] = 1
+                obs[remaining_start + i, :, :] = 255
                 
         # Last move channels (26-29)
         last_move_start = remaining_start + 21
         if self.last_move_info[agent] is not None:
             piece_id, orientation, row, col = self.last_move_info[agent]
-            obs[last_move_start, :, :] = piece_id / 21.0  # Normalize
-            obs[last_move_start + 1, :, :] = orientation / 8.0  # Normalize
-            obs[last_move_start + 2, :, :] = row / 20.0  # Normalize
-            obs[last_move_start + 3, :, :] = col / 20.0  # Normalize
+            obs[last_move_start, :, :] = int((piece_id / 21.0) * 255)  # Normalize & Scale
+            obs[last_move_start + 1, :, :] = int((orientation / 8.0) * 255)  # Normalize & Scale
+            obs[last_move_start + 2, :, :] = int((row / 20.0) * 255)  # Normalize & Scale
+            obs[last_move_start + 3, :, :] = int((col / 20.0) * 255)  # Normalize & Scale
             
         return obs
         

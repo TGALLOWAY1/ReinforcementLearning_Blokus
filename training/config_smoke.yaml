@@ -1,17 +1,22 @@
 # Smoke-test mode configuration
 # Quick verification run with small episode count and detailed logging
+# This config is optimized for end-to-end validation: logging, checkpointing, and speed metrics
 
 mode: smoke
-max_episodes: 5
+max_episodes: 10  # Enough episodes to see periodic stats and checkpoint
 max_steps_per_episode: 100
-total_timesteps: 10000
+total_timesteps: 15000  # ~15k steps for reasonable runtime while showing metrics
 n_steps: 512
 learning_rate: 3e-4
 batch_size: 64
-logging_verbosity: 2  # DEBUG level
+logging_verbosity: 1  # INFO level (sufficient for smoke test, DEBUG is very verbose)
 random_seed: 42
 checkpoint_dir: checkpoints
 tensorboard_log_dir: ./logs
+checkpoint_interval_episodes: 5  # Save checkpoint every 5 episodes (will get at least 1)
+keep_last_n_checkpoints: 2
 enable_sanity_checks: true
-log_action_details: true
+log_action_details: false  # Disable detailed action logging (too verbose for smoke test)
+num_envs: 1
+vec_env_type: dummy
 

@@ -219,6 +219,25 @@ export const Play: React.FC = () => {
 
       {/* Center Column - Board and Log Console */}
       <main className="flex-1 flex flex-col overflow-hidden">
+        {gameState?.game_over && (
+          <div className="w-full mb-4 bg-charcoal-800 border border-charcoal-700 p-4 flex items-center justify-between">
+            <div className="text-gray-200">Game finished. Winner: <span className="font-semibold">{gameState.winner || 'None'}</span></div>
+            <div className="space-x-2">
+              <button
+                onClick={() => navigate('/history')}
+                className="bg-charcoal-700 text-gray-200 px-4 py-2 rounded"
+              >
+                History
+              </button>
+              <button
+                onClick={() => navigate(`/analysis/${gameState.game_id}`)}
+                className="bg-neon-blue text-black px-4 py-2 rounded"
+              >
+                View Analysis
+              </button>
+            </div>
+          </div>
+        )}
         {/* Turn Indicator and Pass Button */}
         {gameState && !gameState.game_over && (
           <div className="w-full mb-4 bg-charcoal-800 border border-charcoal-700 p-4 flex items-center justify-between">

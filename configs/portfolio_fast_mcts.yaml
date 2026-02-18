@@ -1,0 +1,30 @@
+# Portfolio Optimization Training Configuration
+# Designed for speed, frequent feedback, and competitive (but not perfect) play.
+
+seed: 42
+total_timesteps: 500000
+learning_rate: 0.0003
+n_steps: 2048
+batch_size: 256
+gamma: 0.99
+num_envs: 8  # Increased environments for speed (fast_mcts is lighter)
+vec_env_type: subproc
+max_episode_steps: 1000
+
+# Opponents: Mixed difficulty for robust and faster training
+# fast_mcts: Provides tactical challenge without the heavy compute of full MCTS
+# random: Ensures game diversity and speed
+opponents:
+  - fast_mcts
+  - random
+  - random
+
+# Feedback and Checkpointing (Frequent for portfolio visibility)
+eval_interval_steps: 5000     # Feedback every ~10-15 minutes
+eval_matches: 5               # Fewer matches for faster evaluation
+checkpoint_interval_steps: 10000 # Checkpoint every ~20-30 minutes
+checkpoint_dir: checkpoints/portfolio_fast_mcts
+log_dir: logs/portfolio_fast_mcts
+league_db: league_portfolio.db
+tensorboard: true
+resume_path: checkpoints/rl/checkpoint_200000.zip

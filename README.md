@@ -58,6 +58,88 @@ This project provides a full-stack implementation of Blokus with:
 - Agent performance statistics
 - Match result logging and analysis
 
+## Stage 3 Self-Play League (Checkpoint-Only)
+
+Stage 3 is a GPU-first self-play regime where the learning agent plays only against a league of its own prior checkpoints. No MCTS or random opponents are used during training.
+
+Quick start:
+1. Produce Stage 2 checkpoints (e.g., `configs/v1_rl_vs_mcts.yaml`).
+2. Set `stage3_league.seed_dir` to the Stage 2 checkpoint directory and `stage3_league.league_dir` to a new Stage 3 output directory.
+3. Run Stage 3:
+
+```bash
+PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay.yaml
+```
+
+GPU-first (DummyVecEnv) variant:
+
+```bash
+PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay_gpu.yaml
+```
+
+On macOS, GPU acceleration uses `mps`. The `stage3_selfplay_gpu.yaml` config is set up for MPS (DummyVecEnv + `device: mps`, opponent_device `mps`).
+
+Additional Stage 3 configs:
+1. `configs/stage3_selfplay_gpu_small.yaml`: smaller policy net for throughput testing.
+2. `configs/stage3_selfplay_subproc.yaml`: SubprocVecEnv for parallel env stepping (opponents on CPU).
+3. `configs/stage3_selfplay_fast.yaml`: reduced eval overhead (SubprocVecEnv).
+4. `configs/stage3_selfplay_gpu_fast.yaml`: reduced eval overhead (DummyVecEnv + MPS).
+
+Profiling Stage 3 rollout:
+
+```bash
+PYTHONPATH=. python benchmarks/profile_stage3.py --config configs/stage3_selfplay_gpu.yaml --steps 200
+```
+
+Scan Stage 3 throughput across vecenv/num_envs combinations:
+
+```bash
+PYTHONPATH=. python benchmarks/scan_stage3_envs.py --config configs/stage3_selfplay_gpu.yaml --steps 500 --num-envs 2,4,8 --vecenvs dummy,subproc
+```
+
+Key config fields in `configs/stage3_selfplay.yaml`:
+1. `training_stage: 3`
+2. `stage3_league.seed_dir`: where to discover prior checkpoints (Stage 2 output)
+3. `stage3_league.league_dir`: where Stage 3 checkpoints + registry live
+4. `stage3_league.save_every_steps`: how often to register new checkpoints into the league
+5. `stage3_league.max_checkpoints_to_keep`: retention cap for league snapshots
+6. `stage3_league.window_schedule`: progressive window shrink schedule (recent-focus over time)
+7. `stage3_league.sampling`: band weights for old/mid/recent checkpoints
+8. `stage3_league.vecenv_mode`: optional override for Stage 3 vec env (`dummy` or `subproc`)
+9. `stage3_league.strict_resume`: require RNG + step metadata when resuming Stage 3
+10. `device`: training device (`auto`, `cuda`, `mps`, `cpu`)
+
+League metadata:
+1. Registry file: `stage3_league.league_dir/league_registry.jsonl`
+2. State file: `stage3_league.league_dir/league_state.json`
+
+Note: when using `vec_env_type: subproc`, Stage 3 auto-resolves `opponent_device` to `cpu` to avoid multi-process GPU memory duplication. Use `vec_env_type: dummy` if you want opponents on GPU.
+
+## Benchmarks
+
+Compare Stage 2 (MCTS baseline) vs Stage 3 (checkpoint league) rollout throughput:
+
+```bash
+PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
+  --stage2-config configs/v1_rl_vs_mcts.yaml \\
+  --stage3-config configs/stage3_selfplay.yaml \\
+  --steps 5000
+```
+
+Results are saved to `benchmarks/results/*.json`.
+
+macOS MPS fast path:
+
+```bash
+PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
+  --stage2-config configs/v1_rl_vs_mcts.yaml \\
+  --stage2-vecenv dummy \\
+  --stage3-config configs/stage3_selfplay_gpu.yaml \\
+  --stage3-vecenv dummy \\
+  --stage3-opponent-device mps \\
+  --steps 2000
+```
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -204,6 +286,17 @@ while not done:
     action = env.action_space.sample()  # Replace with your agent
     obs, reward, terminated, truncated, info = env.step(action)
     done = terminated or truncated
+```
+
+### Self-Play Training (MaskablePPO)
+Run an overnight training job with periodic Elo evaluation:
+```bash
+python -m rl.train --config configs/overnight.yaml
+```
+
+Run a quick smoke test (~1 minute) that trains briefly and updates Elo across 10 matches:
+```bash
+python -m rl.smoke_test
 ```
 
 ### Running Agent Arena
@@ -559,4 +652,3 @@ This project is part of a reinforcement learning research environment.
 
 Old Mockups 
 <img width="2816" height="1536" alt="BlokusRL" src="https://github.com/user-attachments/assets/93e85cd8-c5fe-4785-ae13-810327a1aa07" />
-

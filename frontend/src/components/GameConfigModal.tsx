@@ -20,9 +20,9 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   const [gameConfig, setGameConfig] = useState({
     players: [
       { player: 'RED', agent_type: 'human', agent_config: {} },
-      { player: 'BLUE', agent_type: 'random', agent_config: {} },
-      { player: 'GREEN', agent_type: 'heuristic', agent_config: {} },
-      { player: 'YELLOW', agent_type: 'mcts', agent_config: {} }
+      { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } },
+      { player: 'GREEN', agent_type: 'mcts', agent_config: { time_budget_ms: 3000 } },
+      { player: 'YELLOW', agent_type: 'mcts', agent_config: { time_budget_ms: 5000 } }
     ],
     auto_start: true
   });
@@ -106,13 +106,13 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   const quickStartPresets = [
     {
       name: '4 Players',
-      description: 'Human vs All Agents',
+      description: 'Human vs MCTS (1s/3s/5s)',
       config: {
         players: [
           { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'random', agent_config: {} },
-          { player: 'GREEN', agent_type: 'heuristic', agent_config: {} },
-          { player: 'YELLOW', agent_type: 'mcts', agent_config: {} }
+          { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } },
+          { player: 'GREEN', agent_type: 'mcts', agent_config: { time_budget_ms: 3000 } },
+          { player: 'YELLOW', agent_type: 'mcts', agent_config: { time_budget_ms: 5000 } }
         ],
         auto_start: true
       }
@@ -140,12 +140,34 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
       }
     },
     {
-      name: 'vs MCTS',
-      description: 'Hard opponent',
+      name: 'vs MCTS 1s',
+      description: 'Fast opponent',
       config: {
         players: [
           { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'mcts', agent_config: {} }
+          { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } }
+        ],
+        auto_start: true
+      }
+    },
+    {
+      name: 'vs MCTS 3s',
+      description: 'Balanced opponent',
+      config: {
+        players: [
+          { player: 'RED', agent_type: 'human', agent_config: {} },
+          { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 3000 } }
+        ],
+        auto_start: true
+      }
+    },
+    {
+      name: 'vs MCTS 5s',
+      description: 'Deep-thinking opponent',
+      config: {
+        players: [
+          { player: 'RED', agent_type: 'human', agent_config: {} },
+          { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 5000 } }
         ],
         auto_start: true
       }

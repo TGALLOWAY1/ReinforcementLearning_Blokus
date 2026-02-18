@@ -74,6 +74,7 @@ class GameState(BaseModel):
     legal_moves: List[Move] = Field(description="Available legal moves for current player")
     created_at: datetime
     updated_at: datetime
+    players: Optional[List[PlayerConfig]] = None
     heatmap: Optional[List[List[float]]] = Field(
         default=None,
         description="20x20 grid where 1.0 = legal move position, 0.0 = illegal"

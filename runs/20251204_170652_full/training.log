@@ -1,0 +1,344 @@
+2025-12-04 17:06:52 - __main__ - INFO - Created run directory: runs/20251204_170652_full
+2025-12-04 17:06:52 - __main__ - INFO - Log file: runs/20251204_170652_full/training.log
+2025-12-04 17:06:52 - __main__ - INFO - ================================================================================
+2025-12-04 17:06:52 - __main__ - INFO - Starting Training Run
+2025-12-04 17:06:52 - __main__ - INFO - ================================================================================
+2025-12-04 17:06:52 - __main__ - INFO - Run directory: runs/20251204_170652_full
+2025-12-04 17:06:52 - __main__ - INFO - Timestamp: 2025-12-04 17:06:52
+2025-12-04 17:06:52 - __main__ - INFO - 
+2025-12-04 17:06:52 - __main__ - INFO - Reproducibility Information:
+2025-12-04 17:06:52 - __main__ - INFO -   Code Version: 1.0.0
+2025-12-04 17:06:52 - __main__ - INFO -   Git Hash: 26a8626bd640f01941f67f9d02536d55bd50e28f
+2025-12-04 17:06:52 - __main__ - INFO -   Git Branch: M7-train-the-rl-ppo-agent
+2025-12-04 17:06:52 - __main__ - INFO -   Python Version: 3.7.4
+2025-12-04 17:06:52 - __main__ - INFO -   PyTorch Version: 1.13.1
+2025-12-04 17:06:52 - __main__ - INFO -   Stable-Baselines3 Version: 2.0.0
+2025-12-04 17:06:52 - __main__ - INFO - 
+2025-12-04 17:06:52 - __main__ - INFO - ================================================================================
+2025-12-04 17:06:52 - __main__ - INFO - Training Configuration
+2025-12-04 17:06:52 - __main__ - INFO - ================================================================================
+2025-12-04 17:06:52 - __main__ - INFO - ================================================================================
+2025-12-04 17:06:52 - __main__ - INFO - Training Configuration
+2025-12-04 17:06:52 - __main__ - INFO - ================================================================================
+2025-12-04 17:06:52 - __main__ - INFO - Mode: FULL
+2025-12-04 17:06:52 - __main__ - INFO - Max Episodes: 10
+2025-12-04 17:06:52 - __main__ - INFO - Max Steps per Episode: 1000
+2025-12-04 17:06:52 - __main__ - INFO - Total Timesteps: 100000
+2025-12-04 17:06:52 - __main__ - INFO - N Steps (per update): 2048
+2025-12-04 17:06:52 - __main__ - INFO - Learning Rate: 0.0003
+2025-12-04 17:06:52 - __main__ - INFO - Batch Size: 64
+2025-12-04 17:06:52 - __main__ - INFO - Logging Verbosity: 1
+2025-12-04 17:06:52 - __main__ - INFO - Random Seed: 42
+2025-12-04 17:06:52 - __main__ - INFO - Env Seed: Same as random_seed
+2025-12-04 17:06:52 - __main__ - INFO - Agent Seed: Same as random_seed
+2025-12-04 17:06:52 - __main__ - INFO - Checkpoint Dir: checkpoints
+2025-12-04 17:06:52 - __main__ - INFO - TensorBoard Log Dir: ./logs
+2025-12-04 17:06:52 - __main__ - INFO - Checkpoint Interval: 5
+2025-12-04 17:06:52 - __main__ - INFO - Keep Last N Checkpoints: 3
+2025-12-04 17:06:52 - __main__ - INFO - Resume From Checkpoint: None (start fresh)
+2025-12-04 17:06:52 - __main__ - INFO - Agent Config: None (use defaults)
+2025-12-04 17:06:52 - __main__ - INFO - Sanity Checks: True
+2025-12-04 17:06:52 - __main__ - INFO - Log Action Details: True
+2025-12-04 17:06:52 - __main__ - INFO - Number of Environments: 1
+2025-12-04 17:06:52 - __main__ - INFO - VecEnv Type: dummy
+2025-12-04 17:06:52 - __main__ - INFO - ================================================================================
+2025-12-04 17:06:52 - __main__ - INFO - 
+2025-12-04 17:06:52 - __main__ - INFO - Additional Configuration:
+2025-12-04 17:06:52 - __main__ - INFO -   Agent Config: Using defaults
+2025-12-04 17:06:52 - __main__ - INFO - ================================================================================
+2025-12-04 17:06:52 - __main__ - INFO - 
+2025-12-04 17:06:52 - training.run_logger - ERROR - Error creating training run in MongoDB: MongoDB database not initialized. Call connect_to_mongo() during application startup.
+2025-12-04 17:06:52 - training.run_logger - ERROR - Failed to create training run: MongoDB database not initialized. Call connect_to_mongo() during application startup.
+2025-12-04 17:06:52 - __main__ - INFO - Training run logging disabled (MongoDB not available)
+2025-12-04 17:06:52 - training.seeds - INFO - Seeds initialized:
+2025-12-04 17:06:52 - training.seeds - INFO -   Base seed: 42
+2025-12-04 17:06:52 - training.seeds - INFO -   Environment seed: 42
+2025-12-04 17:06:52 - training.seeds - INFO -   Agent seed: 42
+2025-12-04 17:06:52 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:52 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:52 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:52 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:52 - __main__ - INFO - Disabled PyTorch distribution validation (Simplex constraint) for large action space compatibility
+2025-12-04 17:06:52 - __main__ - INFO - Initializing MaskablePPO model...
+2025-12-04 17:06:52 - __main__ - INFO - Starting training in FULL mode...
+2025-12-04 17:06:52 - __main__ - INFO - Target: 100000 total timesteps
+2025-12-04 17:06:52 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:52 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:52 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:52 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:52 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #1: mask.shape=(36400,), mask.dtype=bool, mask.sum()=58, action_space.n=36400, env.infos[player_0]['legal_moves_count']=58
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=162, mapped_to_mask=162, mask.sum()=161, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #2: mask.shape=(36400,), mask.dtype=bool, mask.sum()=161, action_space.n=36400, env.infos[player_0]['legal_moves_count']=162
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=162, mapped_to_mask=162, mask.sum()=161, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=162, mapped_to_mask=162, mask.sum()=161, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=162, mapped_to_mask=162, mask.sum()=161, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=183, mapped_to_mask=183, mask.sum()=176, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #3: mask.shape=(36400,), mask.dtype=bool, mask.sum()=176, action_space.n=36400, env.infos[player_0]['legal_moves_count']=183
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=230, mapped_to_mask=230, mask.sum()=216, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #4: mask.shape=(36400,), mask.dtype=bool, mask.sum()=216, action_space.n=36400, env.infos[player_0]['legal_moves_count']=230
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=226, mapped_to_mask=226, mask.sum()=212, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #5: mask.shape=(36400,), mask.dtype=bool, mask.sum()=212, action_space.n=36400, env.infos[player_0]['legal_moves_count']=226
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=543, mapped_to_mask=543, mask.sum()=474, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #6: mask.shape=(36400,), mask.dtype=bool, mask.sum()=474, action_space.n=36400, env.infos[player_0]['legal_moves_count']=543
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=615, mapped_to_mask=615, mask.sum()=553, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #7: mask.shape=(36400,), mask.dtype=bool, mask.sum()=553, action_space.n=36400, env.infos[player_0]['legal_moves_count']=615
+2025-12-04 17:06:53 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=533, mapped_to_mask=533, mask.sum()=492, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #8: mask.shape=(36400,), mask.dtype=bool, mask.sum()=492, action_space.n=36400, env.infos[player_0]['legal_moves_count']=533
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #9: mask.shape=(36400,), mask.dtype=bool, mask.sum()=463, action_space.n=36400, env.infos[player_0]['legal_moves_count']=499
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #10: mask.shape=(36400,), mask.dtype=bool, mask.sum()=430, action_space.n=36400, env.infos[player_0]['legal_moves_count']=477
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #11: mask.shape=(36400,), mask.dtype=bool, mask.sum()=517, action_space.n=36400, env.infos[player_0]['legal_moves_count']=567
+2025-12-04 17:06:53 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #12: mask.shape=(36400,), mask.dtype=bool, mask.sum()=426, action_space.n=36400, env.infos[player_0]['legal_moves_count']=461
+2025-12-04 17:06:54 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #13: mask.shape=(36400,), mask.dtype=bool, mask.sum()=379, action_space.n=36400, env.infos[player_0]['legal_moves_count']=418
+2025-12-04 17:06:54 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #14: mask.shape=(36400,), mask.dtype=bool, mask.sum()=317, action_space.n=36400, env.infos[player_0]['legal_moves_count']=340
+2025-12-04 17:06:54 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #15: mask.shape=(36400,), mask.dtype=bool, mask.sum()=286, action_space.n=36400, env.infos[player_0]['legal_moves_count']=305
+2025-12-04 17:06:54 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #16: mask.shape=(36400,), mask.dtype=bool, mask.sum()=200, action_space.n=36400, env.infos[player_0]['legal_moves_count']=214
+2025-12-04 17:06:54 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #17: mask.shape=(36400,), mask.dtype=bool, mask.sum()=114, action_space.n=36400, env.infos[player_0]['legal_moves_count']=120
+2025-12-04 17:06:54 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #18: mask.shape=(36400,), mask.dtype=bool, mask.sum()=81, action_space.n=36400, env.infos[player_0]['legal_moves_count']=84
+2025-12-04 17:06:54 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #19: mask.shape=(36400,), mask.dtype=bool, mask.sum()=42, action_space.n=36400, env.infos[player_0]['legal_moves_count']=42
+2025-12-04 17:06:54 - __main__.mask_fn_diagnostics - INFO - mask_fn(player_0) [SINGLE-ENV] call #20: mask.shape=(36400,), mask.dtype=bool, mask.sum()=26, action_space.n=36400, env.infos[player_0]['legal_moves_count']=26
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:06:54 - __main__ - INFO - Episode 1 completed: reward=116.00, length=21, win=None
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=137, mapped_to_mask=137, mask.sum()=136, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=137, mapped_to_mask=137, mask.sum()=136, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=137, mapped_to_mask=137, mask.sum()=136, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=137, mapped_to_mask=137, mask.sum()=136, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=249, mapped_to_mask=249, mask.sum()=237, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=314, mapped_to_mask=314, mask.sum()=293, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=517, mapped_to_mask=517, mask.sum()=476, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=557, mapped_to_mask=557, mask.sum()=508, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=682, mapped_to_mask=682, mask.sum()=619, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:54 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=753, mapped_to_mask=753, mask.sum()=652, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:06:55 - __main__ - INFO - Episode 2 completed: reward=118.00, length=21, win=None
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=115, mapped_to_mask=115, mask.sum()=115, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=115, mapped_to_mask=115, mask.sum()=115, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=115, mapped_to_mask=115, mask.sum()=115, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=115, mapped_to_mask=115, mask.sum()=115, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=293, mapped_to_mask=293, mask.sum()=285, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=433, mapped_to_mask=433, mask.sum()=404, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=458, mapped_to_mask=458, mask.sum()=434, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=517, mapped_to_mask=517, mask.sum()=481, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=505, mapped_to_mask=505, mask.sum()=472, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:55 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=663, mapped_to_mask=663, mask.sum()=613, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:06:56 - __main__ - INFO - Episode 3 completed: reward=108.00, length=21, win=None
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=137, mapped_to_mask=137, mask.sum()=136, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=137, mapped_to_mask=137, mask.sum()=136, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=137, mapped_to_mask=137, mask.sum()=136, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=137, mapped_to_mask=137, mask.sum()=136, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=315, mapped_to_mask=315, mask.sum()=314, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=321, mapped_to_mask=321, mask.sum()=320, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:56 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=462, mapped_to_mask=462, mask.sum()=433, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=465, mapped_to_mask=465, mask.sum()=443, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=429, mapped_to_mask=429, mask.sum()=406, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=464, mapped_to_mask=464, mask.sum()=434, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:06:57 - __main__ - INFO - Episode 4 completed: reward=120.00, length=21, win=None
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=188, mapped_to_mask=188, mask.sum()=184, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=188, mapped_to_mask=188, mask.sum()=184, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=188, mapped_to_mask=188, mask.sum()=184, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=188, mapped_to_mask=188, mask.sum()=184, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=173, mapped_to_mask=173, mask.sum()=173, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=330, mapped_to_mask=330, mask.sum()=300, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:57 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=406, mapped_to_mask=406, mask.sum()=363, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:58 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=433, mapped_to_mask=433, mask.sum()=414, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:58 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=475, mapped_to_mask=475, mask.sum()=456, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:58 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=492, mapped_to_mask=492, mask.sum()=462, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:58 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:06:58 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:58 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:58 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:58 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:58 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:06:58 - __main__ - INFO - Episode 5 completed: reward=122.00, length=21, win=None
+2025-12-04 17:06:58 - training.checkpoints - INFO - Saved model checkpoint to checkpoints/ppo_agent/unknown/ep000005.zip
+2025-12-04 17:06:58 - __main__ - INFO - Saved checkpoint at episode 5
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=184, mapped_to_mask=184, mask.sum()=184, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=184, mapped_to_mask=184, mask.sum()=184, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=184, mapped_to_mask=184, mask.sum()=184, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=184, mapped_to_mask=184, mask.sum()=184, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=171, mapped_to_mask=171, mask.sum()=170, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=326, mapped_to_mask=326, mask.sum()=321, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=352, mapped_to_mask=352, mask.sum()=349, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=361, mapped_to_mask=361, mask.sum()=356, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=395, mapped_to_mask=395, mask.sum()=363, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=478, mapped_to_mask=478, mask.sum()=439, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:06:59 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:06:59 - __main__ - INFO - Episode 6 completed: reward=122.00, length=21, win=None
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=188, mapped_to_mask=188, mask.sum()=187, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=188, mapped_to_mask=188, mask.sum()=187, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=188, mapped_to_mask=188, mask.sum()=187, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=188, mapped_to_mask=188, mask.sum()=187, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=302, mapped_to_mask=302, mask.sum()=297, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=359, mapped_to_mask=359, mask.sum()=350, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=612, mapped_to_mask=612, mask.sum()=560, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=613, mapped_to_mask=613, mask.sum()=558, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=562, mapped_to_mask=562, mask.sum()=501, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:00 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=620, mapped_to_mask=620, mask.sum()=548, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:07:01 - __main__ - INFO - Episode 7 completed: reward=116.00, length=21, win=None
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=222, mapped_to_mask=222, mask.sum()=214, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=222, mapped_to_mask=222, mask.sum()=214, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=222, mapped_to_mask=222, mask.sum()=214, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=222, mapped_to_mask=222, mask.sum()=214, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=452, mapped_to_mask=452, mask.sum()=426, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=503, mapped_to_mask=503, mask.sum()=476, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=367, mapped_to_mask=367, mask.sum()=348, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=494, mapped_to_mask=494, mask.sum()=466, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=561, mapped_to_mask=561, mask.sum()=507, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:01 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=529, mapped_to_mask=529, mask.sum()=497, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:07:02 - __main__ - INFO - Episode 8 completed: reward=122.00, length=21, win=None
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=214, mapped_to_mask=214, mask.sum()=213, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=214, mapped_to_mask=214, mask.sum()=213, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=214, mapped_to_mask=214, mask.sum()=213, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=214, mapped_to_mask=214, mask.sum()=213, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=337, mapped_to_mask=337, mask.sum()=305, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:02 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=400, mapped_to_mask=400, mask.sum()=369, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:03 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=311, mapped_to_mask=311, mask.sum()=297, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:03 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=547, mapped_to_mask=547, mask.sum()=510, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:03 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=628, mapped_to_mask=628, mask.sum()=541, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:03 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=507, mapped_to_mask=507, mask.sum()=445, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:07:04 - __main__ - INFO - Episode 9 completed: reward=118.00, length=21, win=None
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=214, mapped_to_mask=214, mask.sum()=213, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=214, mapped_to_mask=214, mask.sum()=213, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=214, mapped_to_mask=214, mask.sum()=213, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=214, mapped_to_mask=214, mask.sum()=213, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=301, mapped_to_mask=301, mask.sum()=282, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=329, mapped_to_mask=329, mask.sum()=317, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=437, mapped_to_mask=437, mask.sum()=412, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=520, mapped_to_mask=520, mask.sum()=486, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=425, mapped_to_mask=425, mask.sum()=408, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:04 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=513, mapped_to_mask=513, mask.sum()=490, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:05 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv: NO LEGAL MOVES for player_0 (player RED) at step 23. Marking agent as terminated.
+2025-12-04 17:07:05 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_0): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:05 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_1): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:05 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_2): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:05 - envs.blokus_v0.mask_diagnostics - INFO - BlokusEnv._get_info(player_3): legal_moves=58, mapped_to_mask=58, mask.sum()=58, mask.shape=(36400,), mask.dtype=bool, action_space_size=36400
+2025-12-04 17:07:05 - __main__ - WARNING - Episode end for env 0: Missing game result fields in info dict. Expected: final_scores, winner_ids, is_tie. Got keys: ['legal_action_mask', 'legal_moves_count', 'score', 'pieces_used', 'pieces_remaining', 'can_move', 'episode', 'TimeLimit.truncated', 'terminal_observation']. This may indicate the episode was truncated or game result wasn't computed.
+2025-12-04 17:07:05 - __main__ - INFO - Episode 10 completed: reward=118.00, length=21, win=None
+2025-12-04 17:07:05 - training.checkpoints - INFO - Saved model checkpoint to checkpoints/ppo_agent/unknown/ep000010.zip
+2025-12-04 17:07:05 - __main__ - INFO - Saved checkpoint at episode 10
+2025-12-04 17:07:05 - __main__ - INFO - Episodes 1-10 (last 10): reward=118.00±4.00, length=21.0±0.0, speed=17.0 steps/s (17.0 env steps/s)
+2025-12-04 17:07:05 - __main__ - INFO - Reached max_episodes limit (10), stopping training
+2025-12-04 17:07:05 - __main__ - INFO - 
+2025-12-04 17:07:05 - __main__ - INFO - ================================================================================
+2025-12-04 17:07:05 - __main__ - INFO - Training Summary
+2025-12-04 17:07:05 - __main__ - INFO - ================================================================================
+2025-12-04 17:07:05 - __main__ - INFO - Total episodes: 10
+2025-12-04 17:07:05 - __main__ - INFO - Total steps: 210
+2025-12-04 17:07:05 - __main__ - INFO - Total environment steps: 210
+2025-12-04 17:07:05 - __main__ - INFO - Total time: 12.3s (0.2 minutes)
+2025-12-04 17:07:05 - __main__ - INFO - Average speed: 17.1 steps/s (17.1 env steps/s)
+2025-12-04 17:07:05 - __main__ - INFO - 
+2025-12-04 17:07:05 - __main__ - INFO - Episode Statistics:
+2025-12-04 17:07:05 - __main__ - INFO -   Average reward: 118.00 ± 4.00
+2025-12-04 17:07:05 - __main__ - INFO -   Average episode length: 21.0 ± 0.0
+2025-12-04 17:07:05 - __main__ - INFO -   Best episode reward: 122.00
+2025-12-04 17:07:05 - __main__ - INFO -   Worst episode reward: 108.00
+2025-12-04 17:07:05 - __main__ - INFO - ================================================================================
+2025-12-04 17:07:05 - __main__ - INFO - Saving final model checkpoint to checkpoints/ppo_blokus
+2025-12-04 17:07:05 - training.checkpoints - INFO - Saved model checkpoint to checkpoints/ppo_blokus
+2025-12-04 17:07:05 - __main__ - INFO - Final checkpoint saved successfully
+2025-12-04 17:07:05 - __main__ - INFO - Training config saved to checkpoints/training_config.yaml
