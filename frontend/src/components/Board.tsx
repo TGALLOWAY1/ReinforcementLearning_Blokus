@@ -88,21 +88,29 @@ export const Board: React.FC<BoardProps> = ({
   }, [onCellHover]);
 
   const handleClick = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) {
-      return;
-    }
-    
+    if (!svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    const col = Math.floor(x / CELL_SIZE);
-    const row = Math.floor(y / CELL_SIZE);
-    
-    if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
-      onCellClick(row, col);
+    const col = Math.floor((event.clientX - rect.left) / CELL_SIZE);
+    const row = Math.floor((event.clientY - rect.top) / CELL_SIZE);
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
+
+    // Anchor = top-left of piece. Preview uses hoveredCell as anchor, so when user
+    // clicks a preview cell, pass hoveredCell (the anchor), not the clicked cell.
+    if (selectedPiece && hoveredCell) {
+      const previewPositions = calculatePiecePositions(
+        selectedPiece,
+        pieceOrientation,
+        hoveredCell.row,
+        hoveredCell.col
+      );
+      const isOnPreview = previewPositions.some((p) => p.row === row && p.col === col);
+      if (isOnPreview) {
+        onCellClick(hoveredCell.row, hoveredCell.col);
+        return;
+      }
     }
-  }, [onCellClick]);
+    onCellClick(row, col);
+  }, [onCellClick, selectedPiece, pieceOrientation, hoveredCell]);
 
   // Memoize cell color calculation to avoid recomputation
   const cellColors = useMemo(() => {
@@ -210,7 +218,7 @@ export const Board: React.FC<BoardProps> = ({
         onMouseMove={handleMouseMove}
         onClick={handleClick}
       >
-        {/* Grid lines with charcoal styling */}
+        {/* Grid lines - higher contrast against dark background */}
         {Array.from({ length: BOARD_SIZE + 1 }).map((_, i) => (
           <g key={i}>
             <line
@@ -218,18 +226,16 @@ export const Board: React.FC<BoardProps> = ({
               y1={0}
               x2={i * CELL_SIZE}
               y2={BOARD_SIZE * CELL_SIZE}
-              stroke="#3E3E42"
-              strokeWidth={0.5}
-              opacity={0.5}
+              stroke="#525252"
+              strokeWidth={1}
             />
             <line
               x1={0}
               y1={i * CELL_SIZE}
               x2={BOARD_SIZE * CELL_SIZE}
               y2={i * CELL_SIZE}
-              stroke="#3E3E42"
-              strokeWidth={0.5}
-              opacity={0.5}
+              stroke="#525252"
+              strokeWidth={1}
             />
           </g>
         ))}

@@ -5,6 +5,10 @@ export interface Position {
   col: number;
 }
 
+/**
+ * Rotate piece 90° counter-clockwise to match backend (numpy rot90).
+ * Backend uses np.rot90 which is CCW; mismatch caused preview to differ from placement.
+ */
 export const rotatePiece = (shape: number[][]): number[][] => {
   const rows = shape.length;
   const cols = shape[0].length;
@@ -12,7 +16,7 @@ export const rotatePiece = (shape: number[][]): number[][] => {
   
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < cols; j++) {
-      rotated[j][rows - 1 - i] = shape[i][j];
+      rotated[cols - 1 - j][i] = shape[i][j];
     }
   }
   
