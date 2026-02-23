@@ -8,6 +8,13 @@ const APP_PROFILE_RAW = (import.meta.env.VITE_APP_PROFILE || 'research').toLower
 export const APP_PROFILE: 'research' | 'deploy' = APP_PROFILE_RAW === 'deploy' ? 'deploy' : 'research';
 export const IS_DEPLOY_PROFILE = APP_PROFILE === 'deploy';
 
+/** Debug/Logs UI (gated, default OFF in production). Set VITE_ENABLE_DEBUG_UI=true to enable. */
+const _rawDebug = (import.meta as { env?: Record<string, string> }).env?.VITE_ENABLE_DEBUG_UI;
+const _isDev = (import.meta as { env?: Record<string, boolean> }).env?.DEV;
+export const ENABLE_DEBUG_UI =
+  String(_rawDebug ?? '').toLowerCase() === 'true' ||
+  (_isDev && String(_rawDebug ?? '').toLowerCase() !== 'false');
+
 export const DEPLOY_MCTS_PRESETS = {
   easy: 200,
   medium: 450,
