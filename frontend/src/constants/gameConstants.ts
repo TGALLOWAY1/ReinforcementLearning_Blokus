@@ -3,6 +3,23 @@
 // Vite requires VITE_ prefix for environment variables exposed to client code
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const APP_PROFILE_RAW = (import.meta.env.VITE_APP_PROFILE || 'research').toLowerCase();
+
+export const APP_PROFILE: 'research' | 'deploy' = APP_PROFILE_RAW === 'deploy' ? 'deploy' : 'research';
+export const IS_DEPLOY_PROFILE = APP_PROFILE === 'deploy';
+
+/** Debug/Logs UI (gated, default OFF in production). Set VITE_ENABLE_DEBUG_UI=true to enable. */
+const _rawDebug = (import.meta as { env?: Record<string, string> }).env?.VITE_ENABLE_DEBUG_UI;
+const _isDev = (import.meta as { env?: Record<string, boolean> }).env?.DEV;
+export const ENABLE_DEBUG_UI =
+  String(_rawDebug ?? '').toLowerCase() === 'true' ||
+  (_isDev && String(_rawDebug ?? '').toLowerCase() !== 'false');
+
+export const DEPLOY_MCTS_PRESETS = {
+  easy: 200,
+  medium: 450,
+  hard: 900,
+} as const;
 
 // Derive WebSocket URL from API URL if VITE_WS_URL is not set
 // Convert http:// to ws:// and https:// to wss://

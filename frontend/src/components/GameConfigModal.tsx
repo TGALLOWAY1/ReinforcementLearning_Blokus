@@ -1,31 +1,46 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { API_BASE } from '../constants/gameConstants';
+import { API_BASE, DEPLOY_MCTS_PRESETS, IS_DEPLOY_PROFILE } from '../constants/gameConstants';
 
 interface GameConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGameCreated: () => void;
+  /** When false (e.g. initial view), hide close button - user must start a game */
+  canClose?: boolean;
 }
 
 export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   isOpen,
   onClose,
-  onGameCreated
+  onGameCreated,
+  canClose = true
 }) => {
+  const deployConfig = {
+    players: [
+      { player: 'RED', agent_type: 'human', agent_config: {} },
+      { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
+      { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
+      { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } }
+    ],
+    auto_start: true
+  };
+
+  const researchDefaultConfig = {
+    players: [
+      { player: 'RED', agent_type: 'human', agent_config: {} },
+      { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
+      { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
+      { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } }
+    ],
+    auto_start: true
+  };
+
   const { createGame, connect } = useGameStore();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [gameConfig, setGameConfig] = useState({
-    players: [
-      { player: 'RED', agent_type: 'human', agent_config: {} },
-      { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } },
-      { player: 'GREEN', agent_type: 'mcts', agent_config: { time_budget_ms: 3000 } },
-      { player: 'YELLOW', agent_type: 'mcts', agent_config: { time_budget_ms: 5000 } }
-    ],
-    auto_start: true
-  });
+  const [gameConfig, setGameConfig] = useState(IS_DEPLOY_PROFILE ? deployConfig : researchDefaultConfig);
 
   const handleCreateGame = async () => {
     console.log('🎮 Starting game creation...');
@@ -75,6 +90,9 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   };
 
   const updatePlayer = (index: number, field: string, value: string) => {
+    if (IS_DEPLOY_PROFILE) {
+      return;
+    }
     setGameConfig(prev => ({
       ...prev,
       players: prev.players.map((player, i) => 
@@ -84,6 +102,9 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   };
 
   const addPlayer = () => {
+    if (IS_DEPLOY_PROFILE) {
+      return;
+    }
     if (gameConfig.players.length < 4) {
       const playerColors = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
       const nextColor = playerColors[gameConfig.players.length];
@@ -95,6 +116,9 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   };
 
   const removePlayer = (index: number) => {
+    if (IS_DEPLOY_PROFILE) {
+      return;
+    }
     if (gameConfig.players.length > 2) {
       setGameConfig(prev => ({
         ...prev,
@@ -103,16 +127,16 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     }
   };
 
-  const quickStartPresets = [
+  const researchQuickStartPresets = [
     {
       name: '4 Players',
-      description: 'Human vs MCTS (1s/3s/5s)',
+      description: `Human vs MCTS Easy/Medium/Hard (${DEPLOY_MCTS_PRESETS.easy}/${DEPLOY_MCTS_PRESETS.medium}/${DEPLOY_MCTS_PRESETS.hard}ms)`,
       config: {
         players: [
           { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } },
-          { player: 'GREEN', agent_type: 'mcts', agent_config: { time_budget_ms: 3000 } },
-          { player: 'YELLOW', agent_type: 'mcts', agent_config: { time_budget_ms: 5000 } }
+          { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
+          { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
+          { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } }
         ],
         auto_start: true
       }
@@ -174,6 +198,16 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     }
   ];
 
+  const deployQuickStartPresets = [
+    {
+      name: 'Deploy Preset',
+      description: `Human vs MCTS Easy/Medium/Hard (${DEPLOY_MCTS_PRESETS.easy}/${DEPLOY_MCTS_PRESETS.medium}/${DEPLOY_MCTS_PRESETS.hard}ms)`,
+      config: deployConfig
+    }
+  ];
+
+  const quickStartPresets = IS_DEPLOY_PROFILE ? deployQuickStartPresets : researchQuickStartPresets;
+
   const applyQuickStart = async (preset: typeof quickStartPresets[0]) => {
     setGameConfig(preset.config);
     setIsCreating(true);
@@ -206,6 +240,51 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  // Deploy profile: minimal first-page UI — Human vs MCTS (easy/medium/hard) only, no config
+  if (IS_DEPLOY_PROFILE) {
+    return (
+      <div className="fixed inset-0 bg-charcoal-900 flex items-center justify-center z-50 p-4">
+        <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg max-w-md w-full p-8 text-center relative">
+          {canClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors"
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+          <h1 className="text-3xl font-bold text-gray-200 mb-2">Blokus</h1>
+          <p className="text-gray-400 mb-6">
+            You (Red) vs 3 AI opponents at Easy, Medium, and Hard
+          </p>
+
+          {error && (
+            <div className="bg-red-900 border border-red-700 rounded-lg p-4 mb-6 text-red-200 text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={handleCreateGame}
+            disabled={isCreating}
+            className={`
+              w-full py-4 px-6 rounded-lg font-medium text-white transition-colors duration-200
+              ${isCreating
+                ? 'bg-gray-600 cursor-not-allowed'
+                : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
+              }
+            `}
+          >
+            {isCreating ? 'Starting...' : 'Start Game'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -249,7 +328,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
           </div>
 
           <div className="border-t border-charcoal-700 pt-6">
-            <h3 className="text-lg font-semibold text-gray-200 mb-4">Custom Configuration</h3>
+              <h3 className="text-lg font-semibold text-gray-200 mb-4">Custom Configuration</h3>
 
             {/* Players */}
             <div className="mb-4">
@@ -342,4 +421,3 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     </div>
   );
 };
-

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { API_BASE, WS_BASE } from '../constants/gameConstants';
@@ -72,10 +73,19 @@ export interface LogEntry {
   level?: 'INFO' | 'WARN' | 'ERROR';
 }
 
+import { computeMobilityMetrics, type PlayerMobilityMetrics } from '../utils/mobilityMetrics';
+
+/** Legal moves per turn history. Hook: turn advances in webapi _broadcast_game_state after move/pass. */
+export interface LegalMovesHistoryEntry {
+  turn: number;
+  byPlayer: Record<string, PlayerMobilityMetrics>;
+}
+
 // Store interface
 interface GameStore {
   // State
   gameState: GameState | null;
+  legalMovesHistory: LegalMovesHistoryEntry[];
   connectionStatus: 'disconnected' | 'connecting' | 'connected';
   selectedPiece: number | null;
   pieceOrientation: number;
@@ -103,6 +113,7 @@ export const useGameStore = create<GameStore>()(
   subscribeWithSelector((set, get) => ({
     // Initial state
     gameState: null,
+    legalMovesHistory: [],
     connectionStatus: 'disconnected',
     selectedPiece: null,
     pieceOrientation: 0,
@@ -210,7 +221,7 @@ export const useGameStore = create<GameStore>()(
                 }
               }
               
-              if (data.type === 'state' || data.type === 'game_state' || data.type === 'move_made') {
+              if (data.type === 'state' || data.type === 'game_state' || data.type === 'move_made' || data.type === 'player_passed' || data.type === 'player_skipped' || data.type === 'player_skipped_timeout' || data.type === 'player_skipped_error' || data.type === 'player_skipped_inactive') {
                 const gameState = data.data?.game_state || data.data;
                 console.log('Game state received:', gameState);
                 console.log('Game state structure:', {
@@ -221,7 +232,7 @@ export const useGameStore = create<GameStore>()(
                   currentPlayer: gameState?.current_player
                 });
                 console.log('Setting gameState in store...');
-                set({ gameState: gameState });
+                get().setGameState(gameState);
                 console.log('GameState set, resolving promise...');
                 clearTimeout(timeout);
                 resolve(); // Resolve when we get the initial state
@@ -284,7 +295,8 @@ export const useGameStore = create<GameStore>()(
       set({ 
         connectionStatus: 'disconnected', 
         websocket: null,
-        gameState: null
+        gameState: null,
+        legalMovesHistory: [],
       });
     },
 
@@ -346,10 +358,9 @@ export const useGameStore = create<GameStore>()(
               resolve(response);
             } else if (data.type === 'player_passed' || data.type === 'move_made') {
               console.log('✅ Pass made message received, updating game state');
-              // Update game state when pass is processed
               const gameState = data.data?.game_state || data.data;
               if (gameState) {
-                set({ gameState: gameState });
+                get().setGameState(gameState);
               }
             } else {
               console.log('ℹ️ Non-pass response received:', data.type);
@@ -429,9 +440,7 @@ export const useGameStore = create<GameStore>()(
               // Update game state if the response includes it
               if (response.game_state) {
                 console.log('🔄 Updating game state from move response');
-                console.log('🎮 New game state:', response.game_state);
-                console.log('🎮 Board state:', response.game_state.board);
-                set({ gameState: response.game_state });
+                get().setGameState(response.game_state);
                 console.log('✅ Game state updated in store');
               } else {
                 console.log('⚠️ Move response has no game_state field');
@@ -440,10 +449,9 @@ export const useGameStore = create<GameStore>()(
               resolve(response);
             } else if (data.type === 'move_made') {
               console.log('✅ Move made message received, updating game state');
-              // Update game state when move is made
               const gameState = data.data?.game_state || data.data;
               if (gameState) {
-                set({ gameState: gameState });
+                get().setGameState(gameState);
               }
             } else {
               console.log('ℹ️ Non-move response received:', data.type);
@@ -506,8 +514,38 @@ export const useGameStore = create<GameStore>()(
       set({ error });
     },
 
+    // Hook: turn advances via webapi _broadcast_game_state after move/pass. We record
+    // mobility metrics from legal_moves (backend: engine/move_generator.get_legal_moves).
     setGameState: (gameState: GameState | null) => {
-      set({ gameState });
+      set((state) => {
+        if (!gameState) return { gameState: null, legalMovesHistory: [] };
+        const prev = state.gameState;
+        const piecesUsed = gameState.pieces_used?.[gameState.current_player] ?? [];
+        const metrics = computeMobilityMetrics(
+          gameState.legal_moves ?? [],
+          piecesUsed
+        );
+        // New game: reset history and record initial turn
+        if (prev?.game_id !== gameState.game_id) {
+          const entry: LegalMovesHistoryEntry = {
+            turn: 0,
+            byPlayer: { [gameState.current_player]: metrics },
+          };
+          return { gameState, legalMovesHistory: [entry] };
+        }
+        // Same game: append only when turn advanced (move_count or current_player changed)
+        const prevKey = prev ? `${prev.move_count}-${prev.current_player}` : '';
+        const newKey = `${gameState.move_count}-${gameState.current_player}`;
+        if (prevKey === newKey) return { gameState };
+        const entry: LegalMovesHistoryEntry = {
+          turn: state.legalMovesHistory.length,
+          byPlayer: { [gameState.current_player]: metrics },
+        };
+        return {
+          gameState,
+          legalMovesHistory: [...state.legalMovesHistory, entry],
+        };
+      });
     },
 
     addLog: (message: string, level: 'INFO' | 'WARN' | 'ERROR' = 'INFO') => {
@@ -533,6 +571,34 @@ export const useGameStore = create<GameStore>()(
 export const useLegalMoves = () => {
   const gameState = useGameStore(state => state.gameState);
   return gameState?.legal_moves || [];
+};
+
+/**
+ * Legal moves are computed on the backend (webapi _get_game_state) from
+ * engine/move_generator.py get_legal_moves(). Frontend receives gameState.legal_moves
+ * with shape LegalMove[] (piece_id, orientation, anchor_row, anchor_col).
+ * This selector groups by piece_id and counts, for available pieces only.
+ */
+export const useLegalMovesByPiece = (): { pieceId: number; count: number }[] => {
+  const gameState = useGameStore(state => state.gameState);
+  const legalMoves = gameState?.legal_moves || [];
+  const currentPlayer = gameState?.current_player;
+  const piecesUsed = currentPlayer ? (gameState?.pieces_used?.[currentPlayer] || []) : [];
+
+  return useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const m of legalMoves) {
+      const pid = m.piece_id ?? (m as any).pieceId;
+      if (pid != null) {
+        counts[pid] = (counts[pid] ?? 0) + 1;
+      }
+    }
+    // Always return all 21 pieces for even spacing (01..21); used pieces show count 0
+    return Array.from({ length: 21 }, (_, i) => i + 1).map((pieceId) => ({
+      pieceId,
+      count: piecesUsed.includes(pieceId) ? 0 : (counts[pieceId] ?? 0),
+    }));
+  }, [legalMoves, piecesUsed]);
 };
 
 export const useCurrentPlayer = () => {

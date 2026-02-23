@@ -6,6 +6,7 @@ import { PieceTray } from '../components/PieceTray';
 import { LogConsole } from '../components/LogConsole';
 import { GameConfigModal } from '../components/GameConfigModal';
 import { useNavigate } from 'react-router-dom';
+import { IS_DEPLOY_PROFILE } from '../constants/gameConstants';
 
 export const Play: React.FC = () => {
   const navigate = useNavigate();
@@ -168,6 +169,7 @@ export const Play: React.FC = () => {
           isOpen={showConfigModal || true}
           onClose={() => setShowConfigModal(false)}
           onGameCreated={handleGameCreated}
+          canClose={false}
         />
       </div>
     );
@@ -205,7 +207,7 @@ export const Play: React.FC = () => {
   }
 
   return (
-    <div className="fixed h-screen w-screen bg-charcoal-900 flex overflow-hidden">
+    <div className="fixed h-screen w-screen bg-charcoal-900 flex overflow-hidden pr-4">
       {/* Left Column - PieceTray */}
       <aside className="w-80 border-r border-charcoal-700 bg-charcoal-900 flex flex-col overflow-y-auto">
         <PieceTray
@@ -222,20 +224,22 @@ export const Play: React.FC = () => {
         {gameState?.game_over && (
           <div className="w-full mb-4 bg-charcoal-800 border border-charcoal-700 p-4 flex items-center justify-between">
             <div className="text-gray-200">Game finished. Winner: <span className="font-semibold">{gameState.winner || 'None'}</span></div>
-            <div className="space-x-2">
-              <button
-                onClick={() => navigate('/history')}
-                className="bg-charcoal-700 text-gray-200 px-4 py-2 rounded"
-              >
-                History
-              </button>
-              <button
-                onClick={() => navigate(`/analysis/${gameState.game_id}`)}
-                className="bg-neon-blue text-black px-4 py-2 rounded"
-              >
-                View Analysis
-              </button>
-            </div>
+            {!IS_DEPLOY_PROFILE && (
+              <div className="space-x-2">
+                <button
+                  onClick={() => navigate('/history')}
+                  className="bg-charcoal-700 text-gray-200 px-4 py-2 rounded"
+                >
+                  History
+                </button>
+                <button
+                  onClick={() => navigate(`/analysis/${gameState.game_id}`)}
+                  className="bg-neon-blue text-black px-4 py-2 rounded"
+                >
+                  View Analysis
+                </button>
+              </div>
+            )}
           </div>
         )}
         {/* Turn Indicator and Pass Button */}
@@ -278,16 +282,18 @@ export const Play: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
-              <button
-                onClick={() => setShowConfigModal(true)}
-                className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
-                title="Game Settings"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
+              {!IS_DEPLOY_PROFILE && (
+                <button
+                  onClick={() => setShowConfigModal(true)}
+                  className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
+                  title="Game Settings"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              )}
               {isHumanPlayer && (
                 <button
                   onClick={handlePassTurn}

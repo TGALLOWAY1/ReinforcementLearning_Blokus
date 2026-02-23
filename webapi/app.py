@@ -36,6 +36,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from engine.game import BlokusGame
 from engine.board import Player as EnginePlayer
 from engine.move_generator import Move as EngineMove
+from engine.mobility_metrics import compute_player_mobility_metrics
 from agents.random_agent import RandomAgent
 from agents.heuristic_agent import HeuristicAgent
 from mcts.mcts_agent import MCTSAgent
@@ -44,18 +45,47 @@ from schemas.game_state import (
     GameConfig, GameState, GameStatus, Player, AgentType, Move, StateUpdate,
     MoveRequest, MoveResponse, GameCreateResponse, AgentInfo, ErrorResponse
 )
-# MongoDB connection module (webapi/db/mongo.py)
-from webapi.db.mongo import connect_to_mongo, close_mongo_connection, get_database
-from webapi.db.models import TrainingRun, EvaluationRun
+from webapi.deploy_validation import (
+    DEPLOY_TIME_BUDGET_CAP_MS,
+    normalize_deploy_game_config,
+)
+from webapi.gameplay_agent_factory import build_deploy_gameplay_agent, is_gameplay_adapter
+from webapi.profile import APP_PROFILE_DEPLOY, APP_PROFILE_RESEARCH, get_app_profile
+from webapi.routes_gameplay import register_gameplay_routes
+from webapi.routes_research import register_research_routes
+from webapi.strategy_logger_config import (
+    is_strategy_logger_enabled,
+    get_strategy_log_dir,
+    get_strategy_log_dir_for_game,
+)
+
+try:
+    # MongoDB connection module (webapi/db/mongo.py)
+    from webapi.db.mongo import connect_to_mongo, close_mongo_connection, get_database
+except Exception as mongo_import_error:  # pragma: no cover - deploy runtime may omit mongo deps
+    async def connect_to_mongo() -> None:
+        raise RuntimeError(
+            f"MongoDB dependencies unavailable: {mongo_import_error}"
+        )
+
+    async def close_mongo_connection() -> None:
+        return None
+
+    def get_database():
+        raise RuntimeError(
+            f"MongoDB dependencies unavailable: {mongo_import_error}"
+        )
 
 
 class GameManager:
     """Manages active games and their state."""
     
-    def __init__(self):
+    def __init__(self, app_profile: Optional[str] = None):
+        self.app_profile = app_profile or get_app_profile()
         self.games: Dict[str, Dict[str, Any]] = {}
         self.websocket_connections: Dict[str, List[WebSocket]] = {}
         self.agent_instances: Dict[str, Any] = {}
+        self._strategy_loggers: Dict[str, Any] = {}  # game_id -> StrategyLogger
     
     def create_game(self, config: GameConfig) -> str:
         """Create a new game."""
@@ -99,13 +129,18 @@ class GameManager:
         for player_config in config.players:
             player = self._convert_player(player_config.player)
             agent_type = player_config.agent_type
+            agent_config = player_config.agent_config or {}
+
+            if self.app_profile == APP_PROFILE_DEPLOY:
+                agents[player] = build_deploy_gameplay_agent(agent_type, agent_config)
+                continue
             
             if agent_type == AgentType.RANDOM:
                 agents[player] = RandomAgent()
             elif agent_type == AgentType.HEURISTIC:
                 agents[player] = HeuristicAgent()
             elif agent_type == AgentType.MCTS:
-                budget_ms = int((player_config.agent_config or {}).get('time_budget_ms', 1000))
+                budget_ms = int(agent_config.get('time_budget_ms', 1000))
                 agents[player] = FastMCTSAgent(
                     iterations=5000,
                     time_limit=max(budget_ms, 1) / 1000.0,
@@ -136,6 +171,8 @@ class GameManager:
         
         self.games[game_id]['status'] = GameStatus.IN_PROGRESS
         self.games[game_id]['updated_at'] = datetime.now()
+        
+        self._init_strategy_logger(game_id)
         
         # Start the turn loop
         asyncio.create_task(self._run_turn_loop(game_id))
@@ -208,7 +245,9 @@ class GameManager:
             if not legal_moves:
                 # Player cannot move, skip turn
                 logger.info(f"AGENT MOVE: No legal moves for {player.name}, skipping turn")
+                self._record_pass(game_id, player, agent_type=type(agent).__name__, reason="no_moves")
                 game.board._update_current_player()
+                game._check_game_over()  # No piece placed, so make_move never ran this
                 await self._broadcast_game_state(game_id, "player_skipped")
                 return
             
@@ -216,6 +255,8 @@ class GameManager:
             start_agent = time.perf_counter()
             player_config = next((p for p in game_data['config'].players if self._convert_player(p.player) == player), None)
             budget_ms = int((player_config.agent_config or {}).get('time_budget_ms', 1000)) if player_config else 1000
+            if self.app_profile == APP_PROFILE_DEPLOY:
+                budget_ms = min(budget_ms, DEPLOY_TIME_BUDGET_CAP_MS)
             think_timeout_s = max(2.0, budget_ms / 1000.0 + 1.0)
             stats = {
                 "timeBudgetMs": budget_ms,
@@ -251,6 +292,9 @@ class GameManager:
                                 return move_obj, payload.get("stats", {})
                         except Exception as engine_exc:
                             logger.warning(f"Engine service failed, falling back local MCTS: {engine_exc}")
+                    if self.app_profile == APP_PROFILE_DEPLOY and is_gameplay_adapter(agent):
+                        move_obj, adapter_stats = agent.choose_move(game.board, player, legal_moves, budget_ms)
+                        return move_obj, adapter_stats
                     think_fn = getattr(agent, 'think', None)
                     if callable(think_fn) and 'think' in getattr(agent, '__dict__', {}):
                         result = think_fn(game.board, player, legal_moves, budget_ms)
@@ -271,18 +315,24 @@ class GameManager:
                 logger.info(f"AGENT MOVE agent_selection: move={move} selected in {agent_time:.4f}s")
             except asyncio.TimeoutError:
                 logger.warning(f"AGENT MOVE: Agent {type(agent).__name__} timed out after {think_timeout_s:.2f}s in game {game_id} for player {player.name}")
+                self._record_pass(game_id, player, agent_type=type(agent).__name__, reason="timeout")
                 game.board._update_current_player()
+                game._check_game_over()
                 await self._broadcast_game_state(game_id, "player_skipped_timeout")
                 return
             except Exception as e:
                 logger.error(f"AGENT MOVE: Agent {type(agent).__name__} raised exception in game {game_id} for player {player.name}: {e}")
                 import traceback
                 traceback.print_exc()
+                self._record_pass(game_id, player, agent_type=type(agent).__name__, reason="error")
                 game.board._update_current_player()
+                game._check_game_over()
                 await self._broadcast_game_state(game_id, "player_skipped_error")
                 return
             
             # Make the move (only reached if agent successfully returned a move)
+            state_before = game.get_board_copy()
+            turn_index = game.get_move_count()
             start_apply = time.perf_counter()
             success = game.make_move(move, player)
             end_apply = time.perf_counter()
@@ -290,10 +340,12 @@ class GameManager:
             logger.info(f"AGENT MOVE apply: success={success} in {apply_time:.4f}s")
             
             if success:
+                self._log_step(game_id, turn_index, player.value, state_before, move, game.board)
                 # Log the move details
                 player_name = self._convert_player_back(player).value
                 logger.info(f"Player {player_name} placed a piece at {move.anchor_row},{move.anchor_col} (piece_id={move.piece_id}, orientation={move.orientation})")
-                
+                # Store MCTS explainability for next game state fetch
+                game_data['last_mcts_top_moves'] = stats.get('topMoves') or []
                 # Prepare move information for broadcast
                 last_move = {
                     "piece_id": move.piece_id,
@@ -303,7 +355,10 @@ class GameManager:
                     "player": player_name,
                     "stats": stats,
                 }
+                seq = game_data.get("_event_sequence", 0)
+                game_data["_event_sequence"] = seq + 1
                 game_data['move_records'].append({
+                    "sequenceIndex": seq,
                     "moveIndex": game.get_move_count(),
                     "player": player_name,
                     "agentType": type(agent).__name__,
@@ -332,6 +387,87 @@ class GameManager:
             traceback.print_exc()
             await self._broadcast_error(game_id, f"Agent error: {str(e)}")
     
+    def _record_pass(self, game_id: str, player: EnginePlayer, agent_type: str = "human", reason: str = "no_moves"):
+        """Record a pass (skip turn) in move_records for replay."""
+        if game_id not in self.games:
+            return
+        game_data = self.games[game_id]
+        player_name = self._convert_player_back(player).value
+        seq = game_data.get("_event_sequence", 0)
+        game_data["_event_sequence"] = seq + 1
+        game_data['move_records'].append({
+            "sequenceIndex": seq,
+            "moveIndex": None,
+            "player": player_name,
+            "agentType": agent_type,
+            "isHuman": agent_type == "human",
+            "isPass": True,
+            "reason": reason,
+            "move": None,
+            "stats": {},
+        })
+
+    def _init_strategy_logger(self, game_id: str) -> None:
+        """Create StrategyLogger for game if enabled. Call on_reset."""
+        if not is_strategy_logger_enabled():
+            return
+        try:
+            base_dir = get_strategy_log_dir()
+            log_dir = get_strategy_log_dir_for_game(base_dir, game_id)
+            from analytics.logging.logger import StrategyLogger
+            sl = StrategyLogger(log_dir=log_dir)
+            self._strategy_loggers[game_id] = sl
+            game_data = self.games[game_id]
+            game = game_data["game"]
+            config = game_data["config"]
+            agent_ids = {}
+            for pc in config.players:
+                ep = self._convert_player(pc.player)
+                name = pc.agent_type.value if hasattr(pc.agent_type, "value") else str(pc.agent_type)
+                if pc.agent_config and "difficulty" in (pc.agent_config or {}):
+                    name = f"{name}_{pc.agent_config['difficulty']}"
+                agent_ids[ep.value] = name
+            sl.on_reset(game_id, seed=0, agent_ids=agent_ids, config={})
+            logger.info(f"StrategyLogger initialized for game {game_id}")
+        except Exception as e:
+            logger.warning(f"StrategyLogger init failed for {game_id}: {e}")
+
+    def _get_strategy_logger(self, game_id: str):
+        """Return StrategyLogger for game_id or None."""
+        return self._strategy_loggers.get(game_id)
+
+    def _log_step(self, game_id: str, turn_index: int, player_id: int,
+                  state_before, move: EngineMove, next_state) -> None:
+        """Log step to StrategyLogger if enabled."""
+        sl = self._get_strategy_logger(game_id)
+        if not sl:
+            return
+        try:
+            sl.on_step(game_id, turn_index, player_id, state_before, move, next_state)
+        except Exception as e:
+            logger.warning(f"StrategyLogger on_step failed for {game_id}: {e}")
+
+    def _log_game_end(self, game_id: str) -> None:
+        """Log game end to StrategyLogger if enabled."""
+        sl = self._get_strategy_logger(game_id)
+        if not sl:
+            return
+        try:
+            game_data = self.games.get(game_id)
+            if not game_data:
+                return
+            game = game_data["game"]
+            scores = {p.value: int(game.get_score(p)) for p in EnginePlayer}
+            winner = game.board.get_winner()
+            winner_id = winner.value if winner else None
+            num_turns = int(game.get_move_count())
+            sl.on_game_end(game_id, scores, winner_id, num_turns)
+            logger.info(f"StrategyLogger on_game_end for {game_id}")
+        except Exception as e:
+            logger.warning(f"StrategyLogger on_game_end failed for {game_id}: {e}")
+        finally:
+            self._strategy_loggers.pop(game_id, None)
+
     async def _end_game(self, game_id: str):
         """End the game and persist analysis payload."""
         if game_id not in self.games:
@@ -339,6 +475,7 @@ class GameManager:
 
         game_data = self.games[game_id]
         game = game_data['game']
+        self._log_game_end(game_id)
         game_data['status'] = GameStatus.FINISHED
         game_data['updated_at'] = datetime.now()
         winner = game.board.get_winner()
@@ -386,10 +523,13 @@ class GameManager:
         engine_move = EngineMove(move_data.piece_id, move_data.orientation, move_data.anchor_row, move_data.anchor_col)
         player = self._convert_player(move_request.player)
         
+        state_before = game.get_board_copy()
+        turn_index = game.get_move_count()
         # Make the move
         success = game.make_move(engine_move, player)
         
         if success:
+            self._log_step(game_id, turn_index, player.value, state_before, engine_move, game.board)
             game_data['updated_at'] = datetime.now()
             await self._broadcast_game_state(game_id, "move_made")
             return MoveResponse(
@@ -442,12 +582,18 @@ class GameManager:
             if legal_moves:
                 logger.warning(f"Player {player.value} is passing but has {len(legal_moves)} legal moves available")
             
+            # Record pass for replay
+            self._record_pass(game_id, engine_player, agent_type="human", reason="no_moves")
+
             # Advance to next player (same logic as agent skip)
             game.board._update_current_player()
             logger.info(f"Turn advanced to {game.get_current_player().name}")
             
             # Update game data
             game_data['updated_at'] = datetime.now()
+            
+            # Re-check game-over (no piece was placed, so make_move never ran _check_game_over)
+            game._check_game_over()
             
             # Broadcast the updated game state
             await self._broadcast_game_state(game_id, "player_passed")
@@ -551,6 +697,8 @@ class GameManager:
             # Create engine move object
             engine_move = EngineMove(piece_id, orientation, anchor_row, anchor_col)
             
+            state_before = game.get_board_copy()
+            turn_index = game.get_move_count()
             # Make the move immediately
             start_make_move = time.perf_counter()
             success = game.make_move(engine_move, engine_player)
@@ -559,6 +707,7 @@ class GameManager:
             logger.info(f"HUMAN MOVE make_move: success={success} in {make_move_time:.4f}s")
             
             if success:
+                self._log_step(game_id, turn_index, engine_player.value, state_before, engine_move, game.board)
                 # Log the move details
                 player_name = move_request.player.value if hasattr(move_request.player, 'value') else str(move_request.player)
                 logger.info(f"Player {player_name} placed a piece at {anchor_row},{anchor_col} (piece_id={piece_id}, orientation={orientation})")
@@ -575,7 +724,10 @@ class GameManager:
                 # Update game data
                 game_data['updated_at'] = datetime.now()
                 user_move_time_ms = int((time.perf_counter() - game_data.get('last_turn_started_at', time.perf_counter())) * 1000)
+                seq = game_data.get("_event_sequence", 0)
+                game_data["_event_sequence"] = seq + 1
                 game_data['move_records'].append({
+                    "sequenceIndex": seq,
                     "moveIndex": game.get_move_count(),
                     "player": player_name,
                     "agentType": "human",
@@ -693,7 +845,19 @@ class GameManager:
                                 col = engine_move.anchor_col + j
                                 if 0 <= row < 20 and 0 <= col < 20:
                                     heatmap[row][col] = 1.0
-        
+
+        # Mobility metrics per docs/metrics/mobility.md (canonical source)
+        current_player_engine = game.get_current_player()
+        pieces_used_current = list(game.board.player_pieces_used[current_player_engine])
+        mobility = compute_player_mobility_metrics(engine_moves, pieces_used_current)
+        mobility_metrics = {
+            "totalPlacements": mobility.totalPlacements,
+            "totalOrientationNormalized": mobility.totalOrientationNormalized,
+            "totalCellWeighted": mobility.totalCellWeighted,
+            "buckets": mobility.buckets,
+        }
+        mcts_top_moves = game_data.get('last_mcts_top_moves')
+
         return GameState(
             game_id=game_id,
             status=game_data['status'],
@@ -708,7 +872,9 @@ class GameManager:
             created_at=game_data['created_at'],
             updated_at=game_data['updated_at'],
             players=[p.dict() for p in game_data['config'].players],
-            heatmap=heatmap
+            heatmap=heatmap,
+            mobility_metrics=mobility_metrics,
+            mcts_top_moves=mcts_top_moves
         )
     
     async def _broadcast_game_state(self, game_id: str, update_type: str, last_move: Optional[Dict[str, Any]] = None):
@@ -830,104 +996,98 @@ class GameManager:
         )
 
 
-# Global game manager instance
-game_manager = GameManager()
+# Global game manager instance (rebuilt per app profile in create_app)
+APP_PROFILE = get_app_profile()
+_current_app_profile = APP_PROFILE
+game_manager = GameManager(app_profile=APP_PROFILE)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
-    
-    Handles startup and shutdown tasks:
-    - Startup: Connect to MongoDB and validate connection
-    - Shutdown: Close MongoDB connection gracefully
+
+    In research profile we connect MongoDB (best effort).
+    In deploy profile we skip MongoDB startup.
     """
-    # Startup
     logger.info("Starting Blokus RL Web API...")
-    try:
-        await connect_to_mongo()
-        logger.info("MongoDB connection established")
-        
-        # Validate connection using get_database() to ensure we get the current db instance
+    if _current_app_profile == APP_PROFILE_RESEARCH:
         try:
-            database = get_database()
-            await database.command("ping")
-            print("✅ MongoDB connected successfully")
-            logger.info("✅ MongoDB connection validated successfully")
-        except RuntimeError as e:
-            # Database not initialized
-            print(f"❌ MongoDB failed to connect on startup: {e}")
-            logger.error(f"❌ MongoDB connection validation failed: {e}")
-            raise
+            await connect_to_mongo()
+            logger.info("MongoDB connection established")
+            try:
+                database = get_database()
+                await database.command("ping")
+                logger.info("✅ MongoDB connection validated successfully")
+            except Exception as e:
+                logger.error(f"❌ MongoDB connection validation failed: {e}")
+                raise
         except Exception as e:
-            print(f"❌ MongoDB failed to connect on startup: {e}")
-            logger.error(f"❌ MongoDB connection validation failed: {e}")
-            raise
-    except Exception as e:
-        logger.error(f"Failed to connect to MongoDB during startup: {e}")
-        logger.warning("Server will start without MongoDB connection. Some features may be unavailable.")
-    
+            logger.error(f"Failed to connect to MongoDB during startup: {e}")
+            logger.warning("Server will start without MongoDB connection. Some features may be unavailable.")
+    else:
+        logger.info("Deploy profile: skipping MongoDB startup.")
+
     yield
-    
-    # Shutdown
+
     logger.info("Shutting down Blokus RL Web API...")
-    await close_mongo_connection()
+    if _current_app_profile == APP_PROFILE_RESEARCH:
+        await close_mongo_connection()
 
 
-# Create FastAPI app
-app = FastAPI(
-    title="Blokus RL Web API",
-    description="Web API for Blokus RL game with REST and WebSocket support",
-    version="1.0.0",
-    lifespan=lifespan
-)
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def health():
+    """Lightweight health endpoint (deploy and research)."""
+    return {"ok": True, "profile": _current_app_profile}
 
 
-# REST API Endpoints
-
-@app.post("/api/games", response_model=GameCreateResponse)
 async def create_game(config: GameConfig):
     """Create a new game."""
     try:
+        if _current_app_profile == APP_PROFILE_DEPLOY:
+            config = normalize_deploy_game_config(config)
+
         game_id = game_manager.create_game(config)
         game_state = game_manager.get_game_state(game_id)
-        
+
         return GameCreateResponse(
             game_id=game_id,
             game_state=game_state,
             message="Game created successfully"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/")
 async def root():
     """Root endpoint with API information."""
+    if _current_app_profile == APP_PROFILE_RESEARCH:
+        return {
+            "message": "Blokus RL Web API",
+            "version": "1.0.0",
+            "docs": "/docs",
+            "endpoints": {
+                "agents": "/api/agents",
+                "games": "/api/games",
+                "websocket": "/ws/games/{game_id}",
+                "health": "/api/health/db"
+            }
+        }
     return {
         "message": "Blokus RL Web API",
         "version": "1.0.0",
         "docs": "/docs",
+        "profile": _current_app_profile,
         "endpoints": {
             "agents": "/api/agents",
             "games": "/api/games",
             "websocket": "/ws/games/{game_id}",
-            "health": "/api/health/db"
-        }
+            "health": "/health",
+        },
     }
 
 
-@app.get("/api/health/db")
 async def health_check_db():
     """
     Database health check endpoint.
@@ -968,7 +1128,6 @@ async def health_check_db():
         )
 
 
-@app.get("/debug/mongo")
 async def mongo_debug():
     """
     Debug endpoint to verify MongoDB connectivity and list collections.
@@ -988,32 +1147,33 @@ async def mongo_debug():
         return {"ok": False, "error": str(e)}
 
 
-@app.get("/api/games/{game_id}", response_model=GameState)
 async def get_game(game_id: str):
     """Get game state."""
     return game_manager.get_game_state(game_id)
 
 
-@app.post("/api/games/{game_id}/move", response_model=MoveResponse)
 async def make_move(game_id: str, move_request: MoveRequest):
     """Make a move in the game."""
     return await game_manager.make_move(game_id, move_request)
 
 
-@app.post("/api/games/{game_id}/finish")
 async def finish_game(game_id: str):
     """Force-finish a game (for smoke tests/admin tooling)."""
     await game_manager.force_finish_game(game_id)
     return {"ok": True, "game_id": game_id}
 
 
-@app.get("/api/agents", response_model=List[AgentInfo])
 async def get_agents():
     """Get list of available agents."""
-    return game_manager.get_available_agents()
+    agents = game_manager.get_available_agents()
+    if _current_app_profile == APP_PROFILE_DEPLOY:
+        return [
+            agent for agent in agents
+            if agent.type in (AgentType.MCTS, AgentType.HUMAN)
+        ]
+    return agents
 
 
-@app.get("/api/games", response_model=List[GameState])
 async def list_games():
     """List all active games."""
     games = []
@@ -1022,13 +1182,140 @@ async def list_games():
     return games
 
 
-@app.get("/api/analysis/{game_id}")
+async def _replay_to_index(game_id: str, move_index: int) -> tuple:
+    """
+    Replay a game up to move_index (0-based event index) and return (game, game_doc, move_docs).
+    move_index=0 returns initial board; move_index=1 returns state after first event, etc.
+    """
+    game_data = game_manager.games.get(game_id)
+    if game_data:
+        game_doc = {
+            "game_id": game_id,
+            "created_at": game_data["created_at"],
+            "finished_at": game_data.get("updated_at"),
+            "winner": game_data.get("winner"),
+            "move_count": int(game_data["game"].get_move_count()),
+            "scores": {p.name: game_data["game"].get_score(p) for p in EnginePlayer},
+            "players": [p.dict() for p in game_data["config"].players],
+        }
+        move_docs = list(game_data.get("move_records", []))
+        move_docs.sort(key=lambda m: m.get("sequenceIndex", m.get("moveIndex", 0) if m.get("moveIndex") is not None else 9999))
+    else:
+        try:
+            db = get_database()
+            game_doc = await db.game_records.find_one({"game_id": game_id})
+            if not game_doc:
+                return None, None, None
+            move_docs = await db.move_records.find({"game_id": game_id}).to_list(length=2000)
+            move_docs.sort(key=lambda m: m.get("sequenceIndex", m.get("moveIndex", 0) if m.get("moveIndex") is not None else 9999))
+        except Exception:
+            return None, None, None
+
+    from engine.game import BlokusGame
+    from engine.board import Player as EnginePlayerEnum
+
+    replay_game = BlokusGame()
+    player_map = {"RED": EnginePlayerEnum.RED, "BLUE": EnginePlayerEnum.BLUE, "YELLOW": EnginePlayerEnum.YELLOW, "GREEN": EnginePlayerEnum.GREEN}
+
+    for i, rec in enumerate(move_docs):
+        if i >= move_index:
+            break
+        if rec.get("isPass"):
+            replay_game.board._update_current_player()
+        else:
+            mv = rec.get("move")
+            if mv:
+                engine_move = EngineMove(mv["piece_id"], mv["orientation"], mv["anchor_row"], mv["anchor_col"])
+                pl = player_map.get(rec.get("player", ""), EnginePlayerEnum.RED)
+                replay_game.make_move(engine_move, pl)
+
+    return replay_game, game_doc, move_docs
+
+
+async def get_game_replay(game_id: str, move_index: int = -1):
+    """
+    Return board state at a specific move index for step-by-step replay.
+    move_index: 0-based event index (0=initial, 1=after first move/pass, etc). -1 = final state.
+    """
+    result = await _replay_to_index(game_id, move_index)
+    if result[0] is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    replay_game, game_doc, move_docs = result
+    if move_index < 0:
+        move_index = len(move_docs)
+    scores = {p.name: replay_game.get_score(p) for p in EnginePlayer}
+    return {
+        "game_id": game_id,
+        "move_index": move_index,
+        "total_events": len(move_docs),
+        "board": replay_game.board.grid.tolist(),
+        "current_player": replay_game.board.current_player.name,
+        "scores": scores,
+        "pieces_used": {p.name: list(replay_game.board.player_pieces_used[p]) for p in EnginePlayer},
+        "move_count": replay_game.board.move_count,
+        "game_over": replay_game.board.game_over,
+        "event": move_docs[move_index - 1] if 0 < move_index <= len(move_docs) else None,
+    }
+
+
+async def get_analysis_steps(game_id: str, limit: int = 100, offset: int = 0):
+    """
+    Return StepLog entries for game_id from StrategyLogger output.
+    Paginated in chronological order.
+    """
+    from webapi.strategy_logger_config import get_strategy_log_dir
+    from analytics.logging.reader import load_steps_for_game
+
+    base_dir = get_strategy_log_dir()
+    steps = load_steps_for_game(base_dir, game_id)
+    if not steps:
+        return {"game_id": game_id, "steps": [], "total": 0, "limit": limit, "offset": offset}
+
+    total = len(steps)
+    page = steps[offset : offset + limit]
+    return {"game_id": game_id, "steps": page, "total": total, "limit": limit, "offset": offset}
+
+
+async def get_analysis_summary(game_id: str):
+    """
+    Return aggregates for UI charts: mobility curves, deltas over time.
+    Derived from StrategyLogger steps.jsonl.
+    """
+    from webapi.strategy_logger_config import get_strategy_log_dir
+    from analytics.logging.reader import load_steps_for_game
+
+    base_dir = get_strategy_log_dir()
+    steps = load_steps_for_game(base_dir, game_id)
+    if not steps:
+        return {"game_id": game_id, "mobilityCurve": [], "deltas": [], "totalSteps": 0}
+
+    mobility_curve = []
+    deltas = []
+    for s in steps:
+        turn = s.get("turn_index", 0)
+        pid = s.get("player_id")
+        before = s.get("legal_moves_before", 0)
+        after = s.get("legal_moves_after", 0)
+        metrics = s.get("metrics") or {}
+        delta = metrics.get("mobility_me_delta", after - before)
+        mobility_curve.append({"turn_index": turn, "player_id": pid, "legal_moves_before": before, "legal_moves_after": after})
+        deltas.append({"turn_index": turn, "player_id": pid, "delta": delta})
+
+    return {
+        "game_id": game_id,
+        "mobilityCurve": mobility_curve,
+        "deltas": deltas,
+        "totalSteps": len(steps),
+    }
+
+
 async def get_game_analysis(game_id: str):
     """Return per-move AI/user metrics and aggregate game analysis."""
     try:
         db = get_database()
         game_doc = await db.game_records.find_one({"game_id": game_id})
-        move_docs = await db.move_records.find({"game_id": game_id}).sort("moveIndex", 1).to_list(length=2000)
+        move_docs = await db.move_records.find({"game_id": game_id}).to_list(length=2000)
+        move_docs.sort(key=lambda m: m.get("sequenceIndex", m.get("moveIndex", 0) if m.get("moveIndex") is not None else 9999))
     except Exception:
         game_doc = None
         move_docs = []
@@ -1045,7 +1332,8 @@ async def get_game_analysis(game_id: str):
             "move_count": int(game_data["game"].get_move_count()),
             "scores": {player.name: game_data["game"].get_score(player) for player in EnginePlayer},
         }
-        move_docs = game_data.get("move_records", [])
+        move_docs = list(game_data.get("move_records", []))
+        move_docs.sort(key=lambda m: m.get("sequenceIndex", m.get("moveIndex", 0) if m.get("moveIndex") is not None else 9999))
 
     ai_moves = [m for m in move_docs if not m.get("isHuman")]
     user_moves = [m for m in move_docs if m.get("isHuman")]
@@ -1068,11 +1356,6 @@ async def get_game_analysis(game_id: str):
             "userMoveCount": len(user_moves),
         },
     }
-
-
-
-
-@app.get("/api/history")
 async def get_history(limit: int = 20):
     """List recently finished games with summary metrics."""
     records = []
@@ -1128,7 +1411,6 @@ async def get_history(limit: int = 20):
     finished.sort(key=lambda x: x.get('finished_at') or datetime.min, reverse=True)
     return {"games": finished[:limit]}
 
-@app.get("/api/trends")
 async def get_trends():
     """Cross-game aggregate trends for analysis dashboard."""
     try:
@@ -1188,7 +1470,6 @@ async def get_trends():
 
 # Training Runs API Endpoints
 
-@app.get("/api/training-runs")
 async def list_training_runs(
     agent_id: Optional[str] = None,
     status: Optional[str] = None,
@@ -1246,7 +1527,6 @@ async def list_training_runs(
         )
 
 
-@app.get("/api/training-runs/{run_id}")
 async def get_training_run(run_id: str):
     """
     Get details of a specific training run.
@@ -1297,7 +1577,6 @@ async def get_training_run(run_id: str):
         )
 
 
-@app.get("/api/training-runs/agents/list")
 async def list_agents():
     """
     Get list of distinct agent IDs from training runs.
@@ -1327,7 +1606,6 @@ async def list_agents():
         )
 
 
-@app.get("/api/training-runs/{run_id}/evaluations")
 async def get_training_run_evaluations(run_id: str):
     """
     Get evaluation results for a specific training run.
@@ -1369,7 +1647,6 @@ async def get_training_run_evaluations(run_id: str):
 
 # WebSocket Endpoint
 
-@app.websocket("/ws/games/{game_id}")
 async def websocket_endpoint(websocket: WebSocket, game_id: str):
     """WebSocket endpoint for real-time game updates."""
     await websocket.accept()
@@ -1488,7 +1765,6 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
 # Error handlers
 
-@app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     """Handle HTTP exceptions."""
     return JSONResponse(
@@ -1498,9 +1774,6 @@ async def http_exception_handler(request, exc):
             message=exc.detail
         ).dict()
     )
-
-
-@app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
     """Handle general exceptions."""
     return JSONResponse(
@@ -1510,6 +1783,85 @@ async def general_exception_handler(request, exc):
             message="An unexpected error occurred"
         ).dict()
     )
+
+
+def _normalize_profile(profile: Optional[str]) -> str:
+    if profile in (APP_PROFILE_RESEARCH, APP_PROFILE_DEPLOY):
+        return profile  # type: ignore[return-value]
+    return get_app_profile()
+
+
+def create_app(
+    *,
+    profile: Optional[str] = None,
+    include_research_routes: Optional[bool] = None,
+) -> FastAPI:
+    global _current_app_profile
+
+    _current_app_profile = _normalize_profile(profile)
+    # Preserve object identity so existing imports (tests/tools) remain valid.
+    game_manager.app_profile = _current_app_profile
+    game_manager.games.clear()
+    game_manager.websocket_connections.clear()
+    game_manager.agent_instances.clear()
+
+    app_instance = FastAPI(
+        title="Blokus RL Web API",
+        description="Web API for Blokus RL game with REST and WebSocket support",
+        version="1.0.0",
+        lifespan=lifespan,
+    )
+
+    app_instance.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    register_gameplay_routes(
+        app_instance,
+        health=health,
+        root=root,
+        create_game=create_game,
+        get_game=get_game,
+        make_move=make_move,
+        finish_game=finish_game,
+        get_agents=get_agents,
+        list_games=list_games,
+        websocket_endpoint=websocket_endpoint,
+    )
+
+    register_research = (
+        include_research_routes
+        if include_research_routes is not None
+        else _current_app_profile == APP_PROFILE_RESEARCH
+    )
+    if register_research:
+        register_research_routes(
+            app_instance,
+            health_check_db=health_check_db,
+            mongo_debug=mongo_debug,
+            get_game_analysis=get_game_analysis,
+            get_game_replay=get_game_replay,
+            get_analysis_steps=get_analysis_steps,
+            get_analysis_summary=get_analysis_summary,
+            get_history=get_history,
+            get_trends=get_trends,
+            list_training_runs=list_training_runs,
+            get_training_run=get_training_run,
+            list_agents=list_agents,
+            get_training_run_evaluations=get_training_run_evaluations,
+        )
+
+    app_instance.add_exception_handler(HTTPException, http_exception_handler)
+    app_instance.add_exception_handler(Exception, general_exception_handler)
+    return app_instance
+
+
+# Canonical app entrypoint (research by default unless APP_PROFILE overrides)
+app = create_app(profile=APP_PROFILE)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+pydantic
+numpy
+orjson
+websockets
