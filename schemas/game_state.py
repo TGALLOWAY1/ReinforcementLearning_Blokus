@@ -79,6 +79,14 @@ class GameState(BaseModel):
         default=None,
         description="20x20 grid where 1.0 = legal move position, 0.0 = illegal"
     )
+    mobility_metrics: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Mobility metrics for current player per docs/metrics/mobility.md"
+    )
+    mcts_top_moves: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Top MCTS candidate moves from last agent think (visits, q_value)"
+    )
 
 
 class StateUpdate(BaseModel):

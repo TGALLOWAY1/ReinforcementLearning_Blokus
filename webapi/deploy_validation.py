@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from schemas.game_state import AgentType, GameConfig, PlayerConfig
 
 
-DEPLOY_TIME_BUDGET_CAP_MS = 1000
+DEPLOY_TIME_BUDGET_CAP_MS = 9000
 DEPLOY_DIFFICULTY_TO_MS: Dict[str, int] = {
     "easy": 200,
     "medium": 450,
@@ -85,16 +85,19 @@ def normalize_deploy_game_config(config: GameConfig) -> GameConfig:
         difficulty_raw = agent_config.get("difficulty")
         budget_raw = agent_config.get("time_budget_ms")
 
-        if difficulty_raw is not None:
+        if budget_raw is not None:
+            budget_ms = _normalize_time_budget_ms(budget_raw)
+            if difficulty_raw is not None:
+                difficulty = _normalize_difficulty(str(difficulty_raw))
+            else:
+                # Infer nearest deploy difficulty label for consistent telemetry/config.
+                difficulty = min(
+                    DEPLOY_DIFFICULTY_TO_MS.keys(),
+                    key=lambda k: abs(DEPLOY_DIFFICULTY_TO_MS[k] - budget_ms),
+                )
+        elif difficulty_raw is not None:
             difficulty = _normalize_difficulty(str(difficulty_raw))
             budget_ms = DEPLOY_DIFFICULTY_TO_MS[difficulty]
-        elif budget_raw is not None:
-            budget_ms = _normalize_time_budget_ms(budget_raw)
-            # Infer nearest deploy difficulty label for consistent telemetry/config.
-            difficulty = min(
-                DEPLOY_DIFFICULTY_TO_MS.keys(),
-                key=lambda k: abs(DEPLOY_DIFFICULTY_TO_MS[k] - budget_ms),
-            )
         else:
             difficulty = "medium"
             budget_ms = DEPLOY_DIFFICULTY_TO_MS[difficulty]

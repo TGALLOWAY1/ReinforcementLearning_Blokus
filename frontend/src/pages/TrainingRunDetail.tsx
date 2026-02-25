@@ -73,13 +73,13 @@ export const TrainingRunDetail: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`${API_BASE}/api/training-runs/${id}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch training run: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setRun(data);
     } catch (err) {
@@ -108,14 +108,14 @@ export const TrainingRunDetail: React.FC = () => {
 
   const formatDuration = (startTime: string, endTime?: string): string => {
     if (!endTime) return 'Running...';
-    
+
     const start = new Date(startTime);
     const end = new Date(endTime);
     const diffMs = end.getTime() - start.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
-    
+
     if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h ${diffMins % 60}m`;
     if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m`;
     return `${diffMins}m`;
@@ -128,7 +128,7 @@ export const TrainingRunDetail: React.FC = () => {
       stopped: 'bg-yellow-100 text-yellow-800',
       failed: 'bg-red-100 text-red-800',
     };
-    
+
     return (
       <span className={`px-3 py-1 rounded-full text-sm font-semibold ${colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`}>
         {status.toUpperCase()}
@@ -163,10 +163,10 @@ export const TrainingRunDetail: React.FC = () => {
     const minValue = Math.min(...data.map(d => d.value));
     const valueRange = maxValue - minValue || 1;
 
-    const scaleX = (episode: number) => 
+    const scaleX = (episode: number) =>
       padding.left + ((episode - minEpisode) / (maxEpisode - minEpisode || 1)) * chartWidth;
-    
-    const scaleY = (value: number) => 
+
+    const scaleY = (value: number) =>
       padding.top + chartHeight - ((value - minValue) / valueRange) * chartHeight;
 
     const points = data.map(d => `${scaleX(d.episode)},${scaleY(d.value)}`).join(' ');
@@ -190,7 +190,7 @@ export const TrainingRunDetail: React.FC = () => {
               />
             );
           })}
-          
+
           {/* Y-axis labels */}
           {[0, 0.25, 0.5, 0.75, 1].map((t) => {
             const value = minValue + t * valueRange;
@@ -310,9 +310,6 @@ export const TrainingRunDetail: React.FC = () => {
   const maxReward = episodes.length > 0
     ? Math.max(...episodes.map(e => e.total_reward))
     : 0;
-  const minReward = episodes.length > 0
-    ? Math.min(...episodes.map(e => e.total_reward))
-    : 0;
   const finalWinRate = rollingWinRate.length > 0
     ? rollingWinRate[rollingWinRate.length - 1].win_rate
     : null;
@@ -415,7 +412,7 @@ export const TrainingRunDetail: React.FC = () => {
             yLabel="Reward"
             color="#3B82F6"
           />
-          
+
           {winRateData.length > 0 && (
             <LineChart
               data={winRateData}
@@ -454,7 +451,7 @@ export const TrainingRunDetail: React.FC = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Key Hyperparameters */}
             {run.agent_hyperparameters && (
               <div className="mt-6 pt-6 border-t border-gray-200">
@@ -533,7 +530,7 @@ export const TrainingRunDetail: React.FC = () => {
                       <p className="text-xs text-gray-500">Win Rate</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-4 mt-3">
                     <div>
                       <p className="text-xs text-gray-500">Avg Reward</p>
@@ -553,18 +550,18 @@ export const TrainingRunDetail: React.FC = () => {
                 </div>
               ))}
             </div>
-            
+
             {/* Evaluation Command Hint */}
             {run.checkpoint_paths && run.checkpoint_paths.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <p className="text-sm font-medium text-gray-700 mb-2">Evaluate this model:</p>
                 <div className="bg-gray-900 rounded-lg p-3 relative">
                   <code className="text-sm text-green-400 font-mono block break-all">
-                    python training/evaluate_agent.py "{run.checkpoint_paths[run.checkpoint_paths.length - 1].path}" --num-games 50
+                    python training/evaluate_agent.py "{run.checkpoint_paths?.[run.checkpoint_paths.length - 1]?.path || ''}" --num-games 50
                   </code>
                   <button
                     onClick={() => {
-                      const command = `python training/evaluate_agent.py "${run.checkpoint_paths[run.checkpoint_paths.length - 1].path}" --num-games 50`;
+                      const command = `python training/evaluate_agent.py "${run.checkpoint_paths?.[run.checkpoint_paths?.length - 1]?.path || ''}" --num-games 50`;
                       navigator.clipboard.writeText(command).then(() => {
                         alert('Command copied to clipboard!');
                       });
@@ -625,7 +622,7 @@ export const TrainingRunDetail: React.FC = () => {
                       <p className="text-sm text-gray-600 font-mono mt-1">{checkpoint.path}</p>
                     </div>
                   </div>
-                  
+
                   {/* Resume Command */}
                   <div className="mt-3">
                     <p className="text-sm font-medium text-gray-700 mb-2">Resume from this checkpoint:</p>

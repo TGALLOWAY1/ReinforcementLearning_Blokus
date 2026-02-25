@@ -259,7 +259,7 @@ The game engine consists of:
 
 ### Performance Results
 
-From `PERFORMANCE_OPTIMIZATION_RESULTS.md` and benchmarks:
+From `docs/architecture/PERFORMANCE_OPTIMIZATION_RESULTS.md` and benchmarks:
 
 **Phase 1 Optimizations (pre-frontier/bitboard):**
 - Move processing: ~3s → ~500ms (82% improvement)
@@ -520,8 +520,8 @@ run_logger.update_status("completed")
 - `docs/move-generation-optimization.md` - M6 optimization details
 - `docs/move-generation-notes.md` - Move generation implementation notes
 - `docs/training-architecture.md` - Training system architecture
-- `GAME_ENGINE_OPTIMIZATION.md` - Phase 1 optimization results
-- `PERFORMANCE_OPTIMIZATION_RESULTS.md` - Performance improvement summary
+- `docs/architecture/GAME_ENGINE_OPTIMIZATION.md` - Phase 1 optimization results
+- `docs/architecture/PERFORMANCE_OPTIMIZATION_RESULTS.md` - Performance improvement summary
 
 ### Configuration
 - `config/agents/` - Agent hyperparameter config files (YAML/JSON)

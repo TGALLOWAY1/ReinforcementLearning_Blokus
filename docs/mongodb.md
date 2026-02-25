@@ -5,8 +5,19 @@ This document describes the MongoDB persistence layer for the Blokus RL project.
 ## Overview
 
 The MongoDB persistence layer provides centralized storage for:
+- **Game Records**: Completed games with per-move history for replay and debugging
 - **TrainingRun**: Records of RL training sessions with metrics, checkpoints, and configuration
 - **EvaluationRun**: Records of model evaluation sessions with performance metrics
+
+### Game Persistence (Research Profile Only)
+
+Games are persisted to MongoDB when they end. **MongoDB is only used in research profile** (`APP_PROFILE=research`). In deploy profile (e.g. Vercel), MongoDB is skipped and games are not stored.
+
+**Collections:**
+- `game_records`: Game metadata (game_id, winner, scores, players, created_at, finished_at)
+- `move_records`: Per-move/event history (piece placements and passes) for replay
+
+**Move-by-move replay:** Use `GET /api/analysis/{game_id}/replay?move_index=N` to get board state at event N (0=initial, 1=after first move/pass, -1=final).
 
 The connection is managed as a singleton, established once at application startup and reused across all requests.
 

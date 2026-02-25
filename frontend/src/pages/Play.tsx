@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useGameStore, useIsMyTurn } from '../store/gameStore';
+import { useGameStore } from '../store/gameStore';
 import { Board } from '../components/Board';
 import { RightPanel } from '../components/RightPanel';
 import { PieceTray } from '../components/PieceTray';
@@ -10,27 +10,27 @@ import { IS_DEPLOY_PROFILE } from '../constants/gameConstants';
 
 export const Play: React.FC = () => {
   const navigate = useNavigate();
-  const { 
-    gameState, 
-    selectedPiece, 
+  const {
+    gameState,
+    selectedPiece,
     pieceOrientation,
-    selectPiece, 
+    selectPiece,
     setPieceOrientation,
     makeMove,
     passTurn,
     setError,
     error
   } = useGameStore();
-  
+
   const [isMakingMove, setIsMakingMove] = useState(false);
   const [isPassing, setIsPassing] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogConsole, setShowLogConsole] = useState(false);
-  
+  const isTelemetryOpen = useGameStore(s => s.activeRightTab === 'telemetry');
+
   // Call hooks at the top level
-  const isMyTurn = useIsMyTurn();
-  
+
   // Determine if current player is human
   const currentPlayer = gameState?.current_player;
   const playerConfig = gameState?.players?.find((p: any) => p.player === currentPlayer);
@@ -41,29 +41,29 @@ export const Play: React.FC = () => {
     if (!selectedPiece) {
       return;
     }
-    
+
     if (isMakingMove) {
       return;
     }
-    
+
     // Reset any previous error state
     setError(null);
-    
+
     // Check if it's a human player's turn (not an agent)
     const currentPlayer = gameState?.current_player;
     const playerConfig = gameState?.players?.find((p: any) => p.player === currentPlayer);
     const isHumanPlayer = playerConfig?.agent_type === 'human';
-    
+
     // Check if the selected piece is already used
     const piecesUsed = gameState?.pieces_used || {};
     const currentPlayerPiecesUsed = currentPlayer ? piecesUsed[currentPlayer] || [] : [];
     const isPieceAlreadyUsed = currentPlayerPiecesUsed.includes(selectedPiece);
-    
+
     if (isPieceAlreadyUsed) {
       setError(`Piece ${selectedPiece} has already been used by ${currentPlayer}`);
       return;
     }
-    
+
     // If we don't have player info, assume it's a human player for now
     if (gameState?.players && !isHumanPlayer) {
       setError('Only human players can make manual moves');
@@ -71,21 +71,21 @@ export const Play: React.FC = () => {
     }
 
     // Legal move validation is now handled by the backend
-    
+
     // Check WebSocket connection
-    const { websocket, connectionStatus } = useGameStore.getState();
-    if (!websocket || connectionStatus !== 'connected') {
+    const { connectionStatus } = useGameStore.getState();
+    if (connectionStatus !== 'connected') {
       setError('Not connected to game. Please refresh the page.');
       return;
     }
-    
+
     setIsMakingMove(true);
     setError(null);
 
 
     try {
       const currentPlayer = gameState?.current_player || '';
-      
+
       const moveRequest = {
         player: currentPlayer.toUpperCase(),
         piece_id: selectedPiece,
@@ -93,7 +93,7 @@ export const Play: React.FC = () => {
         anchor_row: row,
         anchor_col: col
       };
-      
+
       // Send the move to the backend
       console.log('[UI] Sending move', {
         gameId: gameState?.game_id,
@@ -104,7 +104,7 @@ export const Play: React.FC = () => {
         col: moveRequest.anchor_col,
       });
       const response = await makeMove(moveRequest);
-      
+
       if (response && response.success) {
         console.log('✅ Move successful');
         // Clear the selected piece only after successful move
@@ -129,9 +129,7 @@ export const Play: React.FC = () => {
     // Could add hover effects here
   }, []);
 
-  const handleNewGame = useCallback(() => {
-    setShowConfigModal(true);
-  }, []);
+
 
   const handleGameCreated = useCallback(() => {
     setShowConfigModal(false);
@@ -141,10 +139,10 @@ export const Play: React.FC = () => {
     if (isPassing || !currentPlayer) {
       return;
     }
-    
+
     setIsPassing(true);
     setError(null);
-    
+
     try {
       const response = await passTurn(currentPlayer);
       if (response && response.success) {
@@ -185,8 +183,8 @@ export const Play: React.FC = () => {
             {connectionStatus === 'connecting' ? 'Connecting to game...' : 'Connection lost'}
           </h1>
           <p className="text-gray-400 mb-8">
-            {connectionStatus === 'connecting' 
-              ? 'Please wait while we establish the connection.' 
+            {connectionStatus === 'connecting'
+              ? 'Please wait while we establish the connection.'
               : 'Please refresh the page to reconnect.'}
           </p>
           {connectionStatus === 'connecting' && (
@@ -200,7 +198,7 @@ export const Play: React.FC = () => {
               Refresh Page
             </button>
           )}
-          
+
         </div>
       </div>
     );
@@ -247,12 +245,11 @@ export const Play: React.FC = () => {
           <div className="w-full mb-4 bg-charcoal-800 border border-charcoal-700 p-4 flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  currentPlayer === 'RED' ? 'bg-red-500' :
+                <div className={`w-3 h-3 rounded-full ${currentPlayer === 'RED' ? 'bg-red-500' :
                   currentPlayer === 'BLUE' ? 'bg-blue-500' :
-                  currentPlayer === 'GREEN' ? 'bg-green-500' :
-                  currentPlayer === 'YELLOW' ? 'bg-yellow-500' : 'bg-gray-500'
-                }`}></div>
+                    currentPlayer === 'GREEN' ? 'bg-green-500' :
+                      currentPlayer === 'YELLOW' ? 'bg-yellow-500' : 'bg-gray-500'
+                  }`}></div>
                 <span className="text-sm text-gray-200">
                   Current Player: <span className="font-semibold">{currentPlayer}</span>
                 </span>
@@ -298,13 +295,12 @@ export const Play: React.FC = () => {
                 <button
                   onClick={handlePassTurn}
                   disabled={isPassing || isMakingMove}
-                  className={`px-4 py-2 text-sm font-medium border transition-colors ${
-                    isPassing || isMakingMove
-                      ? 'bg-charcoal-900 border-charcoal-700 text-gray-500 cursor-not-allowed'
-                      : legalMovesCount === 0
+                  className={`px-4 py-2 text-sm font-medium border transition-colors ${isPassing || isMakingMove
+                    ? 'bg-charcoal-900 border-charcoal-700 text-gray-500 cursor-not-allowed'
+                    : legalMovesCount === 0
                       ? 'bg-charcoal-800 border-neon-yellow text-neon-yellow hover:bg-charcoal-700 hover:border-neon-yellow/80'
                       : 'bg-charcoal-800 border-charcoal-700 text-gray-200 hover:bg-charcoal-700 hover:border-charcoal-600'
-                  }`}
+                    }`}
                   title={legalMovesCount === 0 ? 'Pass turn (no moves available)' : 'Pass turn'}
                 >
                   {isPassing ? 'Passing...' : legalMovesCount === 0 ? 'Pass Turn (No Moves)' : 'Pass Turn'}
@@ -313,7 +309,7 @@ export const Play: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         {/* Error Display */}
         {error && (
           <div className="w-full mb-4 bg-charcoal-800 border border-neon-red p-4">
@@ -346,7 +342,7 @@ export const Play: React.FC = () => {
       </main>
 
       {/* Right Column - Controls and Visualizations */}
-      <aside className="w-96 border-l border-charcoal-700 bg-charcoal-900 flex flex-col overflow-hidden">
+      <aside className={`border-l border-charcoal-700 bg-charcoal-900 flex flex-col overflow-hidden transition-all duration-300 ${isTelemetryOpen ? 'w-[800px]' : 'w-96'}`}>
         <RightPanel onNewGame={() => setShowConfigModal(true)} />
       </aside>
 

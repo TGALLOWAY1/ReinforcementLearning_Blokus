@@ -5,9 +5,13 @@ import { useLegalMovesByPiece } from '../store/gameStore';
  * Bar chart of legal moves per piece.
  * Data comes from gameState.legal_moves (backend: engine/move_generator.get_legal_moves).
  * Counts are grouped by piece_id for available pieces only.
+ * When overrideData is provided (e.g. freeze mode), uses it instead of store.
  */
-export const LegalMovesBarChart: React.FC = () => {
-  const data = useLegalMovesByPiece();
+export const LegalMovesBarChart: React.FC<{
+  overrideData?: { pieceId: number; count: number }[];
+}> = ({ overrideData }) => {
+  const storeData = useLegalMovesByPiece();
+  const data = overrideData ?? storeData;
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
 
   const { bars, width, height, maxCount, barMaxH, pad } = useMemo(() => {

@@ -39,8 +39,10 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   const { createGame, connect } = useGameStore();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [maxTime, setMaxTime] = useState<number>(DEPLOY_MCTS_PRESETS.hard);
 
-  const [gameConfig, setGameConfig] = useState(IS_DEPLOY_PROFILE ? deployConfig : researchDefaultConfig);
+  const [gameConfig, setGameConfig] = useState<any>(IS_DEPLOY_PROFILE ? deployConfig : researchDefaultConfig);
 
   const handleCreateGame = async () => {
     console.log('🎮 Starting game creation...');
@@ -51,11 +53,11 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
       console.log('📋 Creating game with config:', gameConfig);
       const gameId = await createGame(gameConfig);
       console.log('🎯 Game created with ID:', gameId);
-      
+
       console.log('Connecting to WebSocket...');
       await connect(gameId);
       console.log('WebSocket connected');
-      
+
       // Check store state
       const storeState = useGameStore.getState();
       console.log('Store state after connection:', {
@@ -63,7 +65,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
         connectionStatus: storeState.connectionStatus,
         error: storeState.error
       });
-      
+
       // If no game state, try to fetch it via REST API as fallback
       if (!storeState.gameState) {
         console.log('No game state from WebSocket, fetching via REST API...');
@@ -78,7 +80,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
           console.error('Failed to fetch game state via REST API:', err);
         }
       }
-      
+
       onGameCreated();
       onClose();
     } catch (err) {
@@ -93,9 +95,9 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     if (IS_DEPLOY_PROFILE) {
       return;
     }
-    setGameConfig(prev => ({
+    setGameConfig((prev: any) => ({
       ...prev,
-      players: prev.players.map((player, i) => 
+      players: prev.players.map((player: any, i: number) =>
         i === index ? { ...player, [field]: value } : player
       )
     }));
@@ -108,7 +110,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     if (gameConfig.players.length < 4) {
       const playerColors = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
       const nextColor = playerColors[gameConfig.players.length];
-      setGameConfig(prev => ({
+      setGameConfig((prev: any) => ({
         ...prev,
         players: [...prev.players, { player: nextColor, agent_type: 'random', agent_config: {} }]
       }));
@@ -120,9 +122,9 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
       return;
     }
     if (gameConfig.players.length > 2) {
-      setGameConfig(prev => ({
+      setGameConfig((prev: any) => ({
         ...prev,
-        players: prev.players.filter((_, i) => i !== index)
+        players: prev.players.filter((_: any, i: number) => i !== index)
       }));
     }
   };
@@ -216,7 +218,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     try {
       const gameId = await createGame(preset.config);
       await connect(gameId);
-      
+
       const storeState = useGameStore.getState();
       if (!storeState.gameState) {
         try {
@@ -229,7 +231,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
           console.error('Failed to fetch game state via REST API:', err);
         }
       }
-      
+
       onGameCreated();
       onClose();
     } catch (err) {
@@ -246,6 +248,16 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     return (
       <div className="fixed inset-0 bg-charcoal-900 flex items-center justify-center z-50 p-4">
         <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg max-w-md w-full p-8 text-center relative">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="absolute top-4 left-4 text-gray-400 hover:text-neon-blue transition-colors"
+            title="Advanced Settings"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
           {canClose && (
             <button
               onClick={onClose}
@@ -261,6 +273,44 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
           <p className="text-gray-400 mb-6">
             You (Red) vs 3 AI opponents at Easy, Medium, and Hard
           </p>
+
+          {showSettings && (
+            <div className="mb-6 bg-charcoal-900 p-4 rounded-lg border border-charcoal-700 text-left">
+              <label className="block text-sm text-gray-300 font-medium mb-2">
+                Max AI Thinking Time: {maxTime / 1000}s
+              </label>
+              <input
+                type="range"
+                min="400"
+                max="9000"
+                step="100"
+                value={maxTime}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const val = parseInt(e.target.value);
+                  setMaxTime(val);
+                  setGameConfig((prev: any) => ({
+                    ...prev,
+                    players: prev.players.map((p: any) => {
+                      if (p.agent_type === 'mcts') {
+                        let budget = val;
+                        if (p.agent_config.difficulty === 'easy') budget = Math.floor(val / 4.5);
+                        else if (p.agent_config.difficulty === 'medium') budget = Math.floor(val / 2);
+                        return {
+                          ...p,
+                          agent_config: { ...p.agent_config, time_budget_ms: budget }
+                        };
+                      }
+                      return p;
+                    })
+                  }));
+                }}
+                className="w-full accent-neon-blue h-2 bg-charcoal-700 rounded-lg appearance-none cursor-pointer"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Adjusts the maximum time the Hard AI will think. Easy and Medium scale proportionally.
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-900 border border-red-700 rounded-lg p-4 mb-6 text-red-200 text-sm">
@@ -328,7 +378,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
           </div>
 
           <div className="border-t border-charcoal-700 pt-6">
-              <h3 className="text-lg font-semibold text-gray-200 mb-4">Custom Configuration</h3>
+            <h3 className="text-lg font-semibold text-gray-200 mb-4">Custom Configuration</h3>
 
             {/* Players */}
             <div className="mb-4">
@@ -336,7 +386,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
                 Players ({gameConfig.players.length}/4)
               </label>
               <div className="space-y-3">
-                {gameConfig.players.map((player, index) => (
+                {gameConfig.players.map((player: any, index: number) => (
                   <div key={index} className="flex items-center space-x-3">
                     <div className="w-24">
                       <select
@@ -373,7 +423,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
                   </div>
                 ))}
               </div>
-              
+
               {gameConfig.players.length < 4 && (
                 <button
                   onClick={addPlayer}
@@ -390,7 +440,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
                 type="checkbox"
                 id="auto_start"
                 checked={gameConfig.auto_start}
-                onChange={(e) => setGameConfig(prev => ({
+                onChange={(e) => setGameConfig((prev: any) => ({
                   ...prev,
                   auto_start: e.target.checked
                 }))}
@@ -407,8 +457,8 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
               disabled={isCreating}
               className={`
                 w-full py-3 px-6 rounded-lg font-medium text-white transition-colors duration-200
-                ${isCreating 
-                  ? 'bg-gray-600 cursor-not-allowed' 
+                ${isCreating
+                  ? 'bg-gray-600 cursor-not-allowed'
                   : 'bg-neon-blue hover:bg-neon-blue/80'
                 }
               `}

@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 // Shared game constants to avoid duplication
 // Environment variables are loaded from .env file (development) or OS env (production)
 // Vite requires VITE_ prefix for environment variables exposed to client code
@@ -66,7 +68,7 @@ export const PIECE_SHAPES: { [key: number]: number[][] } = {
 
 export const PIECE_NAMES: { [key: number]: string } = {
   1: 'Monomino',
-  2: 'Domino', 
+  2: 'Domino',
   3: 'Tromino I',
   4: 'Tromino L',
   5: 'Tetromino I',

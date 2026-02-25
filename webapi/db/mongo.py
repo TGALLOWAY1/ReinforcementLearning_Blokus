@@ -119,9 +119,9 @@ async def close_mongo_connection() -> None:
         logger.debug("MongoDB client not initialized, skipping close")
 
 
-def get_database() -> AsyncIOMotorDatabase:
+async def get_database() -> AsyncIOMotorDatabase:
     """
-    Get the MongoDB database instance.
+    Get the MongoDB database instance. Tests connection and reconnects if needed.
     
     This should be called after connect_to_mongo() has been executed.
     
@@ -129,13 +129,40 @@ def get_database() -> AsyncIOMotorDatabase:
         AsyncIOMotorDatabase instance
         
     Raises:
-        RuntimeError: If database connection has not been established
+        RuntimeError: If database connection fails and cannot be re-established
     """
+    global _client, _database, client, db
+    
+    if _client is None or _database is None:
+        try:
+            await connect_to_mongo()
+        except Exception as e:
+            raise RuntimeError(f"MongoDB database not initialized and auto-connect failed: {e}")
+            
+    try:
+        # Ping to check if connection is still alive (essential for Vercel frozen containers)
+        await _client.admin.command('ping')
+    except Exception as e:
+        logger.warning(f"MongoDB ping failed, attempting to reconnect: {e}")
+        try:
+            # Clean up old client
+            _client.close()
+        except:
+            pass
+            
+        _client = None
+        _database = None
+        client = None
+        db = None
+        
+        try:
+            await connect_to_mongo()
+        except Exception as reconnect_e:
+            raise RuntimeError(f"MongoDB database re-initialization failed: {reconnect_e}")
+            
     if _database is None:
-        raise RuntimeError(
-            "MongoDB database not initialized. "
-            "Call connect_to_mongo() during application startup."
-        )
+        raise RuntimeError("MongoDB database not initialized after reconnection attempt.")
+        
     return _database
 
 

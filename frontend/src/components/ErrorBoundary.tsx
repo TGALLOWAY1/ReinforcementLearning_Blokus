@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -32,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console and diagnostics
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     // Update state with error info
     this.setState({
       error,
@@ -114,10 +114,10 @@ Timestamp: ${new Date().toISOString()}
             <h1 style={{ color: '#ff4444', marginBottom: '20px' }}>
               🚨 React App Crashed
             </h1>
-            
-            <div style={{ 
-              backgroundColor: '#1a1a1a', 
-              padding: '15px', 
+
+            <div style={{
+              backgroundColor: '#1a1a1a',
+              padding: '15px',
               borderRadius: '4px',
               marginBottom: '20px',
               textAlign: 'left',
@@ -126,14 +126,14 @@ Timestamp: ${new Date().toISOString()}
               <div style={{ color: '#ff6666', marginBottom: '10px' }}>
                 <strong>Error:</strong> {this.state.error?.message || 'Unknown error'}
               </div>
-              
+
               {this.state.error?.stack && (
                 <div style={{ color: '#888', fontSize: '12px', whiteSpace: 'pre-wrap' }}>
                   <strong>Stack Trace:</strong>
                   {this.state.error.stack}
                 </div>
               )}
-              
+
               {this.state.errorInfo?.componentStack && (
                 <div style={{ color: '#888', fontSize: '12px', whiteSpace: 'pre-wrap', marginTop: '10px' }}>
                   <strong>Component Stack:</strong>
@@ -157,7 +157,7 @@ Timestamp: ${new Date().toISOString()}
               >
                 📋 Copy Logs
               </button>
-              
+
               <button
                 onClick={this.reloadPage}
                 style={{
@@ -174,9 +174,9 @@ Timestamp: ${new Date().toISOString()}
               </button>
             </div>
 
-            <div style={{ 
-              marginTop: '20px', 
-              fontSize: '12px', 
+            <div style={{
+              marginTop: '20px',
+              fontSize: '12px',
               color: '#888',
               textAlign: 'left'
             }}>

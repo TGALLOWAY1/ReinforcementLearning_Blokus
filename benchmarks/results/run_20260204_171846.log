@@ -1,0 +1,12 @@
+/Users/tjgalloway/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/xh/8r2vr33n26x429bps081h4v80000gn/T/matplotlib-2b0ya88i because there was an issue with the default path (/Users/tjgalloway/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+
+Fontconfig error: No writable cache directories
+	/opt/homebrew/var/cache/fontconfig
+	/Users/tjgalloway/.cache/fontconfig
+	/Users/tjgalloway/.fontconfig
+Matplotlib is building the font cache; this may take a moment.
+/Users/tjgalloway/Library/Python/3.9/lib/python/site-packages/stable_baselines3/common/preprocessing.py:23: UserWarning: Treating image space as channels-last, while second dimension was smallest of the three.
+  warnings.warn("Treating image space as channels-last, while second dimension was smallest of the three.")
+/Users/tjgalloway/Library/Python/3.9/lib/python/site-packages/stable_baselines3/common/preprocessing.py:23: UserWarning: Treating image space as channels-last, while second dimension was smallest of the three.
+  warnings.warn("Treating image space as channels-last, while second dimension was smallest of the three.")

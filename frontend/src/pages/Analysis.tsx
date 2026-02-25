@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { API_BASE } from '../constants/gameConstants';
+import { GameAnalyticsTimeline } from '../components/GameAnalyticsTimeline';
 
 export const Analysis: React.FC = () => {
   const { gameId } = useParams();
@@ -29,6 +30,12 @@ export const Analysis: React.FC = () => {
           <Link to="/play" className="text-neon-blue">Back to Play</Link>
         </div>
       </div>
+
+      {gameId && (
+        <div className="mb-6">
+          <GameAnalyticsTimeline gameId={gameId} />
+        </div>
+      )}
 
       {analysis && (
         <div className="space-y-4">

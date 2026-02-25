@@ -1,0 +1,27 @@
+{
+  "steps": 100,
+  "stage2": {
+    "steps": 100,
+    "elapsed_sec": 49.12731885910034,
+    "steps_per_sec": 2.035527326186986,
+    "step_time_ms_mean": 491.2731885910034,
+    "predict_ms_mean": 3.6497350399994843,
+    "predict_ms_p95": 4.619416399999209,
+    "episode_len_mean": 13.0,
+    "cpu_util_pct": null,
+    "gpu_available": false,
+    "gpu_util_pct": null
+  },
+  "stage3": {
+    "steps": 100,
+    "elapsed_sec": 53.79067802429199,
+    "steps_per_sec": 1.859058180208098,
+    "step_time_ms_mean": 537.9067802429199,
+    "predict_ms_mean": 7.353561640000237,
+    "predict_ms_p95": 4.650892000003636,
+    "episode_len_mean": 15.0,
+    "cpu_util_pct": null,
+    "gpu_available": false,
+    "gpu_util_pct": null
+  }
+}

@@ -13,15 +13,18 @@ const PLAYER_COLOR_MAP: Record<string, string> = {
 /**
  * Multi-line time-series plot of cell-weighted mobility per player per turn.
  * Uses totalCellWeighted (Σ MW_i = Σ P_i*S_i/O_i) for orientation-normalized mobility.
- * Data: legalMovesHistory from gameStore (recorded on each turn advance via setGameState).
+ * Data: legalMovesHistory from gameStore, or overrideHistory when provided (e.g. backend logs).
  */
-export const LegalMovesPerTurnPlot: React.FC = () => {
-  const legalMovesHistory = useGameStore((s) => s.legalMovesHistory);
+export const LegalMovesPerTurnPlot: React.FC<{
+  overrideHistory?: LegalMovesHistoryEntry[];
+}> = ({ overrideHistory }) => {
+  const storeHistory = useGameStore((s) => s.legalMovesHistory);
+  const legalMovesHistory = overrideHistory !== undefined ? overrideHistory : storeHistory;
   const gameState = useGameStore((s) => s.gameState);
   const winner = gameState?.winner ?? null;
 
   const { lines, maxTurn, maxCount, width, height, pad, plotW, plotH } = useMemo(() => {
-    const w = 340;
+    const w = 740;
     const h = 180;
     const pad = { top: 16, right: 12, bottom: 32, left: 36 };
 
@@ -56,8 +59,8 @@ export const LegalMovesPerTurnPlot: React.FC = () => {
       const path =
         points.length > 0
           ? points
-              .map((p, i) => `${i === 0 ? 'M' : 'L'} ${toX(p.turn)} ${toY(p.count)}`)
-              .join(' ')
+            .map((p, i) => `${i === 0 ? 'M' : 'L'} ${toX(p.turn)} ${toY(p.count)}`)
+            .join(' ')
           : '';
       const isWinner = winner === player;
       return {

@@ -1,0 +1,2 @@
+{"step": 5000, "elapsed_sec": 6897.089061975479, "steps_per_sec": 3.4794400207197, "games_per_sec_est": 0.0, "eval": {"wins": 2, "losses": 3, "draws": 0, "elo": 1190.0384861298521}}
+{"step": 10000, "elapsed_sec": 8209.237315893173, "steps_per_sec": 3.892847819368155, "games_per_sec_est": 0.0, "eval": {"wins": 1, "losses": 3, "draws": 1, "elo": 1159.749872497665}}

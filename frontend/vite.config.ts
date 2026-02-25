@@ -8,6 +8,12 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
   },
+  worker: {
+    format: 'es',
+  },
+  optimizeDeps: {
+    exclude: ['pyodide'],
+  },
   server: {
     port: 3000,
     proxy: {

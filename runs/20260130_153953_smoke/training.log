@@ -1,0 +1,74 @@
+2026-01-30 15:39:53 - training.trainer - INFO - Created run directory: runs/20260130_153953_smoke
+2026-01-30 15:39:53 - training.trainer - INFO - Log file: runs/20260130_153953_smoke/training.log
+2026-01-30 15:39:53 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:53 - training.trainer - INFO - Starting Training Run
+2026-01-30 15:39:53 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:53 - training.trainer - INFO - Run directory: runs/20260130_153953_smoke
+2026-01-30 15:39:53 - training.trainer - INFO - Timestamp: 2026-01-30 15:39:53
+2026-01-30 15:39:53 - training.trainer - INFO - 
+2026-01-30 15:39:53 - training.trainer - INFO - Reproducibility Information:
+2026-01-30 15:39:53 - training.trainer - INFO -   Code Version: 1.0.0
+2026-01-30 15:39:53 - training.trainer - INFO -   Git Hash: 2139cd8a65d2a5529c4caaff796282306d64e99d
+2026-01-30 15:39:53 - training.trainer - INFO -   Git Branch: 18-strategy-lab
+2026-01-30 15:39:53 - training.trainer - INFO -   Python Version: 3.9.6
+2026-01-30 15:39:53 - training.trainer - INFO -   PyTorch Version: 2.8.0
+2026-01-30 15:39:53 - training.trainer - INFO -   Stable-Baselines3 Version: 2.7.0
+2026-01-30 15:39:53 - training.trainer - INFO - 
+2026-01-30 15:39:53 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:53 - training.trainer - INFO - Training Configuration
+2026-01-30 15:39:53 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:53 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:53 - training.trainer - INFO - Training Configuration
+2026-01-30 15:39:53 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:53 - training.trainer - INFO - Mode: SMOKE
+2026-01-30 15:39:53 - training.trainer - INFO - Max Episodes: 3
+2026-01-30 15:39:53 - training.trainer - INFO - Max Steps per Episode: 50
+2026-01-30 15:39:53 - training.trainer - INFO - Total Timesteps: 1000
+2026-01-30 15:39:53 - training.trainer - INFO - N Steps (per update): 128
+2026-01-30 15:39:53 - training.trainer - INFO - Learning Rate: 0.0003
+2026-01-30 15:39:53 - training.trainer - INFO - Batch Size: 32
+2026-01-30 15:39:53 - training.trainer - INFO - Logging Verbosity: 2
+2026-01-30 15:39:53 - training.trainer - INFO - Random Seed: None
+2026-01-30 15:39:53 - training.trainer - INFO - Env Seed: Same as random_seed
+2026-01-30 15:39:53 - training.trainer - INFO - Agent Seed: Same as random_seed
+2026-01-30 15:39:53 - training.trainer - INFO - Checkpoint Dir: /var/folders/xh/8r2vr33n26x429bps081h4v80000gn/T/tmptz7ivkfa/checkpoints
+2026-01-30 15:39:53 - training.trainer - INFO - TensorBoard Log Dir: /var/folders/xh/8r2vr33n26x429bps081h4v80000gn/T/tmptz7ivkfa/logs
+2026-01-30 15:39:53 - training.trainer - INFO - Checkpoint Interval: End of training only
+2026-01-30 15:39:53 - training.trainer - INFO - Keep Last N Checkpoints: 3
+2026-01-30 15:39:53 - training.trainer - INFO - Resume From Checkpoint: None (start fresh)
+2026-01-30 15:39:53 - training.trainer - INFO - Agent Config: None (use defaults)
+2026-01-30 15:39:53 - training.trainer - INFO - Sanity Checks: True
+2026-01-30 15:39:53 - training.trainer - INFO - Log Action Details: True
+2026-01-30 15:39:53 - training.trainer - INFO - Number of Environments: 1
+2026-01-30 15:39:53 - training.trainer - INFO - VecEnv Type: dummy
+2026-01-30 15:39:53 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:53 - training.trainer - INFO - 
+2026-01-30 15:39:53 - training.trainer - INFO - Additional Configuration:
+2026-01-30 15:39:53 - training.trainer - INFO -   Agent Config: Using defaults
+2026-01-30 15:39:53 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:53 - training.trainer - INFO - 
+2026-01-30 15:39:53 - training.run_logger - WARNING - MongoDB not available, skipping run creation
+2026-01-30 15:39:53 - training.trainer - INFO - Training run logging disabled (MongoDB not available)
+2026-01-30 15:39:53 - training.seeds - INFO - No seed provided, using random initialization
+2026-01-30 15:39:53 - training.trainer - INFO - Disabled PyTorch distribution validation (Simplex constraint) for large action space compatibility
+2026-01-30 15:39:53 - training.trainer - INFO - Initializing MaskablePPO model...
+2026-01-30 15:39:54 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:54 - training.trainer - INFO - DIAGNOSTIC: Inspecting MaskableCategorical probability distribution
+2026-01-30 15:39:54 - training.trainer - INFO - ================================================================================
+2026-01-30 15:39:54 - training.trainer - ERROR - DIAGNOSTIC: Error during probability inspection: 'ActionMasker' object has no attribute 'agent_name'
+2026-01-30 15:39:54 - training.trainer - ERROR - This diagnostic failed, but training will continue...
+2026-01-30 15:39:54 - training.trainer - INFO - Starting training in SMOKE mode...
+2026-01-30 15:39:54 - training.trainer - INFO - Target: 1000 total timesteps
+2026-01-30 15:39:54 - training.trainer - ERROR - Training error: You must install tqdm and rich in order to use the progress bar callback. It is included if you install stable-baselines with the extra packages: `pip install stable-baselines3[extra]`
+Traceback (most recent call last):
+  File "/Users/tjgalloway/Programming Projects 2025/blokus_rl/training/trainer.py", line 1031, in train
+    model.learn(
+  File "/Users/tjgalloway/Library/Python/3.9/lib/python/site-packages/sb3_contrib/ppo_mask/ppo_mask.py", line 441, in learn
+    total_timesteps, callback = self._setup_learn(
+  File "/Users/tjgalloway/Library/Python/3.9/lib/python/site-packages/stable_baselines3/common/base_class.py", line 434, in _setup_learn
+    callback = self._init_callback(callback, progress_bar)
+  File "/Users/tjgalloway/Library/Python/3.9/lib/python/site-packages/stable_baselines3/common/base_class.py", line 378, in _init_callback
+    callback = CallbackList([callback, ProgressBarCallback()])
+  File "/Users/tjgalloway/Library/Python/3.9/lib/python/site-packages/stable_baselines3/common/callbacks.py", line 709, in __init__
+    raise ImportError(
+ImportError: You must install tqdm and rich in order to use the progress bar callback. It is included if you install stable-baselines with the extra packages: `pip install stable-baselines3[extra]`
