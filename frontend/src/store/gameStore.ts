@@ -52,6 +52,17 @@ export interface GameState {
   heatmap?: number[][];
   mobility_metrics?: PlayerMobilityMetrics;
   mcts_top_moves?: MctsTopMove[];
+  influence_map?: number[][];
+  dead_zones?: boolean[][];
+  advanced_metrics?: {
+    [player: string]: {
+      corner_differential: number;
+      territory_ratio: number;
+      piece_penalty: number;
+      center_proximity: number;
+      opponent_adjacency: number;
+    }
+  };
 }
 
 export interface MctsTopMove {
@@ -92,6 +103,15 @@ import { useDebugLogStore } from './debugLogStore';
 export interface LegalMovesHistoryEntry {
   turn: number;
   byPlayer: Record<string, PlayerMobilityMetrics>;
+  advanced?: {
+    [player: string]: {
+      corner_differential: number;
+      territory_ratio: number;
+      piece_penalty: number;
+      center_proximity: number;
+      opponent_adjacency: number;
+    }
+  };
 }
 
 // Store interface
@@ -282,6 +302,7 @@ export const useGameStore = create<GameStore>()(
           const entry: LegalMovesHistoryEntry = {
             turn: 0,
             byPlayer: { [gameState.current_player]: metrics },
+            advanced: gameState.advanced_metrics,
           };
           return { gameState, legalMovesHistory: [entry], previewMove: null };
         }
@@ -293,6 +314,7 @@ export const useGameStore = create<GameStore>()(
         const entry: LegalMovesHistoryEntry = {
           turn: state.legalMovesHistory.length,
           byPlayer: { [gameState.current_player]: metrics },
+          advanced: gameState.advanced_metrics,
         };
         return {
           gameState,

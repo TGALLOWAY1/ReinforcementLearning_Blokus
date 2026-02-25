@@ -9,6 +9,10 @@ from engine.game import BlokusGame
 from engine.board import Player as EnginePlayer
 from engine.move_generator import Move as EngineMove
 from engine.mobility_metrics import compute_player_mobility_metrics
+from engine.advanced_metrics import (
+    compute_corner_differential, compute_territory_control, compute_piece_penalty, 
+    compute_center_proximity, compute_opponent_adjacency, compute_dead_zones
+)
 from agents.fast_mcts_agent import FastMCTSAgent
 
 class WebWorkerGameBridge:
@@ -99,6 +103,19 @@ class WebWorkerGameBridge:
                 
         status = "finished" if game.is_game_over() else "in_progress"
         
+        influence_map, territory_ratios = compute_territory_control(game.board)
+        dead_zones = compute_dead_zones(game.board)
+        
+        advanced_metrics_out = {}
+        for p in EnginePlayer:
+            advanced_metrics_out[p.name] = {
+                "corner_differential": compute_corner_differential(game.board, p),
+                "territory_ratio": territory_ratios.get(p.name, 0.0),
+                "piece_penalty": compute_piece_penalty(game.board.player_pieces_used[p]),
+                "center_proximity": compute_center_proximity(game.board, p),
+                "opponent_adjacency": compute_opponent_adjacency(game.board, p)
+            }
+        
         return {
             "game_id": self.game_id,
             "status": status,
@@ -115,7 +132,10 @@ class WebWorkerGameBridge:
             "players": self.players_config,
             "heatmap": heatmap,
             "mobility_metrics": mobility_metrics,
-            "mcts_top_moves": self.mcts_top_moves
+            "mcts_top_moves": self.mcts_top_moves,
+            "influence_map": influence_map,
+            "dead_zones": dead_zones,
+            "advanced_metrics": advanced_metrics_out
         }
 
     def make_move(self, piece_id: int, orientation: int, anchor_row: int, anchor_col: int):

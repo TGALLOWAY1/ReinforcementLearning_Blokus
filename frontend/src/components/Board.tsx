@@ -12,7 +12,6 @@ interface BoardProps {
 
 // Constants are now imported from shared constants file
 
-// Memoized cell component to prevent unnecessary re-renders
 const CellRect = React.memo<{
   row: number;
   col: number;
@@ -21,7 +20,9 @@ const CellRect = React.memo<{
   stroke: string;
   strokeWidth: number;
   hasPiece: boolean;
-}>(({ row, col, cellColor, opacity, stroke, strokeWidth, hasPiece }) => (
+  influenceColor: string | null;
+  isDeadZone: boolean;
+}>(({ row, col, cellColor, opacity, stroke, strokeWidth, hasPiece, influenceColor, isDeadZone }) => (
   <g>
     <rect
       x={col * CELL_SIZE}
@@ -37,6 +38,45 @@ const CellRect = React.memo<{
         filter: hasPiece ? `drop-shadow(0 0 2px ${cellColor})` : 'none'
       }}
     />
+    {influenceColor && !hasPiece && (
+      <rect
+        x={col * CELL_SIZE}
+        y={row * CELL_SIZE}
+        width={CELL_SIZE}
+        height={CELL_SIZE}
+        fill={influenceColor}
+        opacity={0.15}
+        className="pointer-events-none transition-all duration-200"
+      />
+    )}
+    {isDeadZone && !hasPiece && (
+      <g className="pointer-events-none transition-all duration-200" opacity={0.6}>
+        <line
+          x1={col * CELL_SIZE}
+          y1={row * CELL_SIZE}
+          x2={(col + 1) * CELL_SIZE}
+          y2={(row + 1) * CELL_SIZE}
+          stroke="#f87171"
+          strokeWidth={1}
+        />
+        <line
+          x1={(col + 1) * CELL_SIZE}
+          y1={row * CELL_SIZE}
+          x2={col * CELL_SIZE}
+          y2={(row + 1) * CELL_SIZE}
+          stroke="#f87171"
+          strokeWidth={1}
+        />
+        <rect
+          x={col * CELL_SIZE}
+          y={row * CELL_SIZE}
+          width={CELL_SIZE}
+          height={CELL_SIZE}
+          fill="#1a1a1a"
+          opacity={0.5}
+        />
+      </g>
+    )}
   </g>
 ));
 CellRect.displayName = 'CellRect';
@@ -48,9 +88,9 @@ export const Board: React.FC<BoardProps> = ({
   pieceOrientation
 }) => {
   const { gameState, previewMove, setPreviewMove } = useGameStore();
-  const [hoveredCell, setHoveredCell] = useState<{row: number, col: number} | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ row: number, col: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  
+
   // Performance instrumentation - measure render time
   useEffect(() => {
     console.time('[UI] Board render');
@@ -58,7 +98,7 @@ export const Board: React.FC<BoardProps> = ({
       console.timeEnd('[UI] Board render');
     };
   });
-  
+
   // Performance instrumentation - measure effect time when gameState changes
   useEffect(() => {
     if (gameState) {
@@ -67,18 +107,18 @@ export const Board: React.FC<BoardProps> = ({
       console.timeEnd('[UI] Board effect (gameState change)');
     }
   }, [gameState]);
-  
+
 
   const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return;
-    
+
     const rect = svgRef.current.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     const col = Math.floor(x / CELL_SIZE);
     const row = Math.floor(y / CELL_SIZE);
-    
+
     if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
       setHoveredCell({ row, col });
       onCellHover(row, col);
@@ -153,7 +193,7 @@ export const Board: React.FC<BoardProps> = ({
     if (isPreviewCell(row, col)) {
       return 'transparent';
     }
-    
+
     // Return the normal cell color
     return getCellColor(row, col);
   };
@@ -163,7 +203,7 @@ export const Board: React.FC<BoardProps> = ({
     if (isPreviewCell(row, col)) {
       return 1.0;
     }
-    
+
     // Normal cells are fully opaque
     return 1.0;
   };
@@ -260,7 +300,7 @@ export const Board: React.FC<BoardProps> = ({
             />
           </g>
         ))}
-        
+
         {/* Board cells - memoized to prevent unnecessary re-renders */}
         {Array.from({ length: BOARD_SIZE }).map((_, row) =>
           Array.from({ length: BOARD_SIZE }).map((_, col) => {
@@ -269,7 +309,16 @@ export const Board: React.FC<BoardProps> = ({
             const stroke = getCellStroke(row, col);
             const strokeWidth = getCellStrokeWidth(row, col);
             const hasPiece = hasPlacedPiece(row, col);
-            
+
+            let influenceColor = null;
+            if (gameState?.influence_map?.[row]?.[col]) {
+              const pId = gameState.influence_map[row][col];
+              // Map from player ID (1-4) to color name directly since we know the mapping
+              const pNames = ['red', 'blue', 'yellow', 'green'];
+              influenceColor = (PLAYER_COLORS as any)[pNames[pId - 1]] || null;
+            }
+            const isDeadZone = gameState?.dead_zones?.[row]?.[col] || false;
+
             return (
               <CellRect
                 key={`${row}-${col}`}
@@ -280,11 +329,13 @@ export const Board: React.FC<BoardProps> = ({
                 stroke={stroke}
                 strokeWidth={strokeWidth}
                 hasPiece={hasPiece}
+                influenceColor={influenceColor}
+                isDeadZone={isDeadZone}
               />
             );
           })
         )}
-        
+
         {/* Hovered cell highlight - only show if not part of piece preview */}
         {hoveredCell && !isPreviewCell(hoveredCell.row, hoveredCell.col) && (
           <rect

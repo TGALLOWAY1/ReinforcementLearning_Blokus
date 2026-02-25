@@ -11,6 +11,7 @@ import { MobilityBucketsChart } from './MobilityBucketsChart';
 import { PolicyView } from './AgentVisualizations';
 import { DebugLogsPanel } from './DebugLogsPanel';
 import { FrontierSizePlot } from './FrontierSizePlot';
+import { CornerDiffPlot } from './CornerDiffPlot';
 import { ENABLE_DEBUG_UI } from '../constants/gameConstants';
 
 type TelemetrySubTab = 'charts' | 'events';
@@ -76,6 +77,10 @@ export const TelemetryPanel: React.FC = () => {
     : undefined;
   const legalMovesTotal = effectiveGameState?.legal_moves?.length ?? 0;
 
+  const advMetrics = effectiveGameState?.current_player && effectiveGameState?.advanced_metrics
+    ? effectiveGameState.advanced_metrics[effectiveGameState.current_player]
+    : undefined;
+
   if (!ENABLE_DEBUG_UI) return null;
 
   if (subTab === 'events') {
@@ -136,6 +141,26 @@ export const TelemetryPanel: React.FC = () => {
           <div className="bg-charcoal-800 rounded px-2 py-1">
             <span className="text-gray-500">frontier_size</span>
             <div className="text-gray-300">{metrics?.frontierSize ?? '—'}</div>
+          </div>
+          <div className="bg-charcoal-800 rounded px-2 py-1">
+            <span className="text-gray-500">corner_diff</span>
+            <div className="text-gray-300">{advMetrics?.corner_differential ?? '—'}</div>
+          </div>
+          <div className="bg-charcoal-800 rounded px-2 py-1">
+            <span className="text-gray-500">territory_%</span>
+            <div className="text-gray-300">{advMetrics?.territory_ratio != null ? (advMetrics.territory_ratio * 100).toFixed(1) + '%' : '—'}</div>
+          </div>
+          <div className="bg-charcoal-800 rounded px-2 py-1">
+            <span className="text-gray-500">piece_penalty</span>
+            <div className="text-gray-300">{advMetrics?.piece_penalty ?? '—'}</div>
+          </div>
+          <div className="bg-charcoal-800 rounded px-2 py-1">
+            <span className="text-gray-500">center_prox</span>
+            <div className="text-gray-300">{advMetrics?.center_proximity ?? '—'}</div>
+          </div>
+          <div className="bg-charcoal-800 rounded px-2 py-1">
+            <span className="text-gray-500">opp_adj</span>
+            <div className="text-gray-300">{advMetrics?.opponent_adjacency ?? '—'}</div>
           </div>
           <div className="bg-charcoal-800 rounded px-2 py-1">
             <span className="text-gray-500">last_update</span>
@@ -209,12 +234,16 @@ export const TelemetryPanel: React.FC = () => {
             <MobilityBucketsChart overrideHistory={slicedHistory} />
           </div>
         </div>
-        {/* Row C: FrontierSizePlot */}
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-charcoal-800/50 rounded-lg border border-charcoal-700 p-3">
             <h4 className="text-xs font-semibold text-gray-400 uppercase mb-0.5">Frontier Size over time</h4>
             <p className="text-[10px] text-gray-500 mb-2">Number of frontier cells available to play</p>
             <FrontierSizePlot overrideHistory={slicedHistory} />
+          </div>
+          <div className="bg-charcoal-800/50 rounded-lg border border-charcoal-700 p-3">
+            <h4 className="text-xs font-semibold text-gray-400 uppercase mb-0.5">Mobility over time</h4>
+            <p className="text-[10px] text-gray-500 mb-2">Corner Differential (Own - Opponent)</p>
+            <CornerDiffPlot overrideHistory={slicedHistory} />
           </div>
         </div>
       </div>
