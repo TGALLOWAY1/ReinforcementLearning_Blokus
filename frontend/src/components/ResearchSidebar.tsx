@@ -37,11 +37,10 @@ export const EnvironmentControlsSection: React.FC<{ onNewGame?: () => void }> = 
       </button>
       <button
         onClick={() => setAutoStep(!autoStep)}
-        className={`border px-4 py-2 text-sm font-medium transition-colors ${
-          autoStep
+        className={`border px-4 py-2 text-sm font-medium transition-colors ${autoStep
             ? 'bg-charcoal-700 border-neon-blue text-neon-blue'
             : 'bg-charcoal-800 border-charcoal-700 text-gray-200 hover:bg-charcoal-700 hover:border-charcoal-600'
-        }`}
+          }`}
       >
         Auto-Step {autoStep ? 'ON' : 'OFF'}
       </button>
@@ -68,7 +67,7 @@ export const TrainingParametersSection: React.FC = () => {
           className="w-full bg-charcoal-900 border border-charcoal-700 text-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-neon-blue"
         />
       </div>
-      
+
       {/* Exploration (epsilon) */}
       <div>
         <label className="block text-xs text-gray-400 mb-1">Exploration (ε)</label>
@@ -79,7 +78,7 @@ export const TrainingParametersSection: React.FC = () => {
           className="w-full bg-charcoal-900 border border-charcoal-700 text-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-neon-blue"
         />
       </div>
-      
+
       {/* Discount Factor */}
       <div>
         <label className="block text-xs text-gray-400 mb-1">Discount Factor (γ)</label>
@@ -90,7 +89,7 @@ export const TrainingParametersSection: React.FC = () => {
           className="w-full bg-charcoal-900 border border-charcoal-700 text-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-neon-blue"
         />
       </div>
-      
+
       {/* Agent Type */}
       <div>
         <label className="block text-xs text-gray-400 mb-1">Agent Type</label>
@@ -111,9 +110,9 @@ export const TrainingParametersSection: React.FC = () => {
 // Model Status Section Component
 export const ModelStatusSection: React.FC = () => {
   // Dummy state for model status
-  const [episode, setEpisode] = useState(142);
-  const [winRate, setWinRate] = useState(68.5);
-  
+  const episode = 142;
+  const winRate = 68.5;
+
   // Dummy data for sparkline (reward trend going up)
   const sparklineData = [20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90];
   const sparklineWidth = 200;
@@ -122,7 +121,7 @@ export const ModelStatusSection: React.FC = () => {
   const maxValue = Math.max(...sparklineData);
   const minValue = Math.min(...sparklineData);
   const range = maxValue - minValue || 1;
-  
+
   // Generate SVG path for sparkline
   const pathData = sparklineData.map((value, index) => {
     const x = padding + (index / (sparklineData.length - 1)) * (sparklineWidth - 2 * padding);
@@ -143,7 +142,7 @@ export const ModelStatusSection: React.FC = () => {
           <span className="text-sm font-mono text-neon-green">{winRate.toFixed(1)}%</span>
         </div>
       </div>
-      
+
       {/* Sparkline Chart */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">

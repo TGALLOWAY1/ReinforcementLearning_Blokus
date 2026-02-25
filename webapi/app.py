@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -83,7 +83,6 @@ class GameManager:
     def __init__(self, app_profile: Optional[str] = None):
         self.app_profile = app_profile or get_app_profile()
         self.games: Dict[str, Dict[str, Any]] = {}
-        self.websocket_connections: Dict[str, List[WebSocket]] = {}
         self.agent_instances: Dict[str, Any] = {}
         self._strategy_loggers: Dict[str, Any] = {}  # game_id -> StrategyLogger
     
@@ -105,7 +104,6 @@ class GameManager:
             'status': GameStatus.WAITING,
             'created_at': now,
             'updated_at': now,
-            'websocket_connections': [],
             'move_records': [],
             'last_turn_started_at': time.perf_counter(),
             'last_turn_player': game.get_current_player(),
@@ -174,49 +172,65 @@ class GameManager:
         
         self._init_strategy_logger(game_id)
         
-        # Start the turn loop
-        asyncio.create_task(self._run_turn_loop(game_id))
+        # In serverless/polling mode, turns are advanced via HTTP endpoints 
+        # instead of a background asyncio task.
     
-    async def _run_turn_loop(self, game_id: str):
-        """Run the turn loop for automatic agent moves."""
-        logger.info(f"Starting turn loop for game {game_id}")
-        while game_id in self.games and self.games[game_id]['status'] == GameStatus.IN_PROGRESS:
-            try:
-                game_data = self.games[game_id]
-                game = game_data['game']
-                
-                if game.is_game_over() or self._all_configured_players_blocked(game_data):
-                    logger.info(f"Game {game_id} is over")
-                    await self._end_game(game_id)
-                    break
-                
-                current_player = game.get_current_player()
-                agents = self.agent_instances.get(game_id, {})
-                agent = agents.get(current_player)
-                
-                logger.debug(f"Current player: {current_player.name}, Agent: {type(agent).__name__ if agent else 'None'}")
-                
-                configured_players = game_data.get('configured_players', set(EnginePlayer))
-                if current_player not in configured_players:
-                    game.board._update_current_player()
-                    await self._broadcast_game_state(game_id, "player_skipped_inactive")
-                    continue
+    async def advance_turn(self, game_id: str) -> MoveResponse:
+        """Advance the turn by letting the current agent make a move."""
+        if game_id not in self.games:
+            raise HTTPException(status_code=404, detail="Game not found")
+            
+        game_data = self.games[game_id]
+        if game_data['status'] != GameStatus.IN_PROGRESS:
+            return MoveResponse(
+                success=False,
+                message="Game is not in progress",
+                game_state=self._get_game_state(game_id)
+            )
+            
+        game = game_data['game']
+        
+        if game.is_game_over() or self._all_configured_players_blocked(game_data):
+            logger.info(f"Game {game_id} is over")
+            await self._end_game(game_id)
+            return MoveResponse(
+                success=True,
+                message="Game is over",
+                game_state=self._get_game_state(game_id)
+            )
+            
+        current_player = game.get_current_player()
+        agents = self.agent_instances.get(game_id, {})
+        agent = agents.get(current_player)
+        
+        configured_players = game_data.get('configured_players', set(EnginePlayer))
+        if current_player not in configured_players:
+            game.board._update_current_player()
+            return MoveResponse(
+                success=True,
+                message="Skipped inactive player",
+                game_state=self._get_game_state(game_id)
+            )
 
-                if agent is not None:
-                    # Agent move
-                    await self._make_agent_move(game_id, current_player, agent)
-                else:
-                    # Human player - wait for WebSocket move
-                    logger.debug(f"Waiting for human move from {current_player.name}")
-                    await self._broadcast_game_state(game_id, "waiting_for_human_move")
-                    await asyncio.sleep(0.5)  # Longer delay for human players to reduce CPU usage
+        if agent is not None:
+            # Agent move
+            await self._make_agent_move(game_id, current_player, agent)
+            
+            # Check if game is over after move
+            if game.is_game_over() or self._all_configured_players_blocked(game_data):
+                await self._end_game(game_id)
                 
-            except Exception as e:
-                logger.error(f"Error in turn loop for game {game_id}: {e}")
-                import traceback
-                traceback.print_exc()
-                await self._broadcast_error(game_id, str(e))
-                break
+            return MoveResponse(
+                success=True,
+                message="Agent moved",
+                game_state=self._get_game_state(game_id)
+            )
+        else:
+            return MoveResponse(
+                success=False,
+                message="Waiting for human move",
+                game_state=self._get_game_state(game_id)
+            )
     
     async def _make_agent_move(self, game_id: str, player: EnginePlayer, agent: Any):
         """
@@ -248,7 +262,6 @@ class GameManager:
                 self._record_pass(game_id, player, agent_type=type(agent).__name__, reason="no_moves")
                 game.board._update_current_player()
                 game._check_game_over()  # No piece placed, so make_move never ran this
-                await self._broadcast_game_state(game_id, "player_skipped")
                 return
             
             # Get agent's move with timeout / budget
@@ -318,7 +331,6 @@ class GameManager:
                 self._record_pass(game_id, player, agent_type=type(agent).__name__, reason="timeout")
                 game.board._update_current_player()
                 game._check_game_over()
-                await self._broadcast_game_state(game_id, "player_skipped_timeout")
                 return
             except Exception as e:
                 logger.error(f"AGENT MOVE: Agent {type(agent).__name__} raised exception in game {game_id} for player {player.name}: {e}")
@@ -327,7 +339,6 @@ class GameManager:
                 self._record_pass(game_id, player, agent_type=type(agent).__name__, reason="error")
                 game.board._update_current_player()
                 game._check_game_over()
-                await self._broadcast_game_state(game_id, "player_skipped_error")
                 return
             
             # Make the move (only reached if agent successfully returned a move)
@@ -368,24 +379,17 @@ class GameManager:
                 })
                 game_data['last_turn_started_at'] = time.perf_counter()
                 game_data['last_turn_player'] = game.get_current_player()
-
-                start_broadcast = time.perf_counter()
-                await self._broadcast_game_state(game_id, "move_made", last_move=last_move)
-                end_broadcast = time.perf_counter()
-                broadcast_time = end_broadcast - start_broadcast
                 
                 end_total = time.perf_counter()
                 total_time = end_total - start_total
                 logger.info(f"AGENT MOVE timing: total={total_time:.4f}s, legal={legal_time:.4f}s, agent={agent_time:.4f}s, apply={apply_time:.4f}s, broadcast={broadcast_time:.4f}s")
             else:
                 logger.warning(f"AGENT MOVE: Invalid move from agent {type(agent).__name__} for player {player.name}")
-                await self._broadcast_error(game_id, "Invalid move from agent")
                 
         except Exception as e:
             logger.error(f"AGENT MOVE ERROR: {str(e)} for player {player.name}")
             import traceback
             traceback.print_exc()
-            await self._broadcast_error(game_id, f"Agent error: {str(e)}")
     
     def _record_pass(self, game_id: str, player: EnginePlayer, agent_type: str = "human", reason: str = "no_moves"):
         """Record a pass (skip turn) in move_records for replay."""
@@ -500,8 +504,6 @@ class GameManager:
                 ])
         except Exception as exc:
             logger.warning(f"Could not persist game analytics for {game_id}: {exc}")
-
-        await self._broadcast_game_state(game_id, "game_over")
     
     async def make_move(self, game_id: str, move_request: MoveRequest) -> MoveResponse:
         """Make a move in the game."""
@@ -531,7 +533,6 @@ class GameManager:
         if success:
             self._log_step(game_id, turn_index, player.value, state_before, engine_move, game.board)
             game_data['updated_at'] = datetime.now()
-            await self._broadcast_game_state(game_id, "move_made")
             return MoveResponse(
                 success=True,
                 message="Move made successfully",
@@ -594,9 +595,6 @@ class GameManager:
             
             # Re-check game-over (no piece was placed, so make_move never ran _check_game_over)
             game._check_game_over()
-            
-            # Broadcast the updated game state
-            await self._broadcast_game_state(game_id, "player_passed")
             
             # Check if game is over
             game_over = game.is_game_over()
@@ -739,12 +737,6 @@ class GameManager:
                 })
                 game_data['last_turn_started_at'] = time.perf_counter()
                 game_data['last_turn_player'] = game.get_current_player()
-
-                # Broadcast the updated game state immediately
-                start_broadcast = time.perf_counter()
-                await self._broadcast_game_state(game_id, "move_made", last_move=last_move)
-                end_broadcast = time.perf_counter()
-                broadcast_time = end_broadcast - start_broadcast
                 
                 end_total = time.perf_counter()
                 total_time = end_total - start_total
@@ -850,11 +842,17 @@ class GameManager:
         current_player_engine = game.get_current_player()
         pieces_used_current = list(game.board.player_pieces_used[current_player_engine])
         mobility = compute_player_mobility_metrics(engine_moves, pieces_used_current)
+        
+        center_control = game._calculate_center_bonus(current_player_engine) // 2
+        frontier_size = len(game.board.get_frontier(current_player_engine))
+        
         mobility_metrics = {
             "totalPlacements": mobility.totalPlacements,
             "totalOrientationNormalized": mobility.totalOrientationNormalized,
             "totalCellWeighted": mobility.totalCellWeighted,
             "buckets": mobility.buckets,
+            "centerControl": center_control,
+            "frontierSize": frontier_size,
         }
         mcts_top_moves = game_data.get('last_mcts_top_moves')
 
@@ -876,78 +874,6 @@ class GameManager:
             mobility_metrics=mobility_metrics,
             mcts_top_moves=mcts_top_moves
         )
-    
-    async def _broadcast_game_state(self, game_id: str, update_type: str, last_move: Optional[Dict[str, Any]] = None):
-        """Broadcast game state to all WebSocket connections."""
-        if game_id not in self.websocket_connections:
-            return
-        
-        game_state = self._get_game_state(game_id)
-        data = {"game_state": game_state.dict()}
-        
-        # Include last move information if provided
-        if last_move:
-            data["move"] = last_move
-            data["player"] = last_move.get("player")
-        
-        update = StateUpdate(
-            type=update_type,
-            game_id=game_id,
-            data=data
-        )
-        
-        message = update.json()
-        
-        # Send to all connections
-        disconnected = []
-        for websocket in self.websocket_connections[game_id]:
-            try:
-                await websocket.send_text(message)
-            except:
-                disconnected.append(websocket)
-        
-        # Remove disconnected connections
-        for ws in disconnected:
-            self.websocket_connections[game_id].remove(ws)
-    
-    async def _broadcast_error(self, game_id: str, error_message: str):
-        """Broadcast error to all WebSocket connections."""
-        if game_id not in self.websocket_connections:
-            return
-        
-        update = StateUpdate(
-            type="error",
-            game_id=game_id,
-            data={"error": error_message}
-        )
-        
-        message = update.json()
-        
-        # Send to all connections
-        disconnected = []
-        for websocket in self.websocket_connections[game_id]:
-            try:
-                await websocket.send_text(message)
-            except:
-                disconnected.append(websocket)
-        
-        # Remove disconnected connections
-        for ws in disconnected:
-            self.websocket_connections[game_id].remove(ws)
-    
-    def add_websocket_connection(self, game_id: str, websocket: WebSocket):
-        """Add a WebSocket connection for a game."""
-        if game_id not in self.websocket_connections:
-            self.websocket_connections[game_id] = []
-        self.websocket_connections[game_id].append(websocket)
-    
-    def remove_websocket_connection(self, game_id: str, websocket: WebSocket):
-        """Remove a WebSocket connection."""
-        if game_id in self.websocket_connections:
-            try:
-                self.websocket_connections[game_id].remove(websocket)
-            except ValueError:
-                pass
     
     def get_available_agents(self) -> List[AgentInfo]:
         """Get list of available agents."""
@@ -1155,6 +1081,23 @@ async def get_game(game_id: str):
 async def make_move(game_id: str, move_request: MoveRequest):
     """Make a move in the game."""
     return await game_manager.make_move(game_id, move_request)
+
+
+async def advance_turn(game_id: str):
+    """Advance the turn for the connected agent based on polling frontend."""
+    return await game_manager.advance_turn(game_id)
+
+
+from schemas.game_state import Player
+from pydantic import BaseModel
+
+class PassRequest(BaseModel):
+    player: str
+
+async def pass_turn(game_id: str, pass_request: PassRequest):
+    """Process a pass turn for a human player."""
+    player = Player(pass_request.player.upper())
+    return await game_manager._process_human_pass(game_id, player)
 
 
 async def finish_game(game_id: str):
@@ -1645,124 +1588,6 @@ async def get_training_run_evaluations(run_id: str):
         )
 
 
-# WebSocket Endpoint
-
-async def websocket_endpoint(websocket: WebSocket, game_id: str):
-    """WebSocket endpoint for real-time game updates."""
-    await websocket.accept()
-    
-    # Check if game exists
-    if game_id not in game_manager.games:
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "game_id": game_id,
-            "data": {"error": "Game not found"},
-            "timestamp": datetime.now().isoformat()
-        }))
-        await websocket.close()
-        return
-    
-    # Add connection
-    game_manager.add_websocket_connection(game_id, websocket)
-    logger.info(f"Connected to game {game_id}")
-    
-    # Send initial game state
-    game_state = game_manager.get_game_state(game_id)
-    initial_update = StateUpdate(
-        type="game_state",
-        game_id=game_id,
-        data={"game_state": game_state.dict()}
-    )
-    await websocket.send_text(initial_update.json())
-    logger.info("Game state updated")
-    
-    try:
-        while True:
-            # Wait for messages from client
-            data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            # Handle different message types
-            if message.get("type") == "move":
-                logger.info(f"Received move message for game {game_id}: {json.dumps(message)}")
-                move_data = message.get("data")
-                if move_data:
-                    try:
-                        logger.info(f"Creating MoveRequest from data: {json.dumps(move_data)}")
-                        move_request = MoveRequest(**move_data)
-                        logger.info(f"MoveRequest created: player={move_request.player}, move={move_request.move.dict() if hasattr(move_request.move, 'dict') else move_request.move}")
-                        
-                        # Process move immediately without waiting for turn loop
-                        response = await game_manager._process_human_move_immediately(game_id, move_request)
-                        logger.info(f"Sending move response: success={response.success}")
-                        await websocket.send_text(response.json())
-                    except Exception as e:
-                        logger.error(f"Error processing move: {e}")
-                        import traceback
-                        traceback.print_exc()
-                        error_response = MoveResponse(
-                            success=False,
-                            message=f"Invalid move data: {str(e)}",
-                            game_over=False
-                        )
-                        await websocket.send_text(error_response.json())
-                else:
-                    logger.warning("No move data in message")
-                    error_response = MoveResponse(
-                        success=False,
-                        message="No move data provided",
-                        game_over=False
-                    )
-                    await websocket.send_text(error_response.json())
-            
-            elif message.get("type") == "pass":
-                logger.info(f"Received pass message for game {game_id}: {json.dumps(message)}")
-                pass_data = message.get("data")
-                if pass_data and "player" in pass_data:
-                    try:
-                        # Extract player from data
-                        player_str = pass_data.get("player")
-                        # Convert to Player enum
-                        player = Player(player_str)
-                        
-                        # Process pass immediately
-                        response = await game_manager._process_human_pass(game_id, player)
-                        logger.info(f"Sending pass response: success={response.success}")
-                        await websocket.send_text(response.json())
-                    except Exception as e:
-                        logger.error(f"Error processing pass: {e}")
-                        import traceback
-                        traceback.print_exc()
-                        error_response = MoveResponse(
-                            success=False,
-                            message=f"Invalid pass data: {str(e)}",
-                            game_over=False
-                        )
-                        await websocket.send_text(error_response.json())
-                else:
-                    logger.warning("No player data in pass message")
-                    error_response = MoveResponse(
-                        success=False,
-                        message="No player data provided",
-                        game_over=False
-                    )
-                    await websocket.send_text(error_response.json())
-            
-            elif message.get("type") == "ping":
-                await websocket.send_text(json.dumps({"type": "pong"}))
-            
-    except WebSocketDisconnect:
-        game_manager.remove_websocket_connection(game_id, websocket)
-    except Exception as e:
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "game_id": game_id,
-            "data": {"error": str(e)},
-            "timestamp": datetime.now().isoformat()
-        }))
-        game_manager.remove_websocket_connection(game_id, websocket)
-
-
 # Error handlers
 
 async def http_exception_handler(request, exc):
@@ -1802,7 +1627,6 @@ def create_app(
     # Preserve object identity so existing imports (tests/tools) remain valid.
     game_manager.app_profile = _current_app_profile
     game_manager.games.clear()
-    game_manager.websocket_connections.clear()
     game_manager.agent_instances.clear()
 
     app_instance = FastAPI(
@@ -1827,10 +1651,10 @@ def create_app(
         create_game=create_game,
         get_game=get_game,
         make_move=make_move,
-        finish_game=finish_game,
         get_agents=get_agents,
         list_games=list_games,
-        websocket_endpoint=websocket_endpoint,
+        advance_turn=advance_turn,
+        pass_turn=pass_turn,
     )
 
     register_research = (

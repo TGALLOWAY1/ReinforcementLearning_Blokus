@@ -1,0 +1,39 @@
+{
+  "steps": 2000,
+  "stage2": {
+    "steps": 2000,
+    "elapsed_sec": 755.4660103321075,
+    "steps_per_sec": 2.6473725788414857,
+    "step_time_ms_mean": 377.7330051660538,
+    "predict_ms_mean": 3.0090414919997635,
+    "predict_ms_p95": 3.390966350002599,
+    "episode_len_mean": 13.859649122807017,
+    "cpu_util_pct": null,
+    "cuda_available": false,
+    "mps_available": false,
+    "accelerator": "cpu",
+    "gpu_device": null,
+    "gpu_util_pct": null,
+    "gpu_mem_allocated_mb": null,
+    "gpu_mem_reserved_mb": null,
+    "mps_mem_allocated_mb": null
+  },
+  "stage3": {
+    "steps": 2000,
+    "elapsed_sec": 625.7728848457336,
+    "steps_per_sec": 3.196047717045207,
+    "step_time_ms_mean": 312.8864424228668,
+    "predict_ms_mean": 2.872018867999941,
+    "predict_ms_p95": 3.3426773999735815,
+    "episode_len_mean": 17.0,
+    "cpu_util_pct": null,
+    "cuda_available": false,
+    "mps_available": false,
+    "accelerator": "cpu",
+    "gpu_device": null,
+    "gpu_util_pct": null,
+    "gpu_mem_allocated_mb": null,
+    "gpu_mem_reserved_mb": null,
+    "mps_mem_allocated_mb": null
+  }
+}

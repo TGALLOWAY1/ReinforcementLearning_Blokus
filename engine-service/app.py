@@ -58,6 +58,7 @@ def think(payload: ThinkRequest):
     agent = FastMCTSAgent(iterations=5000, time_limit=max(payload.timeBudgetMs, 1) / 1000.0)
     result = agent.think(board, player, legal_moves, payload.timeBudgetMs)
     move = result["move"]
+    stats = result.get("stats") or {}
 
     return {
         "move": None if move is None else {
@@ -66,5 +67,5 @@ def think(payload: ThinkRequest):
             "anchor_row": move.anchor_row,
             "anchor_col": move.anchor_col,
         },
-        "stats": result["stats"],
+        "stats": stats,
     }

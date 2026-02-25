@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { BOARD_SIZE, CELL_SIZE } from '../constants/gameConstants';
+import { BOARD_SIZE } from '../constants/gameConstants';
 
 interface AgentVisualizationsProps {
   selectedPiece?: number | null;
@@ -11,8 +11,11 @@ interface AgentVisualizationsProps {
 type TabType = 'policy' | 'value' | 'tree';
 
 // Policy View Component (extracted for standalone use)
-export const PolicyView: React.FC = () => {
+export const PolicyView: React.FC<{ overrideHeatmap?: number[][] }> = ({ overrideHeatmap }) => {
   const { gameState } = useGameStore();
+
+  // Use override when provided (e.g. freeze mode in Telemetry)
+  const heatmapSource = overrideHeatmap ?? gameState?.heatmap;
 
   // Generate random policy grid for demo if no data exists
   const generateRandomPolicy = (): number[][] => {
@@ -22,11 +25,11 @@ export const PolicyView: React.FC = () => {
   };
 
   // Use real heatmap data from gameState if available, otherwise use random for demo
-  const currentPolicyGrid = gameState?.heatmap || generateRandomPolicy();
+  const currentPolicyGrid = heatmapSource || generateRandomPolicy();
 
   // Check if this is binary heatmap (legal moves) or continuous policy
-  const isBinaryHeatmap = gameState?.heatmap !== undefined;
-  
+  const isBinaryHeatmap = heatmapSource !== undefined;
+
   // Get min/max for normalization (for continuous policy)
   const allValues = currentPolicyGrid.flat();
   const minValue = Math.min(...allValues);
@@ -59,7 +62,7 @@ export const PolicyView: React.FC = () => {
           {rows.map((r) =>
             cols.map((c) => {
               const value = getPolicyValueForCell(r, c);
-              
+
               if (isBinaryHeatmap) {
                 // Binary heatmap: 1.0 = legal (red), 0.0 = illegal (transparent/blue)
                 if (value === 1.0) {
@@ -82,7 +85,7 @@ export const PolicyView: React.FC = () => {
                 const normalized = (value - minValue) / range;
                 const opacity = normalized;
                 const isHighProb = normalized > 0.5;
-                
+
                 return (
                   <div
                     key={`${r}-${c}`}
@@ -160,13 +163,12 @@ export const ValueView: React.FC = () => {
 };
 
 export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
-  selectedPiece,
   pieceOrientation = 0,
   setPieceOrientation
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('policy');
   const [localOrientation, setLocalOrientation] = useState(0);
-  
+
   const orientation = pieceOrientation !== undefined ? pieceOrientation : localOrientation;
   const setOrientation = setPieceOrientation || setLocalOrientation;
 
@@ -176,7 +178,7 @@ export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return;
       }
-      
+
       if (event.key === 'r' || event.key === 'R') {
         event.preventDefault();
         if (orientation < 4) {
@@ -212,11 +214,10 @@ export const AgentVisualizations: React.FC<AgentVisualizationsProps> = ({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
-              activeTab === tab.id
+            className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${activeTab === tab.id
                 ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue'
                 : 'bg-charcoal-900 text-gray-400 hover:text-gray-200 hover:bg-charcoal-800'
-            }`}
+              }`}
           >
             {tab.label}
           </button>

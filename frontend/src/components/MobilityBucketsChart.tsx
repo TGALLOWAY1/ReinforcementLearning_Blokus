@@ -1,6 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 
+/** Override format: same shape as LegalMovesHistoryEntry but buckets optional. */
+type HistoryOverride = Array<{
+  turn: number;
+  byPlayer: Record<string, { totalCellWeighted?: number; buckets?: Record<number, number> }>;
+}>;
+
 const PLAYER_ORDER = ['RED', 'BLUE', 'GREEN', 'YELLOW'] as const;
 
 /** High-contrast colors for each size bucket (mono → pento) */
@@ -24,7 +30,7 @@ type SizeBucket = 1 | 2 | 3 | 4 | 5;
 
 // Match LegalMovesPerTurnPlot dimensions for aligned X axis (Turn #)
 const CHART_HEIGHT = 56;
-const CHART_WIDTH = 340;
+const CHART_WIDTH = 740;
 const PAD = { top: 8, right: 12, bottom: 20, left: 36 };
 
 /**
@@ -47,21 +53,51 @@ const NormalizedMiniChart: React.FC<{
   const path =
     points.length > 0
       ? points
-          .map((p, i) => `${i === 0 ? 'M' : 'L'} ${toX(p.turn)} ${toY(p.val)}`)
-          .join(' ')
+        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${toX(p.turn)} ${toY(p.val)}`)
+        .join(' ')
       : '';
 
+  // Ensure maxVal is rounded to a nice number for display (or at least whole)
+  const displayMax = Math.ceil(maxVal);
+
   return (
-    <div className="py-1 min-w-0 w-full max-w-[340px]">
+    <div className="py-1 min-w-0 w-full max-w-[740px] relative">
       <div className="text-xs mb-0.5" style={{ color }}>
         {SIZE_LABELS[size]}
       </div>
       <svg
         viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
         preserveAspectRatio="xMidYMid meet"
-        className="block w-full"
+        className="block w-full overflow-visible"
         style={{ height: CHART_HEIGHT }}
       >
+        {/* Y-axis Ticks */}
+        {[0, displayMax].map((tickVal) => {
+          const y = PAD.top + plotH - (tickVal / maxVal) * plotH;
+          return (
+            <g key={tickVal}>
+              <line
+                x1={PAD.left}
+                y1={y}
+                x2={PAD.left - 4}
+                y2={y}
+                stroke="#64748b"
+                strokeWidth={1}
+              />
+              <text
+                x={PAD.left - 6}
+                y={y}
+                fill="#94a3b8"
+                fontSize={9}
+                textAnchor="end"
+                dominantBaseline="middle"
+              >
+                {tickVal}
+              </text>
+            </g>
+          );
+        })}
+        {/* Plot Line */}
         <path
           d={path}
           fill="none"
@@ -79,8 +115,11 @@ const NormalizedMiniChart: React.FC<{
  * Five separate mini-charts of mobility by piece size, each with normalized y-axis.
  * Makes it easy to compare curve shapes across sizes (e.g. pentomino peaks early, monomino peaks late).
  */
-export const MobilityBucketsChart: React.FC = () => {
-  const legalMovesHistory = useGameStore((s) => s.legalMovesHistory);
+export const MobilityBucketsChart: React.FC<{
+  overrideHistory?: HistoryOverride;
+}> = ({ overrideHistory }) => {
+  const storeHistory = useGameStore((s) => s.legalMovesHistory);
+  const legalMovesHistory = overrideHistory !== undefined ? overrideHistory : storeHistory;
   const [selectedPlayer, setSelectedPlayer] = useState<string>('RED');
 
   const { series, maxTurn, playersWithData } = useMemo(() => {
@@ -162,7 +201,7 @@ export const MobilityBucketsChart: React.FC = () => {
           ))}
         </select>
       </div>
-      <p className="text-[10px] text-gray-500 mb-2">Each chart: 0–100% of max for that size</p>
+      <p className="text-[10px] text-gray-500 mb-2">Each chart: cell-weighted mobility, showing max scale.</p>
       <div className="flex flex-col gap-0 overflow-hidden min-w-0">
         {([1, 2, 3, 4, 5] as const).map((s) => (
           <NormalizedMiniChart key={s} size={s} points={series[s]} maxTurn={maxTurn} />

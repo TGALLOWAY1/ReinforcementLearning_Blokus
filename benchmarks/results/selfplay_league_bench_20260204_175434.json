@@ -1,0 +1,39 @@
+{
+  "steps": 2000,
+  "stage2": {
+    "steps": 2000,
+    "elapsed_sec": 742.0711469650269,
+    "steps_per_sec": 2.6951593633302364,
+    "step_time_ms_mean": 371.0355734825134,
+    "predict_ms_mean": 16.24982008999629,
+    "predict_ms_p95": 23.472141350028153,
+    "episode_len_mean": 13.527272727272727,
+    "cpu_util_pct": 9.88931636683869,
+    "cuda_available": false,
+    "mps_available": true,
+    "accelerator": "mps",
+    "gpu_device": null,
+    "gpu_util_pct": null,
+    "gpu_mem_allocated_mb": null,
+    "gpu_mem_reserved_mb": null,
+    "mps_mem_allocated_mb": 16.76708984375
+  },
+  "stage3": {
+    "steps": 2000,
+    "elapsed_sec": 676.0537819862366,
+    "steps_per_sec": 2.9583445182778623,
+    "step_time_ms_mean": 338.0268909931183,
+    "predict_ms_mean": 5.08997658999624,
+    "predict_ms_p95": 6.516683299889789,
+    "episode_len_mean": 15.0,
+    "cpu_util_pct": 9.67205206282408,
+    "cuda_available": false,
+    "mps_available": true,
+    "accelerator": "mps",
+    "gpu_device": null,
+    "gpu_util_pct": null,
+    "gpu_mem_allocated_mb": null,
+    "gpu_mem_reserved_mb": null,
+    "mps_mem_allocated_mb": 51.1494140625
+  }
+}

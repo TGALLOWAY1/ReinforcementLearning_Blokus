@@ -42,6 +42,8 @@ export interface PlayerMobilityMetrics {
   totalOrientationNormalized: number;
   totalCellWeighted: number;
   buckets: Record<SizeBucket, number>;
+  centerControl?: number;
+  frontierSize?: number;
 }
 
 /**

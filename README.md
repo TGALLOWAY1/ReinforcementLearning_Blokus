@@ -597,6 +597,66 @@ Full API documentation available at `http://localhost:8000/docs` when server is 
 - `GET /api/agents` - List available agents
 - `GET /api/games` - List all games
 - `WS /ws/games/{game_id}` - WebSocket connection
+- `GET /api/analysis/{game_id}` - Game analysis (research profile)
+- `GET /api/analysis/{game_id}/replay?move_index=N` - Move-by-move replay (research profile)
+- `GET /api/history` - List recently finished games (research profile)
+
+## 🗄️ Game Persistence and Replay
+
+Games are stored in MongoDB when they end, but **only in research profile** (`APP_PROFILE=research`). In deploy profile (e.g. Vercel), MongoDB is skipped and games are not persisted.
+
+### Setup for Persistence
+
+1. **Run in research profile with MongoDB**:
+   ```bash
+   APP_PROFILE=research MONGODB_URI=mongodb://localhost:27017 python3 -m uvicorn webapi.app:app --reload
+   ```
+   Or use your main webapi entrypoint if you have one.
+
+2. **Configure MongoDB** (see `docs/mongodb.md`):
+   - `MONGODB_URI`: Connection string (default: `mongodb://localhost:27017`)
+   - `MONGODB_DB_NAME`: Database name (default: `blokusdb`)
+
+### Move-by-Move Replay
+
+Use the replay API to inspect board state at any point in a finished game:
+
+```bash
+# Initial board
+curl "http://localhost:8000/api/analysis/{game_id}/replay?move_index=0"
+
+# After 5th event (move or pass)
+curl "http://localhost:8000/api/analysis/{game_id}/replay?move_index=5"
+
+# Final state
+curl "http://localhost:8000/api/analysis/{game_id}/replay?move_index=-1"
+```
+
+**Response format:**
+```json
+{
+  "game_id": "...",
+  "move_index": 5,
+  "total_events": 42,
+  "board": [[0,0,...], ...],
+  "current_player": "BLUE",
+  "scores": {"RED": 10, "BLUE": 15, ...},
+  "pieces_used": {"RED": [1,2,3], ...},
+  "move_count": 4,
+  "game_over": false,
+  "event": { "player": "RED", "move": {...}, ... }
+}
+```
+
+### List Finished Games
+
+```bash
+curl "http://localhost:8000/api/history?limit=20"
+```
+
+### Deploy Profile
+
+In deploy profile (e.g. Vercel), MongoDB is not used. For persistence there you would need either MongoDB Atlas (or similar) with `MONGODB_URI` set in Vercel env, or a different storage backend. See `docs/mongodb.md` for details.
 
 ## 🎮 Game Rules
 
@@ -636,6 +696,38 @@ This project is part of a reinforcement learning research environment.
 2. **WebSocket connection fails**: Ensure backend is running on port 8000
 3. **Import errors**: Ensure you've installed dependencies with `pip install -e .`
 4. **Frontend build errors**: Run `npm install` in `frontend/` directory
+
+### Debugging Invalid Moves
+
+If the game reports "Invalid move" for moves you believe are legal:
+
+**Where validation happens:**
+- Frontend sends `{ piece_id, orientation, anchor_row, anchor_col }` (clicked cell)
+- Backend validates via `game.make_move()` → `move_generator.is_move_legal()`
+- Engine checks piece usage, orientation, and `board.can_place_piece()`
+
+**Likely causes:**
+1. **Anchor convention**: The engine expects the anchor to be the **top-left** of the piece. The frontend treats the clicked cell as the anchor. If you click a cell that is not the top-left of the piece, the move will be wrong.
+2. **Piece shape/orientation mismatch**: Frontend and backend may use different orientation conventions.
+3. **State desync**: Board state may differ between frontend and backend (e.g. WebSocket lag).
+
+**Debugging steps:**
+
+1. **Browser console**: The frontend logs the move being sent. Check `[UI] Sending move` when a move fails.
+
+2. **Check if the move is in `legal_moves`**: The game state includes `legal_moves`. Add a check before sending—if the move is in `legal_moves` but the backend rejects it, the bug is likely on the backend or in state sync.
+
+3. **Run engine tests**:
+   ```bash
+   PYTHONPATH=. python3 -m pytest tests/test_move_generation_equivalence.py tests/test_engine.py -v
+   ```
+
+4. **Verify legal move logic**:
+   ```bash
+   PYTHONPATH=. python3 -m pytest tests/test_move_generation_equivalence.py -v
+   ```
+
+5. **Use the heatmap**: The game state includes a `heatmap` where `1.0` marks cells that are part of legal moves. Use this to verify where legal placements are.
 
 ### Getting Help
 

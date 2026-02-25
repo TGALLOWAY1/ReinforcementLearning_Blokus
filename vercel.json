@@ -1,45 +1,30 @@
 {
-  "version": 2,
   "builds": [
     {
       "src": "api-runtime/app.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "^/api/(.*)$",
-      "dest": "/api-runtime/app.py"
+      "source": "/api/(.*)",
+      "destination": "/api-runtime/app.py"
     },
     {
-      "src": "^/ws/(.*)$",
-      "dest": "/api-runtime/app.py"
+      "source": "/health",
+      "destination": "/api-runtime/app.py"
     },
     {
-      "src": "^/health$",
-      "dest": "/api-runtime/app.py"
+      "source": "/docs",
+      "destination": "/api-runtime/app.py"
     },
     {
-      "src": "^/docs$",
-      "dest": "/api-runtime/app.py"
+      "source": "/openapi.json",
+      "destination": "/api-runtime/app.py"
     },
     {
-      "src": "^/openapi.json$",
-      "dest": "/api-runtime/app.py"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "^/(.*)$",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

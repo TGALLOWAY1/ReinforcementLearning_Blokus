@@ -53,17 +53,17 @@ export const TrainingHistory: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const params = new URLSearchParams();
       if (agentFilter) params.append('agent_id', agentFilter);
       if (statusFilter) params.append('status', statusFilter);
-      
+
       const response = await fetch(`${API_BASE}/api/training-runs?${params.toString()}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch training runs: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setRuns(data);
     } catch (err) {
@@ -88,14 +88,14 @@ export const TrainingHistory: React.FC = () => {
 
   const formatDuration = (startTime: string, endTime?: string): string => {
     if (!endTime) return 'Running...';
-    
+
     const start = new Date(startTime);
     const end = new Date(endTime);
     const diffMs = end.getTime() - start.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
-    
+
     if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h`;
     if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m`;
     return `${diffMins}m`;
@@ -112,7 +112,7 @@ export const TrainingHistory: React.FC = () => {
       stopped: 'bg-yellow-100 text-yellow-800',
       failed: 'bg-red-100 text-red-800',
     };
-    
+
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`}>
         {status.toUpperCase()}
@@ -123,17 +123,16 @@ export const TrainingHistory: React.FC = () => {
   const getFinalMetric = (run: TrainingRun): string => {
     const episodes = run.metrics?.episodes;
     if (!episodes || episodes.length === 0) return 'N/A';
-    
-    const lastEpisode = episodes[episodes.length - 1];
+
     const avgReward = episodes.reduce((sum, e) => sum + e.total_reward, 0) / episodes.length;
-    
+
     // Try to get win rate if available
     const rollingWinRate = run.metrics?.rolling_win_rate;
     if (rollingWinRate && rollingWinRate.length > 0) {
       const lastWinRate = rollingWinRate[rollingWinRate.length - 1];
       return `Win Rate: ${(lastWinRate.win_rate * 100).toFixed(1)}%`;
     }
-    
+
     return `Avg Reward: ${avgReward.toFixed(2)}`;
   };
 

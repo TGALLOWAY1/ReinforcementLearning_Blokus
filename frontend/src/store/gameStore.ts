@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { API_BASE, WS_BASE } from '../constants/gameConstants';
+import { ENABLE_DEBUG_UI } from '../constants/gameConstants';
+import BlokusWorker from './blokusWorker?worker';
 
 // Types
 export interface Position {
@@ -48,7 +49,18 @@ export interface GameState {
     agent_type: string;
     agent_config: any;
   }>;
-  heatmap?: number[][]; // 20x20 grid where 1.0 = legal move position, 0.0 = illegal
+  heatmap?: number[][];
+  mobility_metrics?: PlayerMobilityMetrics;
+  mcts_top_moves?: MctsTopMove[];
+}
+
+export interface MctsTopMove {
+  piece_id: number;
+  orientation: number;
+  anchor_row: number;
+  anchor_col: number;
+  visits: number;
+  q_value: number;
 }
 
 export interface MoveRequest {
@@ -65,6 +77,7 @@ export interface MoveResponse {
   new_score?: number;
   game_over: boolean;
   winner?: string;
+  game_state?: GameState;
 }
 
 export interface LogEntry {
@@ -74,8 +87,8 @@ export interface LogEntry {
 }
 
 import { computeMobilityMetrics, type PlayerMobilityMetrics } from '../utils/mobilityMetrics';
+import { useDebugLogStore } from './debugLogStore';
 
-/** Legal moves per turn history. Hook: turn advances in webapi _broadcast_game_state after move/pass. */
 export interface LegalMovesHistoryEntry {
   turn: number;
   byPlayer: Record<string, PlayerMobilityMetrics>;
@@ -83,21 +96,23 @@ export interface LegalMovesHistoryEntry {
 
 // Store interface
 interface GameStore {
-  // State
   gameState: GameState | null;
   legalMovesHistory: LegalMovesHistoryEntry[];
   connectionStatus: 'disconnected' | 'connecting' | 'connected';
   selectedPiece: number | null;
   pieceOrientation: number;
-  websocket: WebSocket | null;
+  previewMove: MctsTopMove | null;
+  pollIntervalId: ReturnType<typeof setInterval> | null;
+  isAdvancingTurn: boolean;
   error: string | null;
   logs: LogEntry[];
-  
-  // Actions
+  activeRightTab: 'main' | 'telemetry';
+
   connect: (gameId: string) => Promise<void>;
   disconnect: () => void;
   selectPiece: (pieceId: number | null) => void;
   setPieceOrientation: (orientation: number) => void;
+  setPreviewMove: (move: MctsTopMove | null) => void;
   makeMove: (move: MoveRequest) => Promise<MoveResponse>;
   passTurn: (player: string) => Promise<MoveResponse>;
   createGame: (config: any) => Promise<string>;
@@ -105,198 +120,91 @@ interface GameStore {
   setGameState: (gameState: GameState | null) => void;
   addLog: (message: string, level?: 'INFO' | 'WARN' | 'ERROR') => void;
   clearLogs: () => void;
+  setActiveRightTab: (tab: 'main' | 'telemetry') => void;
 }
 
-// API base URLs are now imported from constants
+let workerInstance: Worker | null = null;
+let initResolver: ((val: string) => void) | null = null;
+let moveResolver: ((val: MoveResponse) => void) | null = null;
+let isWorkerReady = false;
+
+function setupWorker() {
+  if (workerInstance) return workerInstance;
+  workerInstance = new BlokusWorker();
+
+  workerInstance.onmessage = (e) => {
+    const data = e.data;
+    if (data.type === 'ready') {
+      isWorkerReady = true;
+      useGameStore.getState().addLog("WebWorker & Pyodide Ready", "INFO");
+    } else if (data.type === 'state_update') {
+      useGameStore.getState().setGameState(data.state);
+      if (initResolver) {
+        initResolver(data.state.game_id);
+        initResolver = null;
+      }
+      triggerAgentTurnIfNeeded();
+    } else if (data.type === 'move_response') {
+      const resp = data.response;
+      useGameStore.getState().setGameState(resp.game_state);
+      useGameStore.setState({ isAdvancingTurn: false });
+      if (moveResolver) {
+        moveResolver(resp);
+        moveResolver = null;
+      }
+      triggerAgentTurnIfNeeded();
+    } else if (data.type === 'error' || data.type === 'init_error') {
+      console.error("Worker Error:", data.error);
+      useGameStore.getState().setError(data.error);
+      useGameStore.getState().addLog("Worker Error: " + data.error, "ERROR");
+    }
+  };
+  return workerInstance;
+}
+
+function triggerAgentTurnIfNeeded() {
+  const state = useGameStore.getState();
+  const gameState = state.gameState;
+  if (!gameState || gameState.game_over || gameState.status !== 'in_progress') return;
+
+  const currentPlayer = gameState.current_player;
+  const pConf = gameState.players?.find(p => p.player === currentPlayer);
+
+  if (pConf && pConf.agent_type !== 'human' && !state.isAdvancingTurn) {
+    useGameStore.setState({ isAdvancingTurn: true });
+    workerInstance?.postMessage({ type: 'advance_turn' });
+  }
+}
 
 export const useGameStore = create<GameStore>()(
   subscribeWithSelector((set, get) => ({
-    // Initial state
     gameState: null,
     legalMovesHistory: [],
     connectionStatus: 'disconnected',
     selectedPiece: null,
     pieceOrientation: 0,
-    websocket: null,
+    previewMove: null,
+    pollIntervalId: null,
+    isAdvancingTurn: false,
     error: null,
     logs: [],
+    activeRightTab: 'main',
 
-    // Actions
-    connect: (gameId: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        const { websocket } = get();
-        
-        // Close existing connection
-        if (websocket) {
-          websocket.close();
-        }
-
-        set({ connectionStatus: 'connecting', error: null });
-
-        // Set up timeout
-        const timeout = setTimeout(() => {
-          console.error('WebSocket connection timeout');
-          reject(new Error('WebSocket connection timeout'));
-        }, 10000); // 10 second timeout
-
-        try {
-          console.log(`Connecting to WebSocket: ${WS_BASE}/ws/games/${gameId}`);
-          
-          // Log to diagnostics
-          if ((window as any).__diagnostics) {
-            (window as any).__diagnostics.logMilestone(`Connecting to WebSocket: ${gameId}`);
-          }
-          
-          const ws = new WebSocket(`${WS_BASE}/ws/games/${gameId}`);
-          
-          ws.onopen = () => {
-            console.log('WebSocket connection opened');
-            set({ connectionStatus: 'connected', websocket: ws });
-            const { addLog } = get();
-            addLog(`Connected to game ${gameId}`, 'INFO');
-            
-            // Log to diagnostics
-            if ((window as any).__diagnostics) {
-              (window as any).__diagnostics.logMilestone('WS connected');
-            }
-          };
-
-          ws.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              console.log('WebSocket message received:', data);
-              
-              // Add log for WebSocket message
-              const { addLog, gameState: currentGameState } = get();
-              if (data.type === 'move_made' || data.type === 'move_response') {
-                // Extract move data - backend now includes move info in data.move
-                const moveData = data.data?.move || data.data;
-                const player = data.data?.player || moveData?.player || data.data?.game_state?.current_player || 'Unknown';
-                const pieceId = moveData?.piece_id;
-                const anchorRow = moveData?.anchor_row;
-                const anchorCol = moveData?.anchor_col;
-                
-                // Log raw data for debugging
-                console.log('[UI] Move message received:', {
-                  type: data.type,
-                  hasMove: !!data.data?.move,
-                  hasPlayer: !!data.data?.player,
-                  moveData: moveData,
-                  player: player,
-                  pieceId: pieceId,
-                  anchorRow: anchorRow,
-                  anchorCol: anchorCol
-                });
-                
-                // Check if this is an agent move
-                const newGameState = data.data?.game_state || data.data;
-                const playerConfig = newGameState?.players?.find((p: any) => p.player === player);
-                const isAgent = playerConfig && playerConfig.agent_type !== 'human';
-                const agentType = playerConfig?.agent_type || '';
-                
-                if (isAgent && agentType) {
-                  // Agent move - try to extract confidence if available
-                  const confidence = data.data?.confidence || data.confidence || Math.random() * 0.2 + 0.8; // Default to 0.8-1.0 if not provided
-                  const agentName = agentType.toUpperCase();
-                  addLog(`Agent ${agentName} selected move (confidence ${confidence.toFixed(2)})`, 'INFO');
-                } else {
-                  // Human move - only log if we have valid coordinates
-                  if (anchorRow !== undefined && anchorCol !== undefined && pieceId !== undefined) {
-                    const pieceName = `Piece ${pieceId}`;
-                    addLog(`Player ${player} placed ${pieceName} at ${anchorRow},${anchorCol}`, 'INFO');
-                  } else {
-                    // Fallback: log what we have
-                    console.warn('[UI] Move message missing coordinates:', { player, pieceId, anchorRow, anchorCol, moveData });
-                    addLog(`Player ${player} made a move`, 'INFO');
-                  }
-                }
-              } else if (data.type === 'state' || data.type === 'game_state') {
-                // Check if this is a new game state after a move
-                const newGameState = data.data?.game_state || data.data;
-                if (newGameState && currentGameState && newGameState.move_count > currentGameState.move_count) {
-                  // Move count increased, but we already logged the move above
-                  // Just log state update
-                } else {
-                  addLog('Game state updated', 'INFO');
-                }
-              }
-              
-              if (data.type === 'state' || data.type === 'game_state' || data.type === 'move_made' || data.type === 'player_passed' || data.type === 'player_skipped' || data.type === 'player_skipped_timeout' || data.type === 'player_skipped_error' || data.type === 'player_skipped_inactive') {
-                const gameState = data.data?.game_state || data.data;
-                console.log('Game state received:', gameState);
-                console.log('Game state structure:', {
-                  hasBoard: !!gameState?.board,
-                  hasCurrentPlayer: !!gameState?.current_player,
-                  hasScores: !!gameState?.scores,
-                  boardLength: gameState?.board?.length,
-                  currentPlayer: gameState?.current_player
-                });
-                console.log('Setting gameState in store...');
-                get().setGameState(gameState);
-                console.log('GameState set, resolving promise...');
-                clearTimeout(timeout);
-                resolve(); // Resolve when we get the initial state
-              } else if (data.type === 'move_response') {
-                // Handle move response if needed
-                console.log('Move response:', data.data);
-              } else if (data.type === 'error') {
-                console.error('WebSocket error message:', data.data);
-                set({ error: data.data });
-                addLog(`Error: ${data.data}`, 'ERROR');
-                clearTimeout(timeout);
-                reject(new Error(data.data));
-              }
-            } catch (error) {
-              console.error('Error parsing WebSocket message:', error);
-              set({ error: 'Invalid message from server' });
-              const { addLog } = get();
-              addLog('Error parsing WebSocket message', 'ERROR');
-              clearTimeout(timeout);
-              reject(error);
-            }
-          };
-
-          ws.onclose = (event) => {
-            console.log('WebSocket connection closed:', event.code, event.reason);
-            set({ connectionStatus: 'disconnected', websocket: null });
-            clearTimeout(timeout);
-            if (event.code !== 1000) { // Not a normal closure
-              reject(new Error(`WebSocket closed unexpectedly: ${event.code} ${event.reason}`));
-            }
-          };
-
-          ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            set({ 
-              connectionStatus: 'disconnected', 
-              websocket: null,
-              error: 'Connection error'
-            });
-            clearTimeout(timeout);
-            reject(new Error('WebSocket connection failed'));
-          };
-
-        } catch (error) {
-          set({ 
-            connectionStatus: 'disconnected',
-            error: 'Failed to connect to game'
-          });
-          clearTimeout(timeout);
-          reject(error);
-        }
-      });
+    connect: async (gameId: string): Promise<void> => {
+      // With Pyodide, state is local. If we reload the page, state is gone.
+      // So connect only works if we already just created the game locally in this session.
+      set({ connectionStatus: 'connected', error: null, isAdvancingTurn: false });
+      get().addLog(`Connected to local Pyodide game ${gameId}`, 'INFO');
+      triggerAgentTurnIfNeeded();
     },
 
     disconnect: () => {
-      const { websocket } = get();
-      if (websocket) {
-        websocket.close();
-      }
-      set({ 
-        connectionStatus: 'disconnected', 
-        websocket: null,
+      set({
+        connectionStatus: 'disconnected',
+        pollIntervalId: null,
         gameState: null,
         legalMovesHistory: [],
+        isAdvancingTurn: false,
       });
     },
 
@@ -308,241 +216,87 @@ export const useGameStore = create<GameStore>()(
       set({ pieceOrientation: orientation });
     },
 
-    passTurn: async (player: string): Promise<MoveResponse> => {
-      console.log('⏭️ passTurn called for player:', player);
-      
-      const { websocket } = get();
-      
-      if (!websocket) {
-        console.log('❌ No WebSocket connection');
-        throw new Error('Not connected to game');
-      }
-      
-      if (websocket.readyState !== WebSocket.OPEN) {
-        console.log('❌ WebSocket not open, state:', websocket.readyState);
-        throw new Error('Not connected to game');
-      }
-      
-      console.log('✅ WebSocket is open, sending pass...');
+    setPreviewMove: (move: MctsTopMove | null) => {
+      set({ previewMove: move });
+    },
 
-      return new Promise((resolve, reject) => {
-        const message = {
-          type: 'pass',
-          data: {
-            player: player.toUpperCase()
-          }
-        };
-        
-        console.log('📤 Sending WebSocket pass message:', message);
-
-        const handleMessage = (event: MessageEvent) => {
-          console.log('📥 Received WebSocket message:', event.data);
-          try {
-            const data = JSON.parse(event.data);
-            console.log('📥 Parsed message data:', data);
-            
-            // Check if this is a MoveResponse (has success field) or wrapped in move_response
-            if (data.type === 'move_response' || (data.success !== undefined)) {
-              console.log('✅ Pass response received:', data);
-              websocket.removeEventListener('message', handleMessage);
-              // Handle both direct response and wrapped response
-              const response = data.type === 'move_response' ? data.data : data;
-              
-              // Update game state if the response includes it
-              if (response.game_state) {
-                console.log('🔄 Updating game state from pass response');
-                set({ gameState: response.game_state });
-                console.log('✅ Game state updated in store');
-              }
-              
-              resolve(response);
-            } else if (data.type === 'player_passed' || data.type === 'move_made') {
-              console.log('✅ Pass made message received, updating game state');
-              const gameState = data.data?.game_state || data.data;
-              if (gameState) {
-                get().setGameState(gameState);
-              }
-            } else {
-              console.log('ℹ️ Non-pass response received:', data.type);
-            }
-          } catch (error) {
-            console.error('💥 Error parsing WebSocket message:', error);
-            websocket.removeEventListener('message', handleMessage);
-            reject(error);
-          }
-        };
-
-        websocket.addEventListener('message', handleMessage);
-        websocket.send(JSON.stringify(message));
-        console.log('📤 Pass message sent to server');
-
-        // Add a timeout for pass responses
-        setTimeout(() => {
-          websocket.removeEventListener('message', handleMessage);
-          reject(new Error('Pass timeout - server did not respond'));
-        }, 10000); // 10 second timeout
+    passTurn: async (_player: string): Promise<MoveResponse> => {
+      return new Promise((resolve) => {
+        moveResolver = resolve;
+        if (!workerInstance) setupWorker();
+        workerInstance!.postMessage({ type: 'pass_turn' });
       });
     },
 
     makeMove: async (move: MoveRequest): Promise<MoveResponse> => {
-      console.log('🎮 makeMove called with:', move);
-      
-      const { websocket } = get();
-      
-      if (!websocket) {
-        console.log('❌ No WebSocket connection');
-        throw new Error('Not connected to game');
-      }
-      
-      if (websocket.readyState !== WebSocket.OPEN) {
-        console.log('❌ WebSocket not open, state:', websocket.readyState);
-        throw new Error('Not connected to game');
-      }
-      
-      console.log('✅ WebSocket is open, sending move...');
-
-      return new Promise((resolve, reject) => {
-        // Transform the move data to match the backend schema
-        const moveData = {
+      return new Promise((resolve) => {
+        moveResolver = resolve;
+        if (!workerInstance) setupWorker();
+        workerInstance!.postMessage({
+          type: 'make_move',
           move: {
             piece_id: move.piece_id,
             orientation: move.orientation,
             anchor_row: move.anchor_row,
             anchor_col: move.anchor_col
-          },
-          player: move.player
-        };
-        
-        const message = {
-          type: 'move',
-          data: moveData
-        };
-        
-        console.log('📤 Sending WebSocket message:', message);
-
-        const handleMessage = (event: MessageEvent) => {
-          console.log('📥 Received WebSocket message:', event.data);
-          try {
-            const data = JSON.parse(event.data);
-            console.log('📥 Parsed message data:', data);
-            console.log('📥 Message type:', data.type);
-            console.log('📥 Has success field:', 'success' in data);
-            console.log('📥 Success value:', data.success);
-            console.log('📥 Full data structure:', JSON.stringify(data, null, 2));
-            
-            // Check if this is a MoveResponse (has success field) or wrapped in move_response
-            if (data.type === 'move_response' || (data.success !== undefined)) {
-              console.log('✅ Move response received:', data);
-              websocket.removeEventListener('message', handleMessage);
-              // Handle both direct response and wrapped response
-              const response = data.type === 'move_response' ? data.data : data;
-              
-              // Update game state if the response includes it
-              if (response.game_state) {
-                console.log('🔄 Updating game state from move response');
-                get().setGameState(response.game_state);
-                console.log('✅ Game state updated in store');
-              } else {
-                console.log('⚠️ Move response has no game_state field');
-              }
-              
-              resolve(response);
-            } else if (data.type === 'move_made') {
-              console.log('✅ Move made message received, updating game state');
-              const gameState = data.data?.game_state || data.data;
-              if (gameState) {
-                get().setGameState(gameState);
-              }
-            } else {
-              console.log('ℹ️ Non-move response received:', data.type);
-            }
-          } catch (error) {
-            console.error('💥 Error parsing WebSocket message:', error);
-            websocket.removeEventListener('message', handleMessage);
-            reject(error);
           }
-        };
-
-        websocket.addEventListener('message', handleMessage);
-        websocket.send(JSON.stringify(message));
-        console.log('📤 Move message sent to server');
-
-        // Add a timeout for move responses
-        setTimeout(() => {
-          websocket.removeEventListener('message', handleMessage);
-          reject(new Error('Move timeout - server did not respond'));
-        }, 10000); // 10 second timeout
+        });
       });
     },
 
     createGame: async (config: any): Promise<string> => {
-      try {
-        console.log('🚀 Creating game with config:', config);
-        console.log('📡 Making request to:', `${API_BASE}/api/games`);
-        
-        const response = await fetch(`${API_BASE}/api/games`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(config),
-        });
+      setupWorker(); // Ensure worker is running
 
-        console.log('📥 Response status:', response.status);
-        console.log('📥 Response ok:', response.ok);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('❌ Error response:', errorData);
-          const { addLog } = get();
-          addLog(`Error creating game: ${errorData.message || 'Unknown error'}`, 'ERROR');
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'Unknown error'}`);
+      const waitForWorker = async () => {
+        while (!isWorkerReady) {
+          await new Promise(r => setTimeout(r, 100));
         }
+      };
+      await waitForWorker();
 
-        const data = await response.json();
-        console.log('✅ Game created successfully:', data);
-        const { addLog } = get();
-        addLog(`Game created: ${data.game_id}`, 'INFO');
-        return data.game_id;
-      } catch (error) {
-        console.error('💥 Error creating game:', error);
-        throw error;
-      }
+      return new Promise((resolve) => {
+        initResolver = resolve;
+        config.game_id = "local-" + Math.floor(Math.random() * 1000000);
+        workerInstance!.postMessage({ type: 'init_game', config });
+      });
     },
 
     setError: (error: string | null) => {
       set({ error });
     },
 
-    // Hook: turn advances via webapi _broadcast_game_state after move/pass. We record
-    // mobility metrics from legal_moves (backend: engine/move_generator.get_legal_moves).
     setGameState: (gameState: GameState | null) => {
       set((state) => {
-        if (!gameState) return { gameState: null, legalMovesHistory: [] };
+        if (!gameState) {
+          if (ENABLE_DEBUG_UI) useDebugLogStore.getState().setStateDiff(state.gameState, null);
+          return { gameState: null, legalMovesHistory: [], previewMove: null };
+        }
         const prev = state.gameState;
+        if (ENABLE_DEBUG_UI) useDebugLogStore.getState().setStateDiff(prev, gameState);
         const piecesUsed = gameState.pieces_used?.[gameState.current_player] ?? [];
-        const metrics = computeMobilityMetrics(
-          gameState.legal_moves ?? [],
-          piecesUsed
-        );
-        // New game: reset history and record initial turn
+        const metrics =
+          gameState.mobility_metrics ??
+          computeMobilityMetrics(gameState.legal_moves ?? [], piecesUsed);
+
         if (prev?.game_id !== gameState.game_id) {
           const entry: LegalMovesHistoryEntry = {
             turn: 0,
             byPlayer: { [gameState.current_player]: metrics },
           };
-          return { gameState, legalMovesHistory: [entry] };
+          return { gameState, legalMovesHistory: [entry], previewMove: null };
         }
-        // Same game: append only when turn advanced (move_count or current_player changed)
+
         const prevKey = prev ? `${prev.move_count}-${prev.current_player}` : '';
         const newKey = `${gameState.move_count}-${gameState.current_player}`;
         if (prevKey === newKey) return { gameState };
+
         const entry: LegalMovesHistoryEntry = {
           turn: state.legalMovesHistory.length,
           byPlayer: { [gameState.current_player]: metrics },
         };
         return {
           gameState,
+          previewMove: null,
           legalMovesHistory: [...state.legalMovesHistory, entry],
         };
       });
@@ -557,28 +311,36 @@ export const useGameStore = create<GameStore>()(
         level,
       };
       set((state) => ({
-        logs: [...state.logs, logEntry].slice(-1000), // Keep last 1000 logs
+        logs: [...state.logs, logEntry].slice(-1000),
       }));
     },
 
-    clearLogs: () => {
-      set({ logs: [] });
-    },
+    clearLogs: () => { set({ logs: [] }); },
+    setActiveRightTab: (tab: 'main' | 'telemetry') => { set({ activeRightTab: tab }); },
   }))
 );
 
-// Computed selectors
 export const useLegalMoves = () => {
   const gameState = useGameStore(state => state.gameState);
   return gameState?.legal_moves || [];
 };
 
-/**
- * Legal moves are computed on the backend (webapi _get_game_state) from
- * engine/move_generator.py get_legal_moves(). Frontend receives gameState.legal_moves
- * with shape LegalMove[] (piece_id, orientation, anchor_row, anchor_col).
- * This selector groups by piece_id and counts, for available pieces only.
- */
+export function computeLegalMovesByPiece(gameState: GameState | null): { pieceId: number; count: number }[] {
+  if (!gameState) return [];
+  const legalMoves = gameState.legal_moves || [];
+  const currentPlayer = gameState.current_player;
+  const piecesUsed = currentPlayer ? (gameState.pieces_used?.[currentPlayer] || []) : [];
+  const counts: Record<number, number> = {};
+  for (const m of legalMoves) {
+    const pid = m.piece_id ?? (m as any).pieceId;
+    if (pid != null) counts[pid] = (counts[pid] ?? 0) + 1;
+  }
+  return Array.from({ length: 21 }, (_, i) => i + 1).map((pieceId) => ({
+    pieceId,
+    count: piecesUsed.includes(pieceId) ? 0 : (counts[pieceId] ?? 0),
+  }));
+}
+
 export const useLegalMovesByPiece = (): { pieceId: number; count: number }[] => {
   const gameState = useGameStore(state => state.gameState);
   const legalMoves = gameState?.legal_moves || [];
@@ -593,7 +355,6 @@ export const useLegalMovesByPiece = (): { pieceId: number; count: number }[] => 
         counts[pid] = (counts[pid] ?? 0) + 1;
       }
     }
-    // Always return all 21 pieces for even spacing (01..21); used pieces show count 0
     return Array.from({ length: 21 }, (_, i) => i + 1).map((pieceId) => ({
       pieceId,
       count: piecesUsed.includes(pieceId) ? 0 : (counts[pieceId] ?? 0),
@@ -603,23 +364,12 @@ export const useLegalMovesByPiece = (): { pieceId: number; count: number }[] => 
 
 export const useCurrentPlayer = () => {
   const gameState = useGameStore(state => state.gameState);
-  console.log('🔍 useCurrentPlayer - gameState:', gameState);
-  console.log('🔍 useCurrentPlayer - current_player:', gameState?.current_player);
   return gameState?.current_player || null;
 };
 
 export const useIsMyTurn = () => {
   const currentPlayer = useCurrentPlayer();
   const gameState = useGameStore(state => state.gameState);
-  
-  console.log('🔄 useIsMyTurn check:', {
-    currentPlayer,
-    gameStateCurrentPlayer: gameState?.current_player,
-    isMyTurn: gameState?.current_player === currentPlayer
-  });
-  
   if (!gameState || !currentPlayer) return false;
-  
-  // Check if the current player matches the game's current player
   return gameState?.current_player === currentPlayer;
 };

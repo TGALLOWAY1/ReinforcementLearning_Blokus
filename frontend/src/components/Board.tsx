@@ -47,7 +47,7 @@ export const Board: React.FC<BoardProps> = ({
   selectedPiece,
   pieceOrientation
 }) => {
-  const { gameState } = useGameStore();
+  const { gameState, previewMove, setPreviewMove } = useGameStore();
   const [hoveredCell, setHoveredCell] = useState<{row: number, col: number} | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   
@@ -94,6 +94,8 @@ export const Board: React.FC<BoardProps> = ({
     const row = Math.floor((event.clientY - rect.top) / CELL_SIZE);
     if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
 
+    if (previewMove) setPreviewMove(null);
+
     // Anchor = top-left of piece. Preview uses hoveredCell as anchor, so when user
     // clicks a preview cell, pass hoveredCell (the anchor), not the clicked cell.
     if (selectedPiece && hoveredCell) {
@@ -110,7 +112,7 @@ export const Board: React.FC<BoardProps> = ({
       }
     }
     onCellClick(row, col);
-  }, [onCellClick, selectedPiece, pieceOrientation, hoveredCell]);
+  }, [onCellClick, selectedPiece, pieceOrientation, hoveredCell, previewMove, setPreviewMove]);
 
   // Memoize cell color calculation to avoid recomputation
   const cellColors = useMemo(() => {
@@ -192,17 +194,36 @@ export const Board: React.FC<BoardProps> = ({
   // Piece utilities are now imported from shared utils
 
   const getPiecePreview = () => {
+    // MCTS table click preview takes precedence
+    if (previewMove) {
+      const positions = calculatePiecePositions(
+        previewMove.piece_id,
+        previewMove.orientation,
+        previewMove.anchor_row,
+        previewMove.anchor_col
+      );
+      return positions.filter(
+        (pos) =>
+          pos.row >= 0 &&
+          pos.row < BOARD_SIZE &&
+          pos.col >= 0 &&
+          pos.col < BOARD_SIZE
+      );
+    }
     if (!selectedPiece || !hoveredCell) return [];
-    
+
     // Calculate piece positions based on shape and orientation
     const positions = calculatePiecePositions(selectedPiece, pieceOrientation, hoveredCell.row, hoveredCell.col);
-    
+
     // Filter out positions that are outside the board
-    const validPositions = positions.filter(pos => 
-      pos.row >= 0 && pos.row < BOARD_SIZE && 
-      pos.col >= 0 && pos.col < BOARD_SIZE
+    const validPositions = positions.filter(
+      (pos) =>
+        pos.row >= 0 &&
+        pos.row < BOARD_SIZE &&
+        pos.col >= 0 &&
+        pos.col < BOARD_SIZE
     );
-    
+
     return validPositions;
   };
 

@@ -492,5 +492,5 @@ Potential areas for further optimization:
 - **Code:** `engine/move_generator.py`, `engine/bitboard.py`, `engine/pieces.py`
 - **Tests:** `tests/test_move_generation_equivalence.py`, `tests/test_legality_bitboard_equivalence.py`
 - **Benchmarks:** `benchmarks/benchmark_move_generation.py`
-- **Performance Results:** `PERFORMANCE_OPTIMIZATION_RESULTS.md`
+- **Performance Results:** `docs/architecture/PERFORMANCE_OPTIMIZATION_RESULTS.md`
 
