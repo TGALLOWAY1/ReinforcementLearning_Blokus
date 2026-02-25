@@ -116,10 +116,10 @@ export const CenterProximityPlot: React.FC<{
                 ))}
 
                 {/* Y-axis Ticks */}
-                {[0, Math.floor(displayMax / 2), displayMax].map((tickVal) => {
+                {[0, Math.floor(displayMax / 2), displayMax].map((tickVal, idx) => {
                     const y = toY(tickVal);
                     return (
-                        <g key={`ytick-${tickVal}`}>
+                        <g key={`prox-ytick-${tickVal}-${idx}`}>
                             <line x1={pad.left} y1={y} x2={pad.left - 4} y2={y} stroke="#64748b" strokeWidth={1} />
                             <text x={pad.left - 6} y={y} fill="#94a3b8" fontSize={9} textAnchor="end" dominantBaseline="middle">
                                 {tickVal}

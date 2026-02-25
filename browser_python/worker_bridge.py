@@ -109,11 +109,11 @@ class WebWorkerGameBridge:
         advanced_metrics_out = {}
         for p in EnginePlayer:
             advanced_metrics_out[p.name] = {
-                "corner_differential": compute_corner_differential(game.board, p),
-                "territory_ratio": territory_ratios.get(p.name, 0.0),
-                "piece_penalty": compute_piece_penalty(game.board.player_pieces_used[p]),
-                "center_proximity": compute_center_proximity(game.board, p),
-                "opponent_adjacency": compute_opponent_adjacency(game.board, p)
+                "corner_differential": float(compute_corner_differential(game.board, p)),
+                "territory_ratio": float(territory_ratios.get(p.name, 0.0)),
+                "piece_penalty": float(compute_piece_penalty(game.board.player_pieces_used[p])),
+                "center_proximity": float(compute_center_proximity(game.board, p)),
+                "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
             }
         
         return {

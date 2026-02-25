@@ -73,32 +73,32 @@ export const AnalysisBoard: React.FC<AnalysisBoardProps> = ({ onClose }) => {
 
                         {/* Primary Mobility */}
                         <div className="bg-charcoal-800/50 border border-charcoal-700 rounded-lg shadow-sm">
-                            <CornerDiffPlot overrideHistory={effectiveHistory} />
+                            <CornerDiffPlot overrideHistory={effectiveHistory || []} />
                         </div>
 
                         {/* Territory */}
                         <div className="bg-charcoal-800/50 border border-charcoal-700 rounded-lg shadow-sm">
-                            <TerritoryControlPlot overrideHistory={effectiveHistory} />
+                            <TerritoryControlPlot overrideHistory={effectiveHistory || []} />
                         </div>
 
                         {/* Piece Penalty */}
                         <div className="bg-charcoal-800/50 border border-charcoal-700 rounded-lg shadow-sm">
-                            <PiecePenaltyPlot overrideHistory={effectiveHistory} />
+                            <PiecePenaltyPlot overrideHistory={effectiveHistory || []} />
                         </div>
 
                         {/* Adjacency */}
                         <div className="bg-charcoal-800/50 border border-charcoal-700 rounded-lg shadow-sm">
-                            <OpponentAdjacencyPlot overrideHistory={effectiveHistory} />
+                            <OpponentAdjacencyPlot overrideHistory={effectiveHistory || []} />
                         </div>
 
                         {/* Center proximity */}
                         <div className="bg-charcoal-800/50 border border-charcoal-700 rounded-lg shadow-sm">
-                            <CenterProximityPlot overrideHistory={effectiveHistory} />
+                            <CenterProximityPlot overrideHistory={effectiveHistory || []} />
                         </div>
 
                         {/* Frontier baseline */}
                         <div className="bg-charcoal-800/50 border border-charcoal-700 rounded-lg shadow-sm">
-                            <FrontierSizePlot overrideHistory={effectiveHistory} />
+                            <FrontierSizePlot overrideHistory={effectiveHistory || []} />
                         </div>
 
                     </div>

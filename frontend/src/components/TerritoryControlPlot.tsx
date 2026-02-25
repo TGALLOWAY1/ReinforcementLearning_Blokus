@@ -132,10 +132,10 @@ export const TerritoryControlPlot: React.FC<{
                 ))}
 
                 {/* Y-axis Ticks */}
-                {[0.0, 0.25, 0.5, 0.75, 1.0].map((tickVal) => {
+                {[0.0, 0.25, 0.5, 0.75, 1.0].map((tickVal, idx) => {
                     const y = toY(tickVal);
                     return (
-                        <g key={`ytick-${tickVal}`}>
+                        <g key={`terr-ytick-${tickVal}-${idx}`}>
                             <line x1={pad.left} y1={y} x2={pad.left - 4} y2={y} stroke="#64748b" strokeWidth={1} />
                             <text x={pad.left - 6} y={y} fill="#94a3b8" fontSize={9} textAnchor="end" dominantBaseline="middle">
                                 {Math.round(tickVal * 100)}%
