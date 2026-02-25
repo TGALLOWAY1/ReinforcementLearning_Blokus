@@ -12,6 +12,7 @@ import { PolicyView } from './AgentVisualizations';
 import { DebugLogsPanel } from './DebugLogsPanel';
 import { FrontierSizePlot } from './FrontierSizePlot';
 import { CornerDiffPlot } from './CornerDiffPlot';
+import { AnalysisBoard } from './AnalysisBoard';
 import { ENABLE_DEBUG_UI } from '../constants/gameConstants';
 
 type TelemetrySubTab = 'charts' | 'events';
@@ -35,6 +36,7 @@ export const TelemetryPanel: React.FC = () => {
   } | null>(null);
   const [turnsView, setTurnsView] = useState<TurnsView>('all');
   const [subTab, setSubTab] = useState<TelemetrySubTab>('charts');
+  const [showAnalysisBoard, setShowAnalysisBoard] = useState(false);
 
   const captureSnapshot = useCallback(() => {
     const gs = useGameStore.getState().gameState;
@@ -186,7 +188,15 @@ export const TelemetryPanel: React.FC = () => {
             <option value={50}>Last 50 turns</option>
             <option value="all">All turns</option>
           </select>
-          <div className="flex gap-1">
+          <div className="flex gap-1 ml-auto">
+            <button
+              type="button"
+              onClick={() => setShowAnalysisBoard(true)}
+              className="px-3 py-1 text-xs font-semibold rounded bg-cyan-600/20 text-cyan-400 border border-cyan-800 hover:bg-cyan-600/30 transition-colors"
+            >
+              Open Analysis Board
+            </button>
+            <div className="w-2" /> {/* spacer */}
             <button
               type="button"
               onClick={() => setSubTab('charts')}
@@ -247,6 +257,10 @@ export const TelemetryPanel: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {showAnalysisBoard && (
+        <AnalysisBoard onClose={() => setShowAnalysisBoard(false)} />
+      )}
     </div>
   );
 };
