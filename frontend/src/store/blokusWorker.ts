@@ -92,6 +92,13 @@ ctx.addEventListener('message', async (e) => {
                 ctx.postMessage({ type: 'move_response', response });
                 break;
             }
+            case 'load_game': {
+                const pyResp = bridge.load_game(pyodide.toPy(data.history));
+                const state = pyResp.toJs({ dict_converter: Object.fromEntries });
+                pyResp.destroy();
+                ctx.postMessage({ type: 'state_update', state });
+                break;
+            }
         }
     } catch (err: any) {
         console.error("[Worker] Python Execution Error: ", err);

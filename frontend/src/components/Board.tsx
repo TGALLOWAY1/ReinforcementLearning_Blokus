@@ -12,7 +12,6 @@ interface BoardProps {
 
 // Constants are now imported from shared constants file
 
-// Memoized cell component to prevent unnecessary re-renders
 const CellRect = React.memo<{
   row: number;
   col: number;
@@ -48,9 +47,9 @@ export const Board: React.FC<BoardProps> = ({
   pieceOrientation
 }) => {
   const { gameState, previewMove, setPreviewMove } = useGameStore();
-  const [hoveredCell, setHoveredCell] = useState<{row: number, col: number} | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ row: number, col: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  
+
   // Performance instrumentation - measure render time
   useEffect(() => {
     console.time('[UI] Board render');
@@ -58,7 +57,7 @@ export const Board: React.FC<BoardProps> = ({
       console.timeEnd('[UI] Board render');
     };
   });
-  
+
   // Performance instrumentation - measure effect time when gameState changes
   useEffect(() => {
     if (gameState) {
@@ -67,18 +66,18 @@ export const Board: React.FC<BoardProps> = ({
       console.timeEnd('[UI] Board effect (gameState change)');
     }
   }, [gameState]);
-  
+
 
   const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return;
-    
+
     const rect = svgRef.current.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     const col = Math.floor(x / CELL_SIZE);
     const row = Math.floor(y / CELL_SIZE);
-    
+
     if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
       setHoveredCell({ row, col });
       onCellHover(row, col);
@@ -153,7 +152,7 @@ export const Board: React.FC<BoardProps> = ({
     if (isPreviewCell(row, col)) {
       return 'transparent';
     }
-    
+
     // Return the normal cell color
     return getCellColor(row, col);
   };
@@ -163,7 +162,7 @@ export const Board: React.FC<BoardProps> = ({
     if (isPreviewCell(row, col)) {
       return 1.0;
     }
-    
+
     // Normal cells are fully opaque
     return 1.0;
   };
@@ -260,7 +259,7 @@ export const Board: React.FC<BoardProps> = ({
             />
           </g>
         ))}
-        
+
         {/* Board cells - memoized to prevent unnecessary re-renders */}
         {Array.from({ length: BOARD_SIZE }).map((_, row) =>
           Array.from({ length: BOARD_SIZE }).map((_, col) => {
@@ -269,7 +268,7 @@ export const Board: React.FC<BoardProps> = ({
             const stroke = getCellStroke(row, col);
             const strokeWidth = getCellStrokeWidth(row, col);
             const hasPiece = hasPlacedPiece(row, col);
-            
+
             return (
               <CellRect
                 key={`${row}-${col}`}
@@ -284,7 +283,7 @@ export const Board: React.FC<BoardProps> = ({
             );
           })
         )}
-        
+
         {/* Hovered cell highlight - only show if not part of piece preview */}
         {hoveredCell && !isPreviewCell(hoveredCell.row, hoveredCell.col) && (
           <rect

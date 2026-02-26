@@ -36,7 +36,6 @@ function formatTs(ms: number): string {
 
 export const DebugLogsPanel: React.FC = () => {
   const gameState = useGameStore((s) => s.gameState);
-  const legalMovesHistory = useGameStore((s) => s.legalMovesHistory);
 
   const events = useDebugLogStore((s) => s.events);
   const lastWsTimestamp = useDebugLogStore((s) => s.lastWsTimestamp);
@@ -81,8 +80,8 @@ export const DebugLogsPanel: React.FC = () => {
 
   if (!ENABLE_DEBUG_UI) return null;
 
-  const lastHistoryEntry = legalMovesHistory[legalMovesHistory.length - 1];
-  const metrics = lastHistoryEntry?.byPlayer?.[gameState?.current_player || ''] ?? gameState?.mobility_metrics;
+  const lastHistoryEntry = gameState?.game_history?.[gameState.game_history.length - 1];
+  const metrics: any = lastHistoryEntry?.metrics ?? gameState?.mobility_metrics;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

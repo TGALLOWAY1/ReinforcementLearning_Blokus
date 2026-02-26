@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useGameStore } from '../store/gameStore';
 
 interface ResearchSidebarProps {
   onNewGame?: () => void;
@@ -38,12 +39,44 @@ export const EnvironmentControlsSection: React.FC<{ onNewGame?: () => void }> = 
       <button
         onClick={() => setAutoStep(!autoStep)}
         className={`border px-4 py-2 text-sm font-medium transition-colors ${autoStep
-            ? 'bg-charcoal-700 border-neon-blue text-neon-blue'
-            : 'bg-charcoal-800 border-charcoal-700 text-gray-200 hover:bg-charcoal-700 hover:border-charcoal-600'
+          ? 'bg-charcoal-700 border-neon-blue text-neon-blue'
+          : 'bg-charcoal-800 border-charcoal-700 text-gray-200 hover:bg-charcoal-700 hover:border-charcoal-600'
           }`}
       >
         Auto-Step {autoStep ? 'ON' : 'OFF'}
       </button>
+      <button
+        onClick={() => useGameStore.getState().saveGame()}
+        className="bg-charcoal-800 border border-charcoal-700 text-gray-200 px-4 py-2 text-sm font-medium hover:bg-charcoal-700 hover:border-charcoal-600 transition-colors"
+      >
+        Save Game
+      </button>
+      <div className="relative">
+        <input
+          type="file"
+          accept=".json"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              try {
+                const history = JSON.parse(event.target?.result as string);
+                useGameStore.getState().loadGame(history);
+              } catch (err) {
+                console.error("Failed to parse game log", err);
+              }
+            };
+            reader.readAsText(file);
+          }}
+          className="absolute inset-0 opacity-0 cursor-pointer"
+        />
+        <button
+          className="w-full bg-charcoal-800 border border-charcoal-700 text-gray-200 px-4 py-2 text-sm font-medium hover:bg-charcoal-700 hover:border-charcoal-600 transition-colors"
+        >
+          Load Game
+        </button>
+      </div>
     </div>
   );
 };
