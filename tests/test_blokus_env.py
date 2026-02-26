@@ -3,10 +3,11 @@ Tests for Blokus PettingZoo environment.
 """
 
 import unittest
+
 import numpy as np
+
+from engine.board import Player
 from envs.blokus_v0 import BlokusEnv, GymnasiumBlokusWrapper, env, make_gymnasium_env
-from engine.board import Board, Player, Position
-from engine.move_generator import Move
 
 
 class TestBlokusEnv(unittest.TestCase):

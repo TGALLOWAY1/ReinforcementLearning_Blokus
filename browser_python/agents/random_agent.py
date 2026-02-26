@@ -2,9 +2,11 @@
 Random agent for Blokus that picks uniformly from legal actions.
 """
 
+from typing import Any, Dict, List, Optional
+
 import numpy as np
-from typing import List, Optional, Dict, Any
-from engine.board import Board, Player, Position
+
+from engine.board import Board, Player
 from engine.move_generator import LegalMoveGenerator, Move
 from engine.pieces import PieceGenerator
 

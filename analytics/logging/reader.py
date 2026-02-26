@@ -8,7 +8,7 @@ Supports:
 
 import json
 import os
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 def _sanitize_game_id(game_id: str) -> str:

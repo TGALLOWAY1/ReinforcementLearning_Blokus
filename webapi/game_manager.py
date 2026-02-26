@@ -2,20 +2,21 @@
 Game manager for handling multiple concurrent Blokus games.
 """
 
-import asyncio
-import uuid
 import time
-from typing import Dict, List, Optional, Any
+import uuid
 from dataclasses import dataclass
-from engine.board import Board, Player as EnginePlayer
+from typing import Any, Dict, List, Optional
+
+from agents.heuristic_agent import HeuristicAgent
+from agents.random_agent import RandomAgent
+from engine.board import Player as EnginePlayer
 from engine.game import BlokusGame
 from engine.move_generator import LegalMoveGenerator
-from agents.random_agent import RandomAgent
-from agents.heuristic_agent import HeuristicAgent
 from mcts.mcts_agent import MCTSAgent
-from schemas.game_config import GameConfig, AgentConfig, PlayerType
-from schemas.move import MoveRequest, MoveResponse, Player as SchemaPlayer
-from schemas.state_update import GameState, PlayerState, BoardState, LegalMove, Position
+from schemas.game_config import AgentConfig, GameConfig, PlayerType
+from schemas.move import MoveRequest, MoveResponse
+from schemas.move import Player as SchemaPlayer
+from schemas.state_update import BoardState, GameState, LegalMove, PlayerState, Position
 
 
 @dataclass

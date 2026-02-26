@@ -12,12 +12,11 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
-
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.maskable.utils import get_action_masks
 
-from rl.train import TrainConfig, load_config, _make_vec_env, _save_checkpoint
-from league.pdl import LeagueManager, CheckpointOpponentSampler
+from league.pdl import CheckpointOpponentSampler, LeagueManager
+from rl.train import TrainConfig, _make_vec_env, _save_checkpoint, load_config
 
 try:
     import psutil

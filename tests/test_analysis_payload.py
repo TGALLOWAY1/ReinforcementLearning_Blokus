@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from schemas.game_state import GameConfig, AgentType, PlayerConfig, Player
+from schemas.game_state import AgentType, GameConfig, Player, PlayerConfig
 from webapi.app import game_manager, get_game_analysis
 
 

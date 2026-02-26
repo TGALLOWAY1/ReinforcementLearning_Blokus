@@ -3,11 +3,15 @@ Tests for piece orientation precomputation and correctness.
 """
 
 import unittest
+
+from engine.bitboard import mask_to_coords
 from engine.pieces import (
-    PieceGenerator, PieceOrientation, ALL_PIECE_ORIENTATIONS,
-    generate_orientations_for_piece, normalize_offsets, shape_to_offsets
+    ALL_PIECE_ORIENTATIONS,
+    PieceGenerator,
+    generate_orientations_for_piece,
+    normalize_offsets,
+    shape_to_offsets,
 )
-from engine.bitboard import mask_to_coords, coords_to_mask
 
 
 class TestPieceOrientations(unittest.TestCase):

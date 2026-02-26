@@ -6,11 +6,13 @@ Comprehensive tests for the Blokus game engine.
 """
 
 import unittest
+
 import numpy as np
+
 from engine.board import Board, Player, Position
-from engine.pieces import PieceGenerator, PieceType
-from engine.move_generator import LegalMoveGenerator, Move
 from engine.game import BlokusGame
+from engine.move_generator import LegalMoveGenerator, Move
+from engine.pieces import PieceGenerator
 
 
 class TestBoard(unittest.TestCase):

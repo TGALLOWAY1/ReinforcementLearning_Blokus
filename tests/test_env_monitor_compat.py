@@ -6,12 +6,12 @@ GymnasiumBlokusWrapper, especially in VecEnv contexts where Monitor wraps
 each sub-environment individually.
 """
 
-import pytest
 import numpy as np
-
-from envs.blokus_v0 import make_gymnasium_env, GymnasiumBlokusWrapper
+import pytest
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
+
+from envs.blokus_v0 import GymnasiumBlokusWrapper, make_gymnasium_env
 
 
 def test_monitor_reset_compat_single_env():

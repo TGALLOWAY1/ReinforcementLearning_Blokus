@@ -5,7 +5,12 @@ from pathlib import Path
 
 import numpy as np
 
-from league.pdl import LeagueCheckpoint, LeagueSamplingConfig, WindowScheduleConfig, CheckpointOpponentSampler
+from league.pdl import (
+    CheckpointOpponentSampler,
+    LeagueCheckpoint,
+    LeagueSamplingConfig,
+    WindowScheduleConfig,
+)
 
 
 def _write_registry(path: Path, steps):

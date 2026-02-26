@@ -2,11 +2,13 @@
 Heuristic agent for Blokus with strategic preferences.
 """
 
+from typing import Any, Dict, List, Optional
+
 import numpy as np
-from typing import List, Optional, Dict, Any, Tuple
+
 from engine.board import Board, Player, Position
 from engine.move_generator import LegalMoveGenerator, Move
-from engine.pieces import PieceGenerator, Piece
+from engine.pieces import PieceGenerator
 
 
 class HeuristicAgent:

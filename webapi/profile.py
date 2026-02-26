@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 
-
 APP_PROFILE_RESEARCH = "research"
 APP_PROFILE_DEPLOY = "deploy"
 _VALID_PROFILES = {APP_PROFILE_RESEARCH, APP_PROFILE_DEPLOY}

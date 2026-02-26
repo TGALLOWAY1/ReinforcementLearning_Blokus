@@ -21,7 +21,7 @@ This project provides a full-stack implementation of Blokus with:
 - Legal move generation with optimized caching (frontier-based + bitboard)
 - Scoring system with bonuses (corner control, center control, piece completion)
 - Game state management and history tracking
-- **Move Generation**: For details on the optimized move generation system (frontier-based generation, bitboard legality, performance optimizations), see [docs/move-generation-optimization.md](docs/move-generation-optimization.md)
+- **Move Generation**: For details on the optimized move generation system (frontier-based generation, bitboard legality, performance optimizations), see [docs/engine/move-generation-optimization.md](docs/engine/move-generation-optimization.md)
 
 ### AI Agents
 - **Random Agent**: Baseline agent making random legal moves
@@ -343,43 +343,30 @@ blokus_rl/
 │   ├── random_agent.py
 │   ├── heuristic_agent.py
 │   └── fast_mcts_agent.py
+├── analytics/           # Jupyter notebooks and data analysis
+├── browser_python/      # Pyodide WebWorker for in-browser Python execution
+├── checkpoints/         # Saved model weights
+├── config/              # Centralized YAML configurations
+├── docs/                # Project documentation
 ├── engine/              # Core game engine
 │   ├── board.py         # Board state management
 │   ├── game.py          # Game logic and scoring
 │   ├── pieces.py        # Piece definitions and generation
-│   └── move_generator.py # Legal move generation (see docs/move-generation-optimization.md)
+│   └── move_generator.py # Legal move generation
 ├── envs/                # RL environments
 │   ├── blokus_env.py
 │   └── blokus_v0.py     # PettingZoo AEC environment
+├── frontend/            # React / Vite frontend
+├── logs/                # TensorBoard logs and run metrics
 ├── mcts/                # MCTS implementation
-│   ├── mcts.py
-│   ├── mcts_agent.py
-│   └── zobrist.py       # Zobrist hashing
-├── webapi/              # Backend API
-│   ├── app.py           # FastAPI application
-│   └── game_manager.py  # Game session management
-├── frontend/            # React frontend
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── pages/       # Page components
-│   │   ├── store/       # State management
-│   │   └── utils/       # Utilities
-│   └── package.json
-├── schemas/             # Pydantic schemas
-│   ├── game_config.py
-│   ├── game_state.py
-│   └── move.py
-├── scripts/             # Utility scripts
-│   ├── arena.py         # Tournament runner
-│   └── arena_config.json
-├── training/            # RL training code
-│   └── trainer.py
+├── rl/                  # Multi-stage PettingZoo self-play training
+├── schemas/             # Pydantic definitions
+├── scripts/             # Utility and evaluation scripts
 ├── tests/               # Test suite
-│   ├── test_engine.py
-│   └── test_blokus_env.py
-├── run_server.py        # Server entry point
-├── requirements.txt     # Python dependencies
-└── pyproject.toml       # Project configuration
+├── training/            # SB3 training code and legacy trainers
+├── webapi/              # FastAPI backend
+├── pyproject.toml       # Python package configuration
+└── requirements.txt     # Python dependencies
 ```
 
 ## 🔧 Key Components
@@ -476,7 +463,7 @@ The training system includes:
 - **Checkpointing**: Periodic checkpoint saving with resume capability
 - **Training History**: Automatic logging of all training runs to MongoDB with web interface
 
-See `training/README.md` for complete documentation.
+See `docs/training/README.md` for complete documentation.
 
 ### Training History
 
@@ -492,7 +479,7 @@ Features:
 - **Checkpoints**: View all saved checkpoints with resume commands
 - **API access**: REST endpoints for programmatic access
 
-See `docs/training-history.md` for complete documentation.
+See `docs/training/training-history.md` for complete documentation.
 
 ### Checkpointing and Resume
 
@@ -512,7 +499,7 @@ python training/trainer.py --mode full --checkpoint-interval-episodes 50
 python training/trainer.py --resume-from-checkpoint checkpoints/ppo_agent/run123/ep000100.zip
 ```
 
-See `docs/checkpoints.md` for complete checkpointing documentation.
+See `docs/training/checkpoints.md` for complete checkpointing documentation.
 
 ### Hyperparameter Configuration and Sweeps
 
@@ -532,7 +519,7 @@ python training/trainer.py --agent-config config/agents/ppo_agent_v1.yaml
 python training/run_sweep.py config/agents/ppo_agent_sweep_*.yaml --episodes 100
 ```
 
-See `docs/hyperparams.md` for complete hyperparameter documentation.
+See `docs/training/hyperparams.md` for complete hyperparameter documentation.
 
 ### Evaluation and Baselines
 
@@ -549,7 +536,7 @@ Example:
 python training/evaluate_agent.py checkpoints/ppo_agent/run123/ep000100.zip --num-games 100
 ```
 
-See `docs/evaluation.md` for complete evaluation documentation.
+See `docs/training/evaluation.md` for complete evaluation documentation.
 
 ### Example with Stable-Baselines3 (Direct)
 
@@ -613,7 +600,7 @@ Games are stored in MongoDB when they end, but **only in research profile** (`AP
    ```
    Or use your main webapi entrypoint if you have one.
 
-2. **Configure MongoDB** (see `docs/mongodb.md`):
+2. **Configure MongoDB** (see `docs/deployment/mongodb.md`):
    - `MONGODB_URI`: Connection string (default: `mongodb://localhost:27017`)
    - `MONGODB_DB_NAME`: Database name (default: `blokusdb`)
 
@@ -656,7 +643,7 @@ curl "http://localhost:8000/api/history?limit=20"
 
 ### Deploy Profile
 
-In deploy profile (e.g. Vercel), MongoDB is not used. For persistence there you would need either MongoDB Atlas (or similar) with `MONGODB_URI` set in Vercel env, or a different storage backend. See `docs/mongodb.md` for details.
+In deploy profile (e.g. Vercel), MongoDB is not used. For persistence there you would need either MongoDB Atlas (or similar) with `MONGODB_URI` set in Vercel env, or a different storage backend. See `docs/deployment/mongodb.md` for details.
 
 ## 🎮 Game Rules
 
@@ -682,8 +669,8 @@ This project is part of a reinforcement learning research environment.
 
 ## 🔗 Additional Resources
 
-- **Frontend README**: See `frontend/README.md` for frontend-specific details
-- **API README**: See `webapi/README.md` for API documentation
+- **Frontend README**: See `docs/frontend/README.md` for frontend-specific details
+- **API README**: See `docs/webapi/README.md` for API documentation
 - **PettingZoo**: https://pettingzoo.farama.org/
 - **Gymnasium**: https://gymnasium.farama.org/
 - **Stable-Baselines3**: https://stable-baselines3.readthedocs.io/

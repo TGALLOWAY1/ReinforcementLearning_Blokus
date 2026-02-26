@@ -1,8 +1,8 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from schemas.game_state import GameConfig, AgentType, PlayerConfig, Player
-from webapi.app import game_manager, get_history, GameStatus
+from schemas.game_state import AgentType, GameConfig, Player, PlayerConfig
+from webapi.app import GameStatus, game_manager, get_history
 
 
 def test_history_payload_from_memory_finished_games():

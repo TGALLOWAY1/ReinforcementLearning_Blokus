@@ -10,7 +10,6 @@ from fastapi import HTTPException
 
 from schemas.game_state import AgentType, GameConfig, PlayerConfig
 
-
 DEPLOY_TIME_BUDGET_CAP_MS = 9000
 DEPLOY_DIFFICULTY_TO_MS: Dict[str, int] = {
     "easy": 200,

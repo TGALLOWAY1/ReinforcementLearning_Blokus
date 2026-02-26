@@ -141,7 +141,7 @@ interface GameStore {
   setPieceOrientation: (orientation: number) => void;
   setPreviewMove: (move: MctsTopMove | null) => void;
   makeMove: (move: MoveRequest) => Promise<MoveResponse>;
-  passTurn: (player: string) => Promise<MoveResponse>;
+  passTurn: () => Promise<MoveResponse>;
   createGame: (config: any) => Promise<string>;
   setError: (error: string | null) => void;
   setGameState: (gameState: GameState | null) => void;
@@ -253,7 +253,7 @@ export const useGameStore = create<GameStore>()(
       set({ previewMove: move });
     },
 
-    passTurn: async (_player: string): Promise<MoveResponse> => {
+    passTurn: async (): Promise<MoveResponse> => {
       return new Promise((resolve) => {
         moveResolver = resolve;
         if (!workerInstance) setupWorker();
@@ -398,11 +398,12 @@ export function computeLegalMovesByPiece(gameState: GameState | null): { pieceId
 
 export const useLegalMovesByPiece = (): { pieceId: number; count: number }[] => {
   const gameState = useGameStore(state => state.gameState);
-  const legalMoves = gameState?.legal_moves || [];
-  const currentPlayer = gameState?.current_player;
-  const piecesUsed = currentPlayer ? (gameState?.pieces_used?.[currentPlayer] || []) : [];
 
   return useMemo(() => {
+    const legalMoves = gameState?.legal_moves || [];
+    const currentPlayer = gameState?.current_player;
+    const piecesUsed = currentPlayer ? (gameState?.pieces_used?.[currentPlayer] || []) : [];
+
     const counts: Record<number, number> = {};
     for (const m of legalMoves) {
       const pid = m.piece_id ?? (m as any).pieceId;
@@ -414,7 +415,7 @@ export const useLegalMovesByPiece = (): { pieceId: number; count: number }[] => 
       pieceId,
       count: piecesUsed.includes(pieceId) ? 0 : (counts[pieceId] ?? 0),
     }));
-  }, [legalMoves, piecesUsed]);
+  }, [gameState?.legal_moves, gameState?.current_player, gameState?.pieces_used]);
 };
 
 export const useCurrentPlayer = () => {

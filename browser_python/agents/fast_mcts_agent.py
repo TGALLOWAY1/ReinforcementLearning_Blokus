@@ -5,10 +5,10 @@ Uses aggressive optimizations to minimize computation time.
 
 import random
 import time
-from typing import List, Optional, Dict, Any
-from engine.board import Board, Player, Position
+from typing import Any, Dict, List, Optional
+
+from engine.board import Board, Player
 from engine.move_generator import LegalMoveGenerator, Move
-from agents.heuristic_agent import HeuristicAgent
 
 
 class FastMCTSNode:

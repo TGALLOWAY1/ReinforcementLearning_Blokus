@@ -10,7 +10,7 @@ from numbers import Integral
 
 import pytest
 
-from agents.registry import AgentProtocol, build_baseline_agent
+from agents.registry import build_baseline_agent
 from league.league import League, MatchResult, build_league_agents
 
 

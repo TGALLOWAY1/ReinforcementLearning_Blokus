@@ -8,11 +8,10 @@ This test verifies that:
 4. Dead agents are properly skipped
 """
 
-import pytest
 import numpy as np
+import pytest
+
 from envs.blokus_v0 import BlokusEnv, make_gymnasium_env
-from engine.board import Board, Player, Position
-from engine.pieces import PieceGenerator
 
 
 def test_no_legal_moves_marks_agent_terminated():

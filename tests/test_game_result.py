@@ -6,10 +6,10 @@ final scores and winner information using the standard Blokus scoring system.
 """
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+from engine.board import Player
 from engine.game import BlokusGame, GameResult
-from engine.board import Board, Player
-from engine.move_generator import LegalMoveGenerator, Move
 
 
 class TestGameResult(unittest.TestCase):

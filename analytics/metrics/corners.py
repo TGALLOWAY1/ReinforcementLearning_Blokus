@@ -1,7 +1,10 @@
 
-from typing import Dict, Any, Set, Tuple
-from . import MetricInput
+from typing import Any, Dict
+
 from engine.board import Player
+
+from . import MetricInput
+
 
 def compute_corner_metrics(inp: MetricInput) -> Dict[str, Any]:
     """

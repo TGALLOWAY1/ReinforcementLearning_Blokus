@@ -8,9 +8,9 @@ Usage:
     PYTHONPATH=. python scripts/benchmark_vecenv.py
 """
 
-import time
-import tempfile
 import os
+import tempfile
+import time
 
 from training.config import TrainingConfig
 from training.trainer import train

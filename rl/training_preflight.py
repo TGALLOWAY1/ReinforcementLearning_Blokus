@@ -17,19 +17,16 @@ from __future__ import annotations
 import argparse
 import sys
 
+from sb3_contrib import MaskablePPO
+
+from league.league import League, build_league_agents
 from rl.train import (
     TrainConfig,
+    _make_vec_env,
+    evaluate_and_update_league,
     load_config,
     set_seeds,
-    make_env,
-    _make_vec_env,
-    _build_opponents,
-    evaluate_and_update_league,
 )
-from league.league import League, build_league_agents
-from sb3_contrib import MaskablePPO
-from stable_baselines3.common.monitor import Monitor
-from sb3_contrib.common.wrappers import ActionMasker
 
 
 def main() -> int:
@@ -69,8 +66,9 @@ def main() -> int:
 
     if args.run_one_eval:
         print("Creating model and running one league eval (eval_matches=1)...")
-        import tempfile
         import os
+        import tempfile
+
         from torch.distributions.distribution import Distribution
         Distribution.set_default_validate_args(False)
         model = MaskablePPO(

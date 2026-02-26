@@ -3,7 +3,6 @@ Test StrategyLogger read-only analytics endpoints.
 """
 
 import asyncio
-import os
 
 import pytest
 

@@ -1,7 +1,10 @@
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 import numpy as np
-from . import MetricInput, BOARD_SIZE, mdist
+
+from . import BOARD_SIZE, MetricInput
+
 
 def compute_proximity_metrics(inp: MetricInput) -> Dict[str, Any]:
     """

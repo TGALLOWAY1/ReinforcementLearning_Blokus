@@ -3,8 +3,8 @@ Smoke test for Blokus game engine.
 Verifies basic game functionality.
 """
 
-import sys
 import os
+import sys
 
 # Add project root to Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,8 +22,7 @@ except ImportError:
     sys.exit(1)
 
 from engine.game import BlokusGame
-from engine.board import Player
-from engine.move_generator import Move
+
 
 def test_engine():
     game = BlokusGame()

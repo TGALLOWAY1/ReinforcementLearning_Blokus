@@ -4,12 +4,12 @@ Route registration for deploy-safe gameplay endpoints.
 
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, List
+from collections.abc import Awaitable
+from typing import Any, Callable, List
 
 from fastapi import FastAPI
 
 from schemas.game_state import AgentInfo, GameCreateResponse, GameState, MoveResponse
-
 
 AsyncHandler = Callable[..., Awaitable[Any]]
 SyncHandler = Callable[..., Any]

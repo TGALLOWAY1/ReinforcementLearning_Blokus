@@ -11,8 +11,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -20,16 +19,17 @@ import numpy as np
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from engine.game import BlokusGame
-from engine.board import Player
-from engine.move_generator import LegalMoveGenerator, Move
-from agents.random_agent import RandomAgent
-from agents.heuristic_agent import HeuristicAgent
-from training.checkpoints import load_checkpoint, get_checkpoint_episode
-from training.eval_logger import log_evaluation_result
-from envs.blokus_v0 import make_gymnasium_env
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
+
+from agents.heuristic_agent import HeuristicAgent
+from agents.random_agent import RandomAgent
+from engine.board import Player
+from engine.game import BlokusGame
+from engine.move_generator import LegalMoveGenerator, Move
+from envs.blokus_v0 import make_gymnasium_env
+from training.checkpoints import load_checkpoint
+from training.eval_logger import log_evaluation_result
 
 # Import mask function from trainer
 from training.trainer import mask_fn

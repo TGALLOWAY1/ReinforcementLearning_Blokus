@@ -6,12 +6,17 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
+from agents.registry import (
+    AgentProtocol,
+    AgentSpec,
+    RLPolicyAgent,
+    build_baseline_agent,
+)
 from envs.blokus_v0 import BlokusEnv
-from agents.registry import AgentProtocol, AgentSpec, build_baseline_agent, RLPolicyAgent
 from league.db import LeagueDB
 from league.elo import EloConfig, update_ratings
 

@@ -1,7 +1,9 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
+
 from analytics.metrics import MetricInput, compute_blocking_metrics
+
 
 class TestBlockingMetrics(unittest.TestCase):
     @patch('analytics.metrics.blocking.get_mobility_counts')

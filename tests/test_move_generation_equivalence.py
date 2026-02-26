@@ -5,8 +5,13 @@ as the naive (full-board scan) move generation.
 
 import random
 import unittest
+
 from engine.board import Board, Player, Position
-from engine.move_generator import LegalMoveGenerator, Move, debug_compare_bitboard_vs_grid
+from engine.move_generator import (
+    LegalMoveGenerator,
+    Move,
+    debug_compare_bitboard_vs_grid,
+)
 from engine.pieces import ALL_PIECE_ORIENTATIONS, PiecePlacement
 from tests.utils_game_states import generate_random_valid_state
 
@@ -481,7 +486,6 @@ class TestMoveGenerationEquivalence(unittest.TestCase):
         per-orientation fallback mechanism ensures no legal moves are missed.
         """
         import engine.move_generator as move_gen_module
-        from engine.pieces import PieceOrientation
         
         # Save original flags
         original_frontier = move_gen_module.USE_FRONTIER_MOVEGEN

@@ -4,7 +4,9 @@ Pentomino F (ID 11) and Pentomino Y (ID 21).
 """
 
 import unittest
+
 import numpy as np
+
 from engine.pieces import PieceGenerator
 
 

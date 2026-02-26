@@ -9,13 +9,13 @@ The _make_env_init() function is defined at module top-level and used with funct
 to create picklable factory functions for SubprocVecEnv.
 """
 
-from typing import Optional, Union, Callable
 from functools import partial
+from typing import Callable, Optional, Union
+
 import gymnasium as gym
 import numpy as np
-
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 from sb3_contrib.common.wrappers import ActionMasker
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 
 from envs.blokus_v0 import make_gymnasium_env
 from training.config import TrainingConfig

@@ -1,6 +1,7 @@
 
-from typing import List, Tuple, Set, Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import numpy as np
 
 # Re-export key types from engine/board.py if feasible, or redefine if we want decoupling.
@@ -41,12 +42,12 @@ class MetricInput:
         # For now, we expect the caller to populate this if easier
         return []
 
-from .center import compute_center_metrics
-from .territory import compute_territory_metrics
-from .mobility import compute_mobility_metrics, get_mobility_counts
 from .blocking import compute_blocking_metrics
+from .center import compute_center_metrics
 from .corners import compute_corner_metrics
-from .proximity import compute_proximity_metrics
+from .mobility import compute_mobility_metrics, get_mobility_counts
 from .pieces import compute_piece_metrics
+from .proximity import compute_proximity_metrics
+from .territory import compute_territory_metrics
 
 

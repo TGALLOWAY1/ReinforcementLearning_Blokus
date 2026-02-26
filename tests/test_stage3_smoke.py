@@ -3,8 +3,8 @@
 import tempfile
 from pathlib import Path
 
-from sb3_contrib import MaskablePPO
 import torch
+from sb3_contrib import MaskablePPO
 
 from rl.train import TrainConfig, _make_vec_env, _save_checkpoint, train
 

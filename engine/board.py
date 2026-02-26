@@ -5,12 +5,14 @@ Blokus Board implementation with 20x20 grid and game state management.
 """
 
 import os
-import numpy as np
-from typing import List, Tuple, Set, Optional, Dict
+from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-from collections import defaultdict
-from .bitboard import coords_to_mask, coord_to_bit
+from typing import Dict, List, Optional, Set, Tuple
+
+import numpy as np
+
+from .bitboard import coord_to_bit, coords_to_mask
 
 
 class Player(Enum):

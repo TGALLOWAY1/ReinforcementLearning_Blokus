@@ -3,7 +3,8 @@ Utility functions for generating test game states.
 """
 
 import random
-from typing import Tuple, Optional
+from typing import Tuple
+
 from engine.board import Board, Player
 from engine.move_generator import LegalMoveGenerator
 

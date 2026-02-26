@@ -3,8 +3,9 @@ Tests to verify that bitboard-based legality checks produce the same results
 as grid-based legality checks.
 """
 
-import unittest
 import random
+import unittest
+
 from engine.board import Board, Player, Position
 from engine.move_generator import LegalMoveGenerator
 from engine.pieces import ALL_PIECE_ORIENTATIONS, PieceGenerator, PiecePlacement

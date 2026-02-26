@@ -2,8 +2,10 @@
 Zobrist hashing for efficient state representation in MCTS.
 """
 
+from typing import Dict, Optional
+
 import numpy as np
-from typing import Dict, List, Optional
+
 from engine.board import Board, Player, Position
 
 

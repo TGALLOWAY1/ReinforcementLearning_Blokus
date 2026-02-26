@@ -2,11 +2,13 @@
 Blokus piece definitions with all 21 polyominoes and their rotations/reflections.
 """
 
-import numpy as np
-from typing import List, Tuple, Set, Optional, Dict
 from dataclasses import dataclass
 from enum import Enum
-from .bitboard import coords_to_mask, coord_to_bit
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
+
+from .bitboard import coords_to_mask
 
 
 @dataclass

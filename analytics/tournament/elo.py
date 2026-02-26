@@ -1,6 +1,6 @@
 
 from typing import Dict, List, Tuple
-import math
+
 
 def get_expected_score(rating_a: float, rating_b: float) -> float:
     return 1.0 / (1 + 10 ** ((rating_b - rating_a) / 400))

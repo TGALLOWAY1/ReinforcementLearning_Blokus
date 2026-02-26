@@ -11,9 +11,9 @@ from typing import Callable, Dict, Optional, Tuple
 import gymnasium as gym
 import numpy as np
 
+from agents.registry import AgentProtocol, build_baseline_agent
 from envs.blokus_v0 import BlokusEnv
 from mcts.zobrist import ZobristHash
-from agents.registry import AgentProtocol, build_baseline_agent
 
 logger = logging.getLogger(__name__)
 

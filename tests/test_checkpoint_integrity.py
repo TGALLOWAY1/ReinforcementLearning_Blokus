@@ -5,11 +5,10 @@ from pathlib import Path
 
 import numpy as np
 import torch
-
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.maskable.utils import get_action_masks
 
-from rl.train import TrainConfig, _make_vec_env, _save_checkpoint, _load_checkpoint
+from rl.train import TrainConfig, _load_checkpoint, _make_vec_env, _save_checkpoint
 
 
 def _extract_action(action) -> int:

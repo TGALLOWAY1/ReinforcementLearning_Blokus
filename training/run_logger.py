@@ -9,20 +9,24 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 # Try to import MongoDB dependencies
 try:
-    import sys
     import os
+    import sys
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, project_root)
     
+    from webapi.db.models import (
+        CheckpointPath,
+        EpisodeMetric,
+        RollingWinRate,
+        TrainingRun,
+    )
     from webapi.db.mongo import get_database
-    from webapi.db.models import TrainingRun, EpisodeMetric, RollingWinRate, CheckpointPath
     MONGODB_AVAILABLE = True
 except (ImportError, RuntimeError) as e:
     logger.warning(f"MongoDB not available for training run logging: {e}")

@@ -1,12 +1,13 @@
 from typing import Any, Dict, List
+
 import numpy as np
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 from agents.fast_mcts_agent import FastMCTSAgent
+from engine.bitboard import coord_to_bit
 from engine.board import Board, Player
 from engine.move_generator import Move
-from engine.bitboard import coord_to_bit
 
 
 class ThinkRequest(BaseModel):

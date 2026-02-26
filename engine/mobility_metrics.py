@@ -5,11 +5,11 @@ P_i = placements per piece, O_i = unique orientations, S_i = piece size.
 PN_i = P_i / O_i, MW_i = PN_i * S_i.
 """
 
-from typing import Dict, List, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List
 
-from .pieces import PieceGenerator
 from .move_generator import LegalMoveGenerator, Move
+from .pieces import PieceGenerator
 
 
 @dataclass

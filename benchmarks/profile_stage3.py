@@ -8,15 +8,16 @@ import pstats
 from pathlib import Path
 
 from torch.distributions.distribution import Distribution
+
 Distribution.set_default_validate_args(False)
 
 from benchmarks.bench_selfplay_league import (
-    _prepare_stage3_sampler,
     _make_model,
-    _rollout_steps,
+    _prepare_stage3_sampler,
     _resolve_device,
+    _rollout_steps,
 )
-from rl.train import load_config, _make_vec_env
+from rl.train import _make_vec_env, load_config
 
 
 def main() -> None:

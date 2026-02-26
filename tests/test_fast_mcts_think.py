@@ -2,7 +2,6 @@ import time
 
 from agents.fast_mcts_agent import FastMCTSAgent
 from engine.game import BlokusGame
-from engine.board import Player
 
 
 def test_fast_mcts_returns_legal_move():

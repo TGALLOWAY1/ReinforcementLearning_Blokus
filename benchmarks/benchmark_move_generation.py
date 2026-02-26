@@ -13,17 +13,15 @@ Usage:
     python -m benchmarks.benchmark_move_generation
 """
 
-import sys
 import os
-import random
+import sys
 import time
 
 # Add parent directory to path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.board import Board, Player
-from engine.move_generator import LegalMoveGenerator
 import engine.move_generator as move_gen_module
+from engine.move_generator import LegalMoveGenerator
 from tests.utils_game_states import generate_random_valid_state
 
 

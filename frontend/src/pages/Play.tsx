@@ -125,7 +125,7 @@ export const Play: React.FC = () => {
     }
   }, [selectedPiece, isMakingMove, gameState, pieceOrientation, makeMove, selectPiece, setPieceOrientation, setError]);
 
-  const handleCellHover = useCallback((_row: number, _col: number) => {
+  const handleCellHover = useCallback(() => {
     // Could add hover effects here
   }, []);
 
@@ -144,7 +144,7 @@ export const Play: React.FC = () => {
     setError(null);
 
     try {
-      const response = await passTurn(currentPlayer);
+      const response = await passTurn();
       if (response && response.success) {
         console.log('✅ Pass successful');
       } else {

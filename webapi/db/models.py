@@ -10,14 +10,14 @@ as the RL training and evaluation features are implemented.
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 try:
     from typing import Literal
 except ImportError:
-    from typing_extensions import Literal
-from pydantic import BaseModel, Field
+    pass
 from bson import ObjectId
-
+from pydantic import BaseModel, Field
 
 # Simplified ObjectId handling for Pydantic V2 compatibility
 # We'll use Optional[str] for id fields and convert to ObjectId when needed

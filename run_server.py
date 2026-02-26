@@ -3,15 +3,14 @@
 Run the Blokus web API server.
 """
 
-import sys
 import os
+import sys
 
 # Add the project root to Python path
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
 # Now import and run the app
-from webapi.app import app
 import uvicorn
 
 if __name__ == "__main__":

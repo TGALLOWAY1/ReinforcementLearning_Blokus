@@ -39,7 +39,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -49,20 +49,24 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from sb3_contrib import MaskablePPO
-from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.logger import configure
 
+from training.agent_config import load_agent_config
+from training.checkpoints import (
+    cleanup_old_checkpoints,
+    get_checkpoint_episode,
+    get_checkpoint_path,
+    load_checkpoint,
+    save_checkpoint,
+)
 from training.config import TrainingConfig, create_arg_parser, parse_args_to_config
 from training.env_factory import make_training_env
-from training.seeds import set_seed
-from training.run_logger import create_training_run_logger, TrainingRunLogger
-from training.checkpoints import (
-    save_checkpoint, load_checkpoint, get_checkpoint_path,
-    cleanup_old_checkpoints, get_checkpoint_episode
+from training.reproducibility import (
+    get_reproducibility_metadata,
+    log_reproducibility_info,
 )
-from training.agent_config import load_agent_config, AgentConfig
-from training.reproducibility import get_reproducibility_metadata, log_reproducibility_info
+from training.run_logger import TrainingRunLogger, create_training_run_logger
+from training.seeds import set_seed
 from utils.logging_setup import setup_training_logging
 
 # Configure logging
@@ -941,7 +945,9 @@ def train(config: TrainingConfig, run_dir: Optional[Path] = None, experiment_nam
                 
                 # Create distribution from logits (before masking)
                 # This is how sb3_contrib does it internally
-                from sb3_contrib.common.maskable.distributions import MaskableCategorical
+                from sb3_contrib.common.maskable.distributions import (
+                    MaskableCategorical,
+                )
                 
                 # Create distribution with validate_args=False to inspect probabilities even if they fail validation
                 try:

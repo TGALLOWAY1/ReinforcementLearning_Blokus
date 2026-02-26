@@ -1,19 +1,24 @@
-import sys
 import os
-from typing import Dict, Any, List
+import sys
+from typing import Any, Dict, List
 
 # Add current directory to path so engine, mcts, agents modules can be imported
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from engine.game import BlokusGame
-from engine.board import Player as EnginePlayer
-from engine.move_generator import Move as EngineMove
-from engine.mobility_metrics import compute_player_mobility_metrics
-from engine.advanced_metrics import (
-    compute_corner_differential, compute_territory_control, compute_piece_penalty, 
-    compute_center_proximity, compute_opponent_adjacency, compute_dead_zones
-)
 from agents.fast_mcts_agent import FastMCTSAgent
+from engine.advanced_metrics import (
+    compute_center_proximity,
+    compute_corner_differential,
+    compute_dead_zones,
+    compute_opponent_adjacency,
+    compute_piece_penalty,
+    compute_territory_control,
+)
+from engine.board import Player as EnginePlayer
+from engine.game import BlokusGame
+from engine.mobility_metrics import compute_player_mobility_metrics
+from engine.move_generator import Move as EngineMove
+
 
 class WebWorkerGameBridge:
     def __init__(self):

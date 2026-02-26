@@ -1,8 +1,9 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
+
 from analytics.metrics import MetricInput, compute_mobility_metrics
-from engine.board import Board
+
 
 class TestMobilityMetrics(unittest.TestCase):
     def test_precomputed(self):

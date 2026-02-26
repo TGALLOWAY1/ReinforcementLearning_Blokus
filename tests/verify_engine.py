@@ -9,8 +9,8 @@ This script performs basic verification of the game engine:
 5. Verifies invalid moves are rejected
 """
 
-from engine.game import BlokusGame
 from engine.board import Player
+from engine.game import BlokusGame
 from engine.move_generator import Move
 
 

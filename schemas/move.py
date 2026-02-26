@@ -2,9 +2,10 @@
 Pydantic schemas for game moves.
 """
 
-from typing import List, Optional
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class Player(str, Enum):

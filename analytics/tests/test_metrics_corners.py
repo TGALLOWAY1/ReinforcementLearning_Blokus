@@ -1,8 +1,9 @@
 
 import unittest
 from unittest.mock import MagicMock
-from analytics.metrics import MetricInput, compute_corner_metrics
-from engine.board import Player
+
+from analytics.metrics import compute_corner_metrics
+
 
 class TestCornerMetrics(unittest.TestCase):
     def test_corner_counts(self):

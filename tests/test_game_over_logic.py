@@ -6,10 +6,10 @@ and sets the game_over flag appropriately.
 """
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+from engine.board import Player
 from engine.game import BlokusGame
-from engine.board import Board, Player
-from engine.move_generator import LegalMoveGenerator
 
 
 class TestGameOverLogic(unittest.TestCase):

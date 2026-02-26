@@ -2,10 +2,18 @@
 Tests for improved human move error messages.
 """
 
-import unittest
 import asyncio
+import unittest
+
 from engine.board import Player as EnginePlayer
-from schemas.game_state import Player, GameConfig, AgentType, PlayerConfig, MoveRequest, Move
+from schemas.game_state import (
+    AgentType,
+    GameConfig,
+    Move,
+    MoveRequest,
+    Player,
+    PlayerConfig,
+)
 from webapi.app import GameManager
 
 

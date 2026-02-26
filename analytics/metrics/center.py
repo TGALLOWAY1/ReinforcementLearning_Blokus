@@ -1,6 +1,8 @@
 
-from typing import Dict, Any
-from . import MetricInput, mdist, CENTER_COORD, is_in_center_mask
+from typing import Any, Dict
+
+from . import CENTER_COORD, MetricInput, is_in_center_mask, mdist
+
 
 def compute_center_metrics(inp: MetricInput) -> Dict[str, Any]:
     """

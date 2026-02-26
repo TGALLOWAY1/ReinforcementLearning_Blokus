@@ -10,9 +10,9 @@ This package contains the core game logic for Blokus, including:
 """
 
 from .board import Board, Player, Position
-from .pieces import Piece, PieceType, PieceGenerator, PiecePlacement
-from .move_generator import Move, LegalMoveGenerator
 from .game import BlokusGame
+from .move_generator import LegalMoveGenerator, Move
+from .pieces import Piece, PieceGenerator, PiecePlacement, PieceType
 
 __all__ = [
     'Board', 'Player', 'Position',
