@@ -5,11 +5,12 @@ import {
   ModelStatusSection,
 } from './ResearchSidebar';
 import { PolicyView, ValueView } from './AgentVisualizations';
-import { LegalMovesBarChart } from './LegalMovesBarChart';
-import { LegalMovesPerTurnPlot } from './LegalMovesPerTurnPlot';
-import { MobilityBucketsChart } from './MobilityBucketsChart';
-import { MctsTopMovesTable } from './MctsTopMovesTable';
 import { TelemetryPanel } from './TelemetryPanel';
+import { LegalMovesBarChart } from './LegalMovesBarChart';
+import {
+  ModuleC_CornerChart,
+  ModuleE_FrontierChart,
+} from './AnalysisDashboard';
 import { IS_DEPLOY_PROFILE, ENABLE_DEBUG_UI } from '../constants/gameConstants';
 import { useGameStore } from '../store/gameStore';
 
@@ -49,6 +50,9 @@ interface RightPanelProps {
 export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
   const activeTab = useGameStore((s) => s.activeRightTab);
   const setActiveTab = useGameStore((s) => s.setActiveRightTab);
+  const gameState = useGameStore((s) => s.gameState);
+  const gameHistory = gameState?.game_history || [];
+  const liveTurn = gameHistory.length;
 
   // Deploy: New Game + Legal Moves chart + Legal Positions grid
   if (IS_DEPLOY_PROFILE) {
@@ -75,7 +79,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
                 onClick={() => setActiveTab('telemetry')}
                 className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'telemetry' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
               >
-                Telemetry
+                Dashboard
               </button>
             </div>
           )}
@@ -85,16 +89,19 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             <TelemetryPanel />
           ) : (
             <div className="h-full overflow-y-auto">
+              {/* Restored Live Charts for the Main Tab */}
               <section className="p-3 border-b border-charcoal-700">
                 <LegalMovesBarChart />
               </section>
-              <section className="p-3 border-b border-charcoal-700">
-                <LegalMovesPerTurnPlot />
+
+              <section className="p-3 border-b border-charcoal-700 h-[220px]">
+                <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={liveTurn} />
               </section>
-              <section className="p-3 border-b border-charcoal-700">
-                <MobilityBucketsChart />
+
+              <section className="p-3 border-b border-charcoal-700 h-[220px]">
+                <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={liveTurn} />
               </section>
-              <MctsTopMovesTable />
+
               <section className="p-3 border-b border-charcoal-700">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
                   Legal Positions
@@ -115,25 +122,26 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
         <EnvironmentControlsSection onNewGame={onNewGame} />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Training Parameters" defaultOpen>
+      <CollapsibleSection title="Training Parameters" defaultOpen={false}>
         <TrainingParametersSection />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Model Status" defaultOpen>
+      <CollapsibleSection title="Model Status" defaultOpen={false}>
         <ModelStatusSection />
       </CollapsibleSection>
 
-      {/* Legal Moves Over Time */}
+      {/* Restored Live Charts for the Main Tab */}
       <section className="p-3 border-b border-charcoal-700">
-        <LegalMovesPerTurnPlot />
+        <LegalMovesBarChart />
       </section>
 
-      {/* Mobility by Piece Size */}
-      <section className="p-3 border-b border-charcoal-700">
-        <MobilityBucketsChart />
+      <section className="p-3 border-b border-charcoal-700 h-[220px]">
+        <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={liveTurn} />
       </section>
 
-      <MctsTopMovesTable />
+      <section className="p-3 border-b border-charcoal-700 h-[220px]">
+        <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={liveTurn} />
+      </section>
 
       {/* Always-visible Policy & Value */}
       <section className="p-3 border-b border-charcoal-700">
@@ -149,8 +157,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
         </h3>
         <ValueView />
       </section>
-
-      {/* Optional Tree - can be added later as a collapsible section if needed */}
     </div>
   );
 
@@ -170,7 +176,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             onClick={() => setActiveTab('telemetry')}
             className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'telemetry' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
           >
-            Telemetry
+            Dashboard
           </button>
         </div>
       )}

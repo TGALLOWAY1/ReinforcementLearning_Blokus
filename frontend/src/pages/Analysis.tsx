@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { API_BASE } from '../constants/gameConstants';
-import { GameAnalyticsTimeline } from '../components/GameAnalyticsTimeline';
+import { AnalysisDashboard } from '../components/AnalysisDashboard';
 
 export const Analysis: React.FC = () => {
   const { gameId } = useParams();
@@ -22,8 +22,8 @@ export const Analysis: React.FC = () => {
   }, [gameId]);
 
   return (
-    <div className="min-h-screen bg-charcoal-900 text-gray-200 p-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="min-h-screen bg-charcoal-900 text-gray-200 p-6 flex flex-col">
+      <div className="flex justify-between items-center mb-4 shrink-0">
         <h1 className="text-2xl font-bold">Game Analysis</h1>
         <div className="space-x-4">
           <Link to="/history" className="text-neon-blue">History</Link>
@@ -31,14 +31,12 @@ export const Analysis: React.FC = () => {
         </div>
       </div>
 
-      {gameId && (
-        <div className="mb-6">
-          <GameAnalyticsTimeline gameId={gameId} />
-        </div>
-      )}
+      <div className="flex-1 min-h-0 container mx-auto mb-6">
+        <AnalysisDashboard />
+      </div>
 
       {analysis && (
-        <div className="space-y-4">
+        <div className="space-y-4 shrink-0">
           <div className="bg-charcoal-800 p-4 rounded border border-charcoal-700">
             <h2 className="font-semibold mb-2">Aggregates</h2>
             <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(analysis.aggregates, null, 2)}</pre>
@@ -51,7 +49,7 @@ export const Analysis: React.FC = () => {
       )}
 
       {trends && (
-        <div className="bg-charcoal-800 p-4 rounded border border-charcoal-700 mt-6">
+        <div className="bg-charcoal-800 p-4 rounded border border-charcoal-700 mt-6 shrink-0">
           <h2 className="font-semibold mb-2">Cross-Game Trends</h2>
           <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(trends, null, 2)}</pre>
         </div>

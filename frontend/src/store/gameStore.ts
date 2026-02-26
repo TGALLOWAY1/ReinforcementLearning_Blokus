@@ -63,6 +63,7 @@ export interface GameState {
       opponent_adjacency: number;
     }
   };
+  game_history?: GameHistoryEntry[];
 }
 
 export interface MctsTopMove {
@@ -97,27 +98,32 @@ export interface LogEntry {
   level?: 'INFO' | 'WARN' | 'ERROR';
 }
 
-import { computeMobilityMetrics, type PlayerMobilityMetrics } from '../utils/mobilityMetrics';
+import { type PlayerMobilityMetrics } from '../utils/mobilityMetrics';
 import { useDebugLogStore } from './debugLogStore';
 
-export interface LegalMovesHistoryEntry {
-  turn: number;
-  byPlayer: Record<string, PlayerMobilityMetrics>;
-  advanced?: {
-    [player: string]: {
-      corner_differential: number;
-      territory_ratio: number;
-      piece_penalty: number;
-      center_proximity: number;
-      opponent_adjacency: number;
-    }
+export interface GameHistoryEntry {
+  turn_number: number;
+  player_to_move: string;
+  action: {
+    piece_id: number;
+    orientation: number;
+    anchor_row: number;
+    anchor_col: number;
+  };
+  board_state: number[][];
+  metrics: {
+    corner_count: Record<string, number>;
+    frontier_size: Record<string, number>;
+    difficult_piece_penalty: Record<string, number>;
+    remaining_pieces: Record<string, number[]>;
+    influence_map: number[][] | null;
   };
 }
 
 // Store interface
 interface GameStore {
   gameState: GameState | null;
-  legalMovesHistory: LegalMovesHistoryEntry[];
+  currentSliderTurn: number | null;
   connectionStatus: 'disconnected' | 'connecting' | 'connected';
   selectedPiece: number | null;
   pieceOrientation: number;
@@ -130,6 +136,7 @@ interface GameStore {
 
   connect: (gameId: string) => Promise<void>;
   disconnect: () => void;
+  setCurrentSliderTurn: (turn: number | null) => void;
   selectPiece: (pieceId: number | null) => void;
   setPieceOrientation: (orientation: number) => void;
   setPreviewMove: (move: MctsTopMove | null) => void;
@@ -141,6 +148,8 @@ interface GameStore {
   addLog: (message: string, level?: 'INFO' | 'WARN' | 'ERROR') => void;
   clearLogs: () => void;
   setActiveRightTab: (tab: 'main' | 'telemetry') => void;
+  saveGame: () => void;
+  loadGame: (history: GameHistoryEntry[]) => Promise<void>;
 }
 
 let workerInstance: Worker | null = null;
@@ -199,7 +208,7 @@ function triggerAgentTurnIfNeeded() {
 export const useGameStore = create<GameStore>()(
   subscribeWithSelector((set, get) => ({
     gameState: null,
-    legalMovesHistory: [],
+    currentSliderTurn: null,
     connectionStatus: 'disconnected',
     selectedPiece: null,
     pieceOrientation: 0,
@@ -223,9 +232,13 @@ export const useGameStore = create<GameStore>()(
         connectionStatus: 'disconnected',
         pollIntervalId: null,
         gameState: null,
-        legalMovesHistory: [],
+        currentSliderTurn: null,
         isAdvancingTurn: false,
       });
+    },
+
+    setCurrentSliderTurn: (turn: number | null) => {
+      set({ currentSliderTurn: turn });
     },
 
     selectPiece: (pieceId: number | null) => {
@@ -289,37 +302,23 @@ export const useGameStore = create<GameStore>()(
       set((state) => {
         if (!gameState) {
           if (ENABLE_DEBUG_UI) useDebugLogStore.getState().setStateDiff(state.gameState, null);
-          return { gameState: null, legalMovesHistory: [], previewMove: null };
+          return { gameState: null, previewMove: null, currentSliderTurn: null };
         }
         const prev = state.gameState;
         if (ENABLE_DEBUG_UI) useDebugLogStore.getState().setStateDiff(prev, gameState);
-        const piecesUsed = gameState.pieces_used?.[gameState.current_player] ?? [];
-        const metrics =
-          gameState.mobility_metrics ??
-          computeMobilityMetrics(gameState.legal_moves ?? [], piecesUsed);
 
-        if (prev?.game_id !== gameState.game_id) {
-          const entry: LegalMovesHistoryEntry = {
-            turn: 0,
-            byPlayer: { [gameState.current_player]: metrics },
-            advanced: gameState.advanced_metrics,
-          };
-          return { gameState, legalMovesHistory: [entry], previewMove: null };
+        let nextSliderTurn = state.currentSliderTurn;
+        const totalTurns = gameState.game_history?.length || 0;
+        const prevTotalTurns = prev?.game_history?.length || 0;
+
+        if (state.currentSliderTurn === null || state.currentSliderTurn >= prevTotalTurns || prevTotalTurns === 0) {
+          nextSliderTurn = totalTurns;
         }
 
-        const prevKey = prev ? `${prev.move_count}-${prev.current_player}` : '';
-        const newKey = `${gameState.move_count}-${gameState.current_player}`;
-        if (prevKey === newKey) return { gameState };
-
-        const entry: LegalMovesHistoryEntry = {
-          turn: state.legalMovesHistory.length,
-          byPlayer: { [gameState.current_player]: metrics },
-          advanced: gameState.advanced_metrics,
-        };
         return {
           gameState,
           previewMove: null,
-          legalMovesHistory: [...state.legalMovesHistory, entry],
+          currentSliderTurn: nextSliderTurn,
         };
       });
     },
@@ -339,6 +338,40 @@ export const useGameStore = create<GameStore>()(
 
     clearLogs: () => { set({ logs: [] }); },
     setActiveRightTab: (tab: 'main' | 'telemetry') => { set({ activeRightTab: tab }); },
+
+    saveGame: () => {
+      const state = get().gameState;
+      if (!state || !state.game_history) return;
+
+      const blob = new Blob([JSON.stringify(state.game_history, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `blokus_game_${state.game_id}_${new Date().toISOString()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+
+    loadGame: async (history: GameHistoryEntry[]) => {
+      setupWorker();
+      const waitForWorker = async () => {
+        while (!isWorkerReady) {
+          await new Promise(r => setTimeout(r, 100));
+        }
+      };
+      await waitForWorker();
+
+      return new Promise((resolve) => {
+        set({ connectionStatus: 'connecting' });
+        workerInstance!.postMessage({ type: 'load_game', history });
+        // The worker will respond with state_update which calls setGameState
+        // and resolve the promise implicitly via message listener if needed, 
+        // but for now we just wait for the update to happen.
+        resolve();
+      });
+    },
   }))
 );
 

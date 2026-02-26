@@ -20,9 +20,7 @@ const CellRect = React.memo<{
   stroke: string;
   strokeWidth: number;
   hasPiece: boolean;
-  influenceColor: string | null;
-  isDeadZone: boolean;
-}>(({ row, col, cellColor, opacity, stroke, strokeWidth, hasPiece, influenceColor, isDeadZone }) => (
+}>(({ row, col, cellColor, opacity, stroke, strokeWidth, hasPiece }) => (
   <g>
     <rect
       x={col * CELL_SIZE}
@@ -38,45 +36,6 @@ const CellRect = React.memo<{
         filter: hasPiece ? `drop-shadow(0 0 2px ${cellColor})` : 'none'
       }}
     />
-    {influenceColor && !hasPiece && (
-      <rect
-        x={col * CELL_SIZE}
-        y={row * CELL_SIZE}
-        width={CELL_SIZE}
-        height={CELL_SIZE}
-        fill={influenceColor}
-        opacity={0.15}
-        className="pointer-events-none transition-all duration-200"
-      />
-    )}
-    {isDeadZone && !hasPiece && (
-      <g className="pointer-events-none transition-all duration-200" opacity={0.6}>
-        <line
-          x1={col * CELL_SIZE}
-          y1={row * CELL_SIZE}
-          x2={(col + 1) * CELL_SIZE}
-          y2={(row + 1) * CELL_SIZE}
-          stroke="#f87171"
-          strokeWidth={1}
-        />
-        <line
-          x1={(col + 1) * CELL_SIZE}
-          y1={row * CELL_SIZE}
-          x2={col * CELL_SIZE}
-          y2={(row + 1) * CELL_SIZE}
-          stroke="#f87171"
-          strokeWidth={1}
-        />
-        <rect
-          x={col * CELL_SIZE}
-          y={row * CELL_SIZE}
-          width={CELL_SIZE}
-          height={CELL_SIZE}
-          fill="#1a1a1a"
-          opacity={0.5}
-        />
-      </g>
-    )}
   </g>
 ));
 CellRect.displayName = 'CellRect';
@@ -310,15 +269,6 @@ export const Board: React.FC<BoardProps> = ({
             const strokeWidth = getCellStrokeWidth(row, col);
             const hasPiece = hasPlacedPiece(row, col);
 
-            let influenceColor = null;
-            if (gameState?.influence_map?.[row]?.[col]) {
-              const pId = gameState.influence_map[row][col];
-              // Map from player ID (1-4) to color name directly since we know the mapping
-              const pNames = ['red', 'blue', 'yellow', 'green'];
-              influenceColor = (PLAYER_COLORS as any)[pNames[pId - 1]] || null;
-            }
-            const isDeadZone = gameState?.dead_zones?.[row]?.[col] || false;
-
             return (
               <CellRect
                 key={`${row}-${col}`}
@@ -329,8 +279,6 @@ export const Board: React.FC<BoardProps> = ({
                 stroke={stroke}
                 strokeWidth={strokeWidth}
                 hasPiece={hasPiece}
-                influenceColor={influenceColor}
-                isDeadZone={isDeadZone}
               />
             );
           })

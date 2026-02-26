@@ -87,11 +87,38 @@ class BlokusGame:
         end_place = time.perf_counter()
         
         if success:
-            # Record move in history (skip deep copy of board for performance - just store reference)
+            from .advanced_metrics import compute_piece_penalty
+            
+            corner_count = {}
+            frontier_size = {}
+            difficult_piece_penalty = {}
+            remaining_pieces = {}
+            
+            for p in Player:
+                fr = len(self.board.get_frontier(p))
+                corner_count[p.name] = fr
+                frontier_size[p.name] = fr
+                difficult_piece_penalty[p.name] = compute_piece_penalty(self.board.player_pieces_used[p])
+                used_pieces = self.board.player_pieces_used[p]
+                remaining_pieces[p.name] = [pid for pid in range(1, 22) if pid not in used_pieces]
+
             self.game_history.append({
-                'move': move,
-                'player': player,
-                'board_state': None  # Don't copy board to save memory/CPU
+                'turn_number': len(self.game_history) + 1,
+                'player_to_move': player.name,
+                'action': {
+                    'piece_id': move.piece_id,
+                    'orientation': move.orientation,
+                    'anchor_row': move.anchor_row,
+                    'anchor_col': move.anchor_col
+                },
+                'board_state': self.board.grid.tolist(),
+                'metrics': {
+                    'corner_count': corner_count,
+                    'frontier_size': frontier_size,
+                    'difficult_piece_penalty': difficult_piece_penalty,
+                    'remaining_pieces': remaining_pieces,
+                    'influence_map': None
+                }
             })
             
             # Check if game is over

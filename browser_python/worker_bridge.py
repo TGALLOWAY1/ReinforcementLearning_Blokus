@@ -135,8 +135,28 @@ class WebWorkerGameBridge:
             "mcts_top_moves": self.mcts_top_moves,
             "influence_map": influence_map,
             "dead_zones": dead_zones,
-            "advanced_metrics": advanced_metrics_out
+            "advanced_metrics": advanced_metrics_out,
+            "game_history": game.game_history
         }
+
+    def load_game(self, history: List[Dict[str, Any]]):
+        self.game = BlokusGame()
+        self.mcts_top_moves = []
+        
+        # Replay history
+        for entry in history:
+            action = entry.get("action")
+            if action:
+                mv = EngineMove(
+                    action["piece_id"], 
+                    action["orientation"], 
+                    action["anchor_row"], 
+                    action["anchor_col"]
+                )
+                player = EnginePlayer[entry["player_to_move"]]
+                self.game.make_move(mv, player)
+        
+        return self.get_state()
 
     def make_move(self, piece_id: int, orientation: int, anchor_row: int, anchor_col: int):
         engine_move = EngineMove(piece_id, orientation, anchor_row, anchor_col)
