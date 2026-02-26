@@ -1,5 +1,4 @@
 
-from typing import List, Tuple
 
 def get_phase_label(move_index: int, total_moves: int) -> str:
     """

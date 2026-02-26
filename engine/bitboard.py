@@ -5,7 +5,8 @@ This module provides helper functions for converting between board coordinates
 and bit masks, enabling efficient bit-level operations on the board state.
 """
 
-from typing import List, Tuple, Optional, Iterable
+from collections.abc import Iterable
+from typing import List, Optional, Tuple
 
 # Board dimensions - imported from Board class to maintain consistency
 # For now, we'll use the constant directly, but this could be made configurable

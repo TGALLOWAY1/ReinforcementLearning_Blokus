@@ -13,14 +13,27 @@ Configuration:
     Set BLOKUS_USE_HEURISTIC_ANCHORS=1 to enable heuristic anchor optimization.
 """
 
-import os
-import time
 import logging
+import os
 import random
-from typing import List, Tuple, Set, Optional
+import time
+from typing import List, Optional, Set, Tuple
+
+from .bitboard import (
+    BOARD_HEIGHT,
+    BOARD_WIDTH,
+    coord_to_bit,
+    coords_to_mask,
+    mask_to_coords,
+    shift_mask,
+)
 from .board import Board, Player, Position
-from .pieces import PieceGenerator, PiecePlacement, PieceOrientation, ALL_PIECE_ORIENTATIONS
-from .bitboard import shift_mask, coord_to_bit, coords_to_mask, mask_to_coords, BOARD_WIDTH, BOARD_HEIGHT
+from .pieces import (
+    ALL_PIECE_ORIENTATIONS,
+    PieceGenerator,
+    PieceOrientation,
+    PiecePlacement,
+)
 
 logger = logging.getLogger(__name__)
 

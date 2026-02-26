@@ -8,19 +8,18 @@ linking them to TrainingRun records.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
 # Try to import MongoDB dependencies
 try:
-    import sys
     import os
+    import sys
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, project_root)
     
-    from webapi.db.mongo import get_database
     from webapi.db.models import EvaluationRun
+    from webapi.db.mongo import get_database
     MONGODB_AVAILABLE = True
 except (ImportError, RuntimeError) as e:
     logger.warning(f"MongoDB not available for evaluation logging: {e}")

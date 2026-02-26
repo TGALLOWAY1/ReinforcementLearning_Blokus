@@ -4,19 +4,19 @@ Performance test script to collect timing data for optimization analysis.
 Runs games with agents and collects timing metrics from logs.
 """
 
-import sys
-import os
-import time
 import logging
+import os
+import sys
+import time
 from io import StringIO
 
 # Add project root to Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from engine.game import BlokusGame
-from engine.board import Player
 from agents.random_agent import RandomAgent
+from engine.board import Player
+from engine.game import BlokusGame
 
 # Configure logging to capture timing data
 log_capture = StringIO()

@@ -11,12 +11,11 @@ Current model saving behavior:
 - No resume functionality exists
 """
 
-import os
 import json
 import logging
-from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
+import os
 from datetime import datetime
+from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

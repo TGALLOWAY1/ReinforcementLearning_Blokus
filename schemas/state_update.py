@@ -2,9 +2,11 @@
 Pydantic schemas for game state updates.
 """
 
-from typing import List, Dict, Optional, Any
+from typing import Any, List, Optional
+
 from pydantic import BaseModel, Field
-from .move import Player, Move, Position
+
+from .move import Move, Player, Position
 
 
 class BoardState(BaseModel):

@@ -7,8 +7,8 @@ to quickly compare hyperparameter settings before committing to long training ru
 
 import argparse
 import logging
-import sys
 import os
+import sys
 from pathlib import Path
 from typing import List
 
@@ -16,10 +16,11 @@ from typing import List
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+from typing import Optional
+
+from training.agent_config import AgentConfig, find_agent_configs
 from training.config import TrainingConfig
 from training.trainer import train
-from training.agent_config import find_agent_configs, AgentConfig
-from typing import Optional
 
 logging.basicConfig(
     level=logging.INFO,

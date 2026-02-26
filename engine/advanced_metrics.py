@@ -1,5 +1,7 @@
 from typing import Dict, List, Set, Tuple
+
 from .board import Board, Player
+
 
 def compute_corner_differential(board: Board, player: Player) -> int:
     """M = C_own - sum(C_opp)"""

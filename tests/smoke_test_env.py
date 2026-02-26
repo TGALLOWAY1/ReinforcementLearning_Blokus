@@ -4,6 +4,7 @@ Verifies basic functionality of the Gymnasium-compatible environment.
 """
 
 import numpy as np
+
 from envs.blokus_v0 import make_gymnasium_env
 
 

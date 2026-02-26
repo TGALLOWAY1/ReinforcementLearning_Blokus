@@ -2,11 +2,15 @@
 Pydantic schemas for the Blokus web API.
 """
 
-from .game_config import GameConfig, AgentConfig, PlayerType
-from .move import MoveRequest, MoveResponse, Move, Player, Position
+from .game_config import AgentConfig, GameConfig, PlayerType
+from .move import Move, MoveRequest, MoveResponse, Player, Position
 from .state_update import (
-    BoardState, PlayerState, LegalMove, GameState, 
-    StateUpdate, GameSummary
+    BoardState,
+    GameState,
+    GameSummary,
+    LegalMove,
+    PlayerState,
+    StateUpdate,
 )
 
 __all__ = [

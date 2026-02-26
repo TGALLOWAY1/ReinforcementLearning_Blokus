@@ -1,8 +1,10 @@
 
-import os
 import argparse
-import pandas as pd
+import os
+
 import numpy as np
+import pandas as pd
+
 
 def aggregate_agents(game_summary_path: str, output_path: str):
     if not os.path.exists(game_summary_path):

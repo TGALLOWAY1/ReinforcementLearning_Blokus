@@ -5,11 +5,11 @@ Verifies that agents that timeout or raise exceptions result in a pass
 rather than a random move fallback.
 """
 
-import unittest
 import asyncio
-from unittest.mock import Mock, patch, MagicMock
-from engine.board import Player as EnginePlayer
-from schemas.game_state import GameConfig, AgentType, PlayerConfig, Player
+import unittest
+from unittest.mock import Mock, patch
+
+from schemas.game_state import AgentType, GameConfig, Player, PlayerConfig
 from webapi.app import GameManager
 
 

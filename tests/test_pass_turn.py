@@ -2,10 +2,10 @@
 Tests for pass turn functionality in WebSocket API.
 """
 
-import unittest
-from unittest.mock import MagicMock, patch
-import json
 import asyncio
+import unittest
+from unittest.mock import patch
+
 from engine.board import Player as EnginePlayer
 from schemas.game_state import Player
 from webapi.app import GameManager
@@ -20,7 +20,7 @@ class TestPassTurn(unittest.TestCase):
         self.game_id = "test_game_123"
         
         # Create a test game without auto_start to avoid async issues in tests
-        from schemas.game_state import GameConfig, AgentType, PlayerConfig
+        from schemas.game_state import AgentType, GameConfig, PlayerConfig
         config = GameConfig(
             game_id=self.game_id,
             players=[

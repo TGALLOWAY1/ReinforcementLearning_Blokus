@@ -9,9 +9,9 @@ from typing import Optional, Protocol
 
 import numpy as np
 
+from agents.fast_mcts_agent import FastMCTSAgent
 from agents.heuristic_agent import HeuristicAgent
 from agents.random_agent import RandomAgent
-from agents.fast_mcts_agent import FastMCTSAgent
 from mcts.mcts_agent import MCTSAgent
 
 

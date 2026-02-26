@@ -2,14 +2,17 @@
 Monte Carlo Tree Search agent for Blokus.
 """
 
-import numpy as np
 import time
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+
+from agents.heuristic_agent import HeuristicAgent
 from engine.board import Board, Player, Position
 from engine.move_generator import LegalMoveGenerator, Move
 from engine.pieces import PieceGenerator
-from .zobrist import ZobristHash, TranspositionTable
-from agents.heuristic_agent import HeuristicAgent
+
+from .zobrist import TranspositionTable, ZobristHash
 
 
 class MCTSNode:

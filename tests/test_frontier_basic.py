@@ -4,6 +4,7 @@ Basic tests for frontier tracking functionality.
 
 import random
 import unittest
+
 from engine.board import Board, Player, Position
 from engine.move_generator import LegalMoveGenerator
 

@@ -10,7 +10,6 @@ os.environ.setdefault("APP_PROFILE", "deploy")
 
 from webapi.app import create_app  # noqa: E402
 
-
 app = create_app(profile="deploy", include_research_routes=False)
 
 

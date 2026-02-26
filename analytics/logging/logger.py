@@ -1,23 +1,24 @@
 
-import json
-import time
 import os
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+import time
+from typing import Any, Dict, Optional
+
+from analytics.metrics import (
+    MetricInput,
+    compute_blocking_metrics,
+    compute_center_metrics,
+    compute_corner_metrics,
+    compute_mobility_metrics,
+    compute_piece_metrics,
+    compute_proximity_metrics,
+    compute_territory_metrics,
+)
 from engine.board import Board, Player
 from engine.move_generator import LegalMoveGenerator, Move
 from engine.pieces import PieceGenerator
-from analytics.metrics import (
-    MetricInput,
-    compute_center_metrics,
-    compute_territory_metrics,
-    compute_mobility_metrics,
-    compute_blocking_metrics,
-    compute_corner_metrics,
-    compute_proximity_metrics,
-    compute_piece_metrics
-)
-from .schemas import StepLog, GameResultLog
+
+from .schemas import GameResultLog, StepLog
+
 
 class StrategyLogger:
     def __init__(self, log_dir: str = "logs/analytics"):

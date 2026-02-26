@@ -1,8 +1,10 @@
 
-from typing import Dict, Any, List, Tuple
-from . import MetricInput
+from typing import Any, Dict, List, Tuple
+
+from engine.board import Board, Player
 from engine.move_generator import LegalMoveGenerator
-from engine.board import Player, Board
+
+from . import MetricInput
 
 # Reusable generator instance if needed, though it might be stateful?
 # LegalMoveGenerator.__init__ takes no args and loads pieces. It caches stuff.

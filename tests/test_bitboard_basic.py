@@ -3,11 +3,16 @@ Basic tests for bitboard functionality and consistency.
 """
 
 import unittest
-from engine.board import Board, Player, Position
+
 from engine.bitboard import (
-    coord_to_index, index_to_coord, coord_to_bit, coords_to_mask,
-    mask_to_coords, shift_mask, NUM_CELLS
+    coord_to_bit,
+    coord_to_index,
+    coords_to_mask,
+    index_to_coord,
+    mask_to_coords,
+    shift_mask,
 )
+from engine.board import Board, Player, Position
 
 
 class TestBitboardUtilities(unittest.TestCase):
@@ -178,6 +183,7 @@ class TestBitboardConsistency(unittest.TestCase):
         break bitboard consistency.
         """
         import random
+
         from engine.move_generator import LegalMoveGenerator
         
         board = Board()

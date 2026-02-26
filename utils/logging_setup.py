@@ -6,7 +6,6 @@ creating timestamped run directories for organized log storage.
 """
 
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional

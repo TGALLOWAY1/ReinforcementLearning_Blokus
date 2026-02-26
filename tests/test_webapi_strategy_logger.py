@@ -5,13 +5,14 @@ When ENABLE_STRATEGY_LOGGER is unset (default), logging is disabled.
 When set to true, live games write steps.jsonl and results.jsonl.
 """
 
-import os
 import json
-import tempfile
-import unittest
+import os
 
 # Ensure we can import webapi
 import sys
+import tempfile
+import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -30,7 +31,10 @@ class TestStrategyLoggerConfig(unittest.TestCase):
 
     def test_log_dir_override(self):
         """STRATEGY_LOG_DIR can override default."""
-        from webapi.strategy_logger_config import get_strategy_log_dir, get_strategy_log_dir_for_game
+        from webapi.strategy_logger_config import (
+            get_strategy_log_dir,
+            get_strategy_log_dir_for_game,
+        )
         d = get_strategy_log_dir()
         self.assertIn("logs", d)
         sub = get_strategy_log_dir_for_game(d, "game-123")
@@ -48,13 +52,18 @@ class TestStrategyLoggerWiring(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 os.environ["STRATEGY_LOG_DIR"] = tmp
                 from importlib import reload
+
                 import webapi.strategy_logger_config as cfg
                 reload(cfg)
 
-                from engine.game import BlokusGame
-                from engine.move_generator import Move
+                from schemas.game_state import (
+                    AgentType,
+                    GameConfig,
+                    GameStatus,
+                    Player,
+                    PlayerConfig,
+                )
                 from webapi.app import GameManager
-                from schemas.game_state import GameConfig, PlayerConfig, Player, AgentType, GameStatus
 
                 config = GameConfig(
                     players=[
@@ -108,10 +117,8 @@ class TestStrategyLoggerWiring(unittest.TestCase):
         """When logger disabled, _log_step does not crash."""
         orig = os.environ.pop("ENABLE_STRATEGY_LOGGER", None)
         try:
-            from engine.game import BlokusGame
-            from engine.move_generator import Move
+            from schemas.game_state import AgentType, GameConfig, Player, PlayerConfig
             from webapi.app import GameManager
-            from schemas.game_state import GameConfig, PlayerConfig, Player, AgentType
 
             config = GameConfig(
                 players=[

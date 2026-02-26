@@ -10,7 +10,6 @@ import unittest
 from engine.mobility_metrics import (
     compute_player_mobility_metrics,
     compute_player_mobility_metrics_from_dicts,
-    PlayerMobilityMetrics,
 )
 from engine.move_generator import Move
 

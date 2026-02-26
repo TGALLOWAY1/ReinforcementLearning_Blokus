@@ -7,19 +7,19 @@ MongoDB Module: webapi.db.mongo (provides centralized MongoDB connection)
 
 import asyncio
 import json
-import uuid
-import time
 import logging
-from datetime import datetime
-from typing import Dict, List, Optional, Any
+import time
+import urllib.error
+import urllib.request
+import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import uvicorn
-import urllib.request
-import urllib.error
 
 # Configure logging
 logging.basicConfig(
@@ -29,40 +29,52 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.game import BlokusGame
-from engine.board import Player as EnginePlayer
-from engine.move_generator import Move as EngineMove
-from engine.mobility_metrics import compute_player_mobility_metrics
-from agents.random_agent import RandomAgent
-from agents.heuristic_agent import HeuristicAgent
-from mcts.mcts_agent import MCTSAgent
 from agents.fast_mcts_agent import FastMCTSAgent
+from agents.heuristic_agent import HeuristicAgent
+from agents.random_agent import RandomAgent
+from engine.board import Player as EnginePlayer
+from engine.game import BlokusGame
+from engine.mobility_metrics import compute_player_mobility_metrics
+from engine.move_generator import Move as EngineMove
 from schemas.game_state import (
-    GameConfig, GameState, GameStatus, Player, AgentType, Move, StateUpdate,
-    MoveRequest, MoveResponse, GameCreateResponse, AgentInfo, ErrorResponse
+    AgentInfo,
+    AgentType,
+    ErrorResponse,
+    GameConfig,
+    GameCreateResponse,
+    GameState,
+    GameStatus,
+    Move,
+    MoveRequest,
+    MoveResponse,
+    Player,
 )
 from webapi.deploy_validation import (
     DEPLOY_TIME_BUDGET_CAP_MS,
     normalize_deploy_game_config,
 )
-from webapi.gameplay_agent_factory import build_deploy_gameplay_agent, is_gameplay_adapter
+from webapi.gameplay_agent_factory import (
+    build_deploy_gameplay_agent,
+    is_gameplay_adapter,
+)
 from webapi.profile import APP_PROFILE_DEPLOY, APP_PROFILE_RESEARCH, get_app_profile
 from webapi.routes_gameplay import register_gameplay_routes
 from webapi.routes_research import register_research_routes
 from webapi.strategy_logger_config import (
-    is_strategy_logger_enabled,
     get_strategy_log_dir,
     get_strategy_log_dir_for_game,
+    is_strategy_logger_enabled,
 )
 
 try:
     # MongoDB connection module (webapi/db/mongo.py)
-    from webapi.db.mongo import connect_to_mongo, close_mongo_connection, get_database
-except Exception as mongo_import_error:  # pragma: no cover - deploy runtime may omit mongo deps
+    from webapi.db.mongo import close_mongo_connection, connect_to_mongo, get_database
+except Exception:  # pragma: no cover - deploy runtime may omit mongo deps
     async def connect_to_mongo() -> None:
         raise RuntimeError(
             f"MongoDB dependencies unavailable: {mongo_import_error}"
@@ -1088,8 +1100,10 @@ async def advance_turn(game_id: str):
     return await game_manager.advance_turn(game_id)
 
 
-from schemas.game_state import Player
 from pydantic import BaseModel
+
+from schemas.game_state import Player
+
 
 class PassRequest(BaseModel):
     player: str
@@ -1154,8 +1168,8 @@ async def _replay_to_index(game_id: str, move_index: int) -> tuple:
         except Exception:
             return None, None, None
 
-    from engine.game import BlokusGame
     from engine.board import Player as EnginePlayerEnum
+    from engine.game import BlokusGame
 
     replay_game = BlokusGame()
     player_map = {"RED": EnginePlayerEnum.RED, "BLUE": EnginePlayerEnum.BLUE, "YELLOW": EnginePlayerEnum.YELLOW, "GREEN": EnginePlayerEnum.GREEN}
@@ -1206,8 +1220,8 @@ async def get_analysis_steps(game_id: str, limit: int = 100, offset: int = 0):
     Return StepLog entries for game_id from StrategyLogger output.
     Paginated in chronological order.
     """
-    from webapi.strategy_logger_config import get_strategy_log_dir
     from analytics.logging.reader import load_steps_for_game
+    from webapi.strategy_logger_config import get_strategy_log_dir
 
     base_dir = get_strategy_log_dir()
     steps = load_steps_for_game(base_dir, game_id)
@@ -1224,8 +1238,8 @@ async def get_analysis_summary(game_id: str):
     Return aggregates for UI charts: mobility curves, deltas over time.
     Derived from StrategyLogger steps.jsonl.
     """
-    from webapi.strategy_logger_config import get_strategy_log_dir
     from analytics.logging.reader import load_steps_for_game
+    from webapi.strategy_logger_config import get_strategy_log_dir
 
     base_dir = get_strategy_log_dir()
     steps = load_steps_for_game(base_dir, game_id)

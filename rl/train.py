@@ -7,12 +7,11 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import pickle
 import random
 import time
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -24,9 +23,19 @@ from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
-from agents.registry import RLPolicyAgent, build_baseline_agent, AgentSpec, AgentProtocol
+from agents.registry import (
+    AgentProtocol,
+    AgentSpec,
+    RLPolicyAgent,
+    build_baseline_agent,
+)
 from league.league import League, build_league_agents
-from league.pdl import Stage3LeagueConfig, LeagueManager, CheckpointOpponentSampler, LeagueCheckpoint
+from league.pdl import (
+    CheckpointOpponentSampler,
+    LeagueCheckpoint,
+    LeagueManager,
+    Stage3LeagueConfig,
+)
 from rl.env_wrapper import SelfPlayBlokusEnv
 
 logger = logging.getLogger(__name__)

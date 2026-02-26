@@ -18,22 +18,21 @@ MASK CONSTRUCTION:
 - When no legal moves exist, mask will be all False (this is a problem for MaskablePPO)
 """
 
-import numpy as np
-import gymnasium as gym
-from gymnasium import spaces
-from pettingzoo import AECEnv
-from pettingzoo.utils import wrappers
-from pettingzoo.utils.agent_selector import agent_selector
-from typing import Dict, List, Optional, Tuple, Any, Union
-import warnings
 import logging
 import os
 import time
+from typing import Any, Dict, Optional
 
-from engine.board import Board, Player, Position
-from engine.pieces import PieceGenerator
-from engine.move_generator import LegalMoveGenerator, Move
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+from pettingzoo import AECEnv
+from pettingzoo.utils.agent_selector import agent_selector
+
+from engine.board import Player, Position
 from engine.game import BlokusGame
+from engine.move_generator import LegalMoveGenerator, Move
+from engine.pieces import PieceGenerator
 
 # Diagnostic logging for action masking (can be disabled)
 MASK_DEBUG_LOGGING = False  # Set to False to disable diagnostic logging

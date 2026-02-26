@@ -1,7 +1,9 @@
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import MetricInput
 from .mobility import get_mobility_counts
+
 
 def compute_blocking_metrics(inp: MetricInput) -> Dict[str, Any]:
     """

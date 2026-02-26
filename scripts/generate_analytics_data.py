@@ -1,18 +1,18 @@
 
-import sys
 import os
-import time
 import shutil
+import sys
 
 # Ensure root is in path
 sys.path.insert(0, os.getcwd())
 
-from engine.game import BlokusGame
-from engine.board import Player
 from agents.random_agent import RandomAgent
-from analytics.logging.logger import StrategyLogger
-from analytics.aggregate.aggregate_games import aggregate_games
 from analytics.aggregate.aggregate_agents import aggregate_agents
+from analytics.aggregate.aggregate_games import aggregate_games
+from analytics.logging.logger import StrategyLogger
+from engine.board import Player
+from engine.game import BlokusGame
+
 
 def run_game_with_logging(game_id, agents, logger):
     game = BlokusGame()

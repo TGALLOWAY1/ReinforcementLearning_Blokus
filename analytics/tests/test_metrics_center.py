@@ -1,7 +1,12 @@
 
 import unittest
 from unittest.mock import MagicMock
-from analytics.metrics import MetricInput, compute_center_metrics, CENTER_COORD, is_in_center_mask
+
+from analytics.metrics import (
+    MetricInput,
+    compute_center_metrics,
+)
+
 
 class TestCenterMetrics(unittest.TestCase):
     def test_center_gain(self):

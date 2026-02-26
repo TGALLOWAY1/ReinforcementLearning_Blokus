@@ -1,10 +1,12 @@
 
-import os
-import json
 import argparse
+import json
+import os
+
 import pandas as pd
-import numpy as np
+
 from .phase_split import get_phase_label
+
 
 def load_jsonl(path):
     data = []

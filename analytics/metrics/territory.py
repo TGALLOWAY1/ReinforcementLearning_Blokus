@@ -1,7 +1,10 @@
 
-from typing import Dict, Any, Tuple, Set
+from typing import Any, Dict
+
 import numpy as np
-from . import MetricInput, BOARD_SIZE
+
+from . import MetricInput
+
 
 def compute_territory_metrics(inp: MetricInput) -> Dict[str, Any]:
     """

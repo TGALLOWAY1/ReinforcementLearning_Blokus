@@ -4,10 +4,10 @@ Route registration for research-only API endpoints.
 
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable
+from typing import Any, Callable
 
 from fastapi import FastAPI
-
 
 AsyncHandler = Callable[..., Awaitable[Any]]
 

@@ -6,9 +6,10 @@ the info dict contains final_scores, winner_ids, is_tie, and player0_won.
 """
 
 import unittest
-from unittest.mock import Mock, patch
-from engine.game import BlokusGame, GameResult
+from unittest.mock import patch
+
 from engine.board import Player
+from engine.game import GameResult
 from envs.blokus_v0 import BlokusEnv
 
 

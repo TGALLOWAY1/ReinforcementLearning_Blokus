@@ -1,8 +1,12 @@
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 import numpy as np
-from . import MetricInput
+
 from engine.pieces import PieceGenerator
+
+from . import MetricInput
+
 
 def compute_piece_metrics(inp: MetricInput) -> Dict[str, Any]:
     """

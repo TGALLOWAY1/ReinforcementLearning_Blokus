@@ -2,23 +2,22 @@
 Arena script for running round-robin matches between Blokus agents.
 """
 
+import argparse
+import json
 import os
 import sys
 import time
-import json
-import argparse
-from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
-import numpy as np
+from typing import Any, Dict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.board import Board, Player
-from engine.move_generator import LegalMoveGenerator
-from engine.game import BlokusGame
-from agents.random_agent import RandomAgent
 from agents.heuristic_agent import HeuristicAgent
+from agents.random_agent import RandomAgent
+from engine.board import Player
+from engine.game import BlokusGame
+from engine.move_generator import LegalMoveGenerator
 from mcts.mcts_agent import MCTSAgent
 
 

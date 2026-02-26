@@ -2,13 +2,14 @@
 Main Blokus game engine with scoring rules and game management.
 """
 
-import time
 import logging
+import time
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Tuple
+from typing import Dict, List, Optional
+
 from .board import Board, Player, Position
-from .pieces import PieceGenerator
 from .move_generator import LegalMoveGenerator, Move
+from .pieces import PieceGenerator
 
 logger = logging.getLogger(__name__)
 

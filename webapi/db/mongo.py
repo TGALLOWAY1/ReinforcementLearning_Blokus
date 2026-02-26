@@ -15,9 +15,10 @@ For production, use a connection string like:
     mongodb://username:password@host:port/database?authSource=admin
 """
 
-import os
 import logging
+import os
 from typing import Optional
+
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError

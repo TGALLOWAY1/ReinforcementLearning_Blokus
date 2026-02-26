@@ -12,7 +12,6 @@ Usage:
 """
 
 import argparse
-import os
 import sys
 import time
 from pathlib import Path
@@ -23,9 +22,8 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from envs.blokus_v0 import make_gymnasium_env
-from engine.board import Board, Player
 from engine.move_generator import LegalMoveGenerator
+from envs.blokus_v0 import make_gymnasium_env
 from training.config import TrainingConfig
 
 
