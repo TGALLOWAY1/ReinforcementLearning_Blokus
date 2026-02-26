@@ -35,19 +35,6 @@ export const LegalMovesBarChart: React.FC<{
     return { bars, width: w, height: h, maxCount: max, barMaxH, pad: p };
   }, [data]);
 
-  if (!data.length) {
-    return (
-      <div className="px-3 py-3 border-t border-charcoal-700">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-          Legal moves by piece
-        </h3>
-        <div className="text-xs text-gray-500 h-24 flex items-center justify-center bg-charcoal-800/50 rounded">
-          No available pieces or no legal moves
-        </div>
-      </div>
-    );
-  }
-
   // Y-axis ticks: 0 and a few values up to maxCount
   const yTicks = useMemo(() => {
     if (maxCount <= 0) return [0];
@@ -61,6 +48,19 @@ export const LegalMovesBarChart: React.FC<{
     }
     return [...new Set(ticks)].sort((a, b) => a - b);
   }, [maxCount]);
+
+  if (!data.length) {
+    return (
+      <div className="px-3 py-3 border-t border-charcoal-700">
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          Legal moves by piece
+        </h3>
+        <div className="text-xs text-gray-500 h-24 flex items-center justify-center bg-charcoal-800/50 rounded">
+          No available pieces or no legal moves
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-3 py-3 border-t border-charcoal-700 relative">
