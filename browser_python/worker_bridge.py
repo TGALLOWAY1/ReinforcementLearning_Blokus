@@ -27,6 +27,45 @@ class WebWorkerGameBridge:
         self.players_config = []
         self.mcts_top_moves = []
         self.game_id = "local-webworker"
+        
+        self.frontend_to_backend = {}
+        self.backend_to_frontend = {}
+        self._init_orientation_mappings()
+
+    def _init_orientation_mappings(self):
+        import numpy as np
+        from engine.pieces import PieceGenerator, normalize_offsets, shape_to_offsets, ALL_PIECE_ORIENTATIONS
+        
+        for piece in PieceGenerator.get_all_pieces():
+            self.frontend_to_backend[piece.id] = {}
+            self.backend_to_frontend[piece.id] = {}
+            
+            base_shape = piece.shape.copy()
+            for frontend_idx in range(8):
+                shape = base_shape.copy()
+                if frontend_idx >= 4:
+                    shape = np.fliplr(shape)
+                for _ in range(frontend_idx % 4):
+                    shape = np.rot90(shape)
+                    
+                normalized = normalize_offsets(shape_to_offsets(shape))
+                
+                backend_ori_id = 0
+                for o in ALL_PIECE_ORIENTATIONS.get(piece.id, []):
+                    if tuple(o.offsets) == tuple(normalized):
+                        backend_ori_id = o.orientation_id
+                        break
+                        
+                self.frontend_to_backend[piece.id][frontend_idx] = backend_ori_id
+                
+                if backend_ori_id not in self.backend_to_frontend[piece.id]:
+                    self.backend_to_frontend[piece.id][backend_ori_id] = frontend_idx
+
+    def _get_backend_ori(self, piece_id, frontend_ori):
+        return self.frontend_to_backend.get(int(piece_id), {}).get(int(frontend_ori), 0)
+        
+    def _get_frontend_ori(self, piece_id, backend_ori):
+        return self.backend_to_frontend.get(int(piece_id), {}).get(int(backend_ori), 0)
 
     def init_game(self, config_dict: Dict[str, Any]):
         self.game = BlokusGame()
@@ -78,9 +117,10 @@ class WebWorkerGameBridge:
                         if 0 <= pt.row < 20 and 0 <= pt.col < 20:
                             heatmap[pt.row][pt.col] = 1.0
                 
+                frontend_ori = self._get_frontend_ori(m.piece_id, m.orientation)
                 legal_moves_out.append({
                     "piece_id": m.piece_id,
-                    "orientation": m.orientation,
+                    "orientation": frontend_ori,
                     "anchor_row": m.anchor_row,
                     "anchor_col": m.anchor_col,
                     "positions": positions
@@ -121,6 +161,16 @@ class WebWorkerGameBridge:
                 "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
             }
         
+        history_out = []
+        for entry in game.game_history:
+            entry_copy = dict(entry)
+            action = entry.get("action")
+            if action:
+                action_copy = dict(action)
+                action_copy["orientation"] = self._get_frontend_ori(action_copy["piece_id"], action_copy["orientation"])
+                entry_copy["action"] = action_copy
+            history_out.append(entry_copy)
+
         return {
             "game_id": self.game_id,
             "status": status,
@@ -141,7 +191,7 @@ class WebWorkerGameBridge:
             "influence_map": influence_map,
             "dead_zones": dead_zones,
             "advanced_metrics": advanced_metrics_out,
-            "game_history": game.game_history
+            "game_history": history_out
         }
 
     def load_game(self, history: List[Dict[str, Any]]):
@@ -152,9 +202,10 @@ class WebWorkerGameBridge:
         for entry in history:
             action = entry.get("action")
             if action:
+                backend_ori = self._get_backend_ori(action["piece_id"], action["orientation"])
                 mv = EngineMove(
                     action["piece_id"], 
-                    action["orientation"], 
+                    backend_ori, 
                     action["anchor_row"], 
                     action["anchor_col"]
                 )
@@ -164,7 +215,8 @@ class WebWorkerGameBridge:
         return self.get_state()
 
     def make_move(self, piece_id: int, orientation: int, anchor_row: int, anchor_col: int):
-        engine_move = EngineMove(piece_id, orientation, anchor_row, anchor_col)
+        backend_ori = self._get_backend_ori(piece_id, orientation)
+        engine_move = EngineMove(piece_id, backend_ori, anchor_row, anchor_col)
         player = self.game.get_current_player()
         
         success = self.game.make_move(engine_move, player)
@@ -211,7 +263,12 @@ class WebWorkerGameBridge:
             move = agent.select_action(self.game.board, current_player, legal_moves)
             
         if "stats" in result and "topMoves" in result["stats"]:
-            self.mcts_top_moves = result["stats"]["topMoves"]
+            translated_top_moves = []
+            for tm in result["stats"]["topMoves"]:
+                tm_copy = dict(tm)
+                tm_copy["orientation"] = self._get_frontend_ori(tm_copy["piece_id"], tm_copy["orientation"])
+                translated_top_moves.append(tm_copy)
+            self.mcts_top_moves = translated_top_moves
             
         if move:
             success = self.game.make_move(move, current_player)

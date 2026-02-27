@@ -102,7 +102,7 @@ export const AnalysisDashboard: React.FC = () => {
             <div className="flex-1 p-3 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 overflow-y-auto">
 
                 {/* LEFT COLUMN: Predictive Line Charts */}
-                <div className="lg:col-span-3 flex flex-col gap-3 min-h-0">
+                <div className="lg:col-span-6 flex flex-col gap-3 min-h-0">
                     <SectionTitle title="Predictive Line Charts" />
 
                     <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
@@ -115,7 +115,7 @@ export const AnalysisDashboard: React.FC = () => {
                 </div>
 
                 {/* CENTER COLUMN: Spatial Visualizations */}
-                <div className="lg:col-span-6 flex flex-col gap-3 min-h-0">
+                <div className="lg:col-span-3 flex flex-col gap-3 min-h-0">
                     <div className="flex justify-between items-center bg-charcoal-800 border-l-[3px] border-neon-blue rounded-r px-3 py-1.5 shrink-0 shadow-sm">
                         <h3 className="text-xs font-bold text-gray-300 uppercase tracking-widest">Spatial Analysis</h3>
                         <div className="flex gap-1">
@@ -132,7 +132,7 @@ export const AnalysisDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
+                    <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto custom-scrollbar pr-1">
                         <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col min-h-[220px] hover:border-gray-600 transition-colors">
                             <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Frontier (Usable Corners)</h3>
                             <FrontierMap frontiers={metrics.frontiers} boardState={currentBoard} selectedPlayer={selectedPlayer} />
@@ -211,7 +211,7 @@ const FrontierMap: React.FC<{ frontiers: Record<number, { r: number, c: number }
     return (
         <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 flex items-center justify-center min-h-0 bg-slate-900 rounded p-[1px]">
-                <div className="grid gap-[1px] w-full h-full max-h-full aspect-square" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}>
+                <div className="grid gap-[1px] w-full max-w-full max-h-full aspect-square" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${size}, minmax(0, 1fr))` }}>
                     {boardState.map((row, r) => row.map((val, c) => {
                         let bg = 'bg-slate-800';
                         let isFrontier = fMap[r][c];
@@ -222,7 +222,7 @@ const FrontierMap: React.FC<{ frontiers: Record<number, { r: number, c: number }
                         } else if (isFrontier) {
                             bg = ['', 'bg-red-400', 'bg-blue-400', 'bg-yellow-300', 'bg-green-400'][selectedPlayer] + ' shadow-[0_0_8px_currentColor]';
                         }
-                        return <div key={`${r}-${c}`} className={`${bg} ${isFrontier ? 'rounded-full scale-75' : 'rounded-sm'} w-full h-full transition-all`} />
+                        return <div key={`${r}-${c}`} className={`${bg} ${isFrontier ? 'rounded-full scale-75' : 'rounded-sm'} transition-all`} />
                     }))}
                 </div>
             </div>
@@ -237,7 +237,7 @@ const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState
     return (
         <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 flex items-center justify-center min-h-0 bg-slate-900 rounded p-[1px]">
-                <div className="grid gap-[1px] w-full h-full max-h-full aspect-square" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}>
+                <div className="grid gap-[1px] w-full max-w-full max-h-full aspect-square" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${size}, minmax(0, 1fr))` }}>
                     {boardState.map((row, r) => row.map((val, c) => {
                         let bg = 'bg-slate-800';
                         if (val > 0) {
@@ -250,7 +250,7 @@ const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState
                         }
 
                         return (
-                            <div key={`${r}-${c}`} className={`${bg} rounded-sm w-full h-full`}>
+                            <div key={`${r}-${c}`} className={`${bg} rounded-sm`}>
                                 {(val === 0 && dz && dz[r][c]) && (
                                     <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none" viewBox="0 0 10 10">
                                         <line x1="0" y1="10" x2="10" y2="0" stroke="#EF4444" strokeWidth="1" />
