@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { Board } from '../components/Board';
 import { RightPanel } from '../components/RightPanel';
@@ -18,6 +18,7 @@ export const Play: React.FC = () => {
     setPieceOrientation,
     makeMove,
     passTurn,
+    saveGame,
     setError,
     error
   } = useGameStore();
@@ -28,6 +29,48 @@ export const Play: React.FC = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogConsole, setShowLogConsole] = useState(false);
   const isTelemetryOpen = useGameStore(s => s.activeRightTab === 'telemetry');
+
+  // Resizable Right Panel logic
+  const [rightPanelWidth, setRightPanelWidth] = useState(800);
+  const isDragging = useRef(false);
+
+  useEffect(() => {
+    if (isTelemetryOpen && rightPanelWidth < 600) {
+      setRightPanelWidth(800);
+    } else if (!isTelemetryOpen) {
+      setRightPanelWidth(384); // w-96 = 384px
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTelemetryOpen]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth >= 300 && newWidth <= window.innerWidth - 300) {
+        setRightPanelWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = 'default';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = 'col-resize';
+  };
 
   // Call hooks at the top level
 
@@ -222,22 +265,31 @@ export const Play: React.FC = () => {
         {gameState?.game_over && (
           <div className="w-full mb-4 bg-charcoal-800 border border-charcoal-700 p-4 flex items-center justify-between">
             <div className="text-gray-200">Game finished. Winner: <span className="font-semibold">{gameState.winner || 'None'}</span></div>
-            {!IS_DEPLOY_PROFILE && (
-              <div className="space-x-2">
-                <button
-                  onClick={() => navigate('/history')}
-                  className="bg-charcoal-700 text-gray-200 px-4 py-2 rounded"
-                >
-                  History
-                </button>
-                <button
-                  onClick={() => navigate(`/analysis/${gameState.game_id}`)}
-                  className="bg-neon-blue text-black px-4 py-2 rounded"
-                >
-                  View Analysis
-                </button>
-              </div>
-            )}
+            <div className="space-x-2 flex">
+              <button
+                onClick={saveGame}
+                className="bg-charcoal-700 text-gray-200 px-4 py-2 rounded hover:bg-charcoal-600 transition-colors"
+                title="Download game history JSON"
+              >
+                Save Game
+              </button>
+              {!IS_DEPLOY_PROFILE && (
+                <>
+                  <button
+                    onClick={() => navigate('/history')}
+                    className="bg-charcoal-700 text-gray-200 px-4 py-2 rounded hover:bg-charcoal-600 transition-colors"
+                  >
+                    History
+                  </button>
+                  <button
+                    onClick={() => navigate(`/analysis/${gameState.game_id}`)}
+                    className="bg-neon-blue text-black px-4 py-2 rounded hover:bg-neon-blue/80 transition-colors"
+                  >
+                    View Analysis
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
         {/* Turn Indicator and Pass Button */}
@@ -261,6 +313,15 @@ export const Play: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={saveGame}
+                className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
+                title="Save Game to File"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </button>
               <button
                 onClick={() => setShowLogConsole(true)}
                 className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
@@ -341,8 +402,17 @@ export const Play: React.FC = () => {
         </div>
       </main>
 
+      {/* Resizer Handle */}
+      <div
+        className="w-1.5 cursor-col-resize hover:bg-neon-blue/50 flex-none z-10 transition-colors bg-charcoal-700 active:bg-neon-blue"
+        onMouseDown={handleMouseDown}
+      />
+
       {/* Right Column - Controls and Visualizations */}
-      <aside className={`border-l border-charcoal-700 bg-charcoal-900 flex flex-col overflow-hidden transition-all duration-300 ${isTelemetryOpen ? 'w-[800px]' : 'w-96'}`}>
+      <aside
+        style={{ width: `${rightPanelWidth}px` }}
+        className="bg-charcoal-900 flex flex-col overflow-hidden relative"
+      >
         <RightPanel onNewGame={() => setShowConfigModal(true)} />
       </aside>
 

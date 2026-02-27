@@ -36,13 +36,14 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     auto_start: true
   };
 
-  const { createGame, connect } = useGameStore();
+  const { createGame, connect, loadGame } = useGameStore();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [maxTime, setMaxTime] = useState<number>(DEPLOY_MCTS_PRESETS.hard);
 
   const [gameConfig, setGameConfig] = useState<any>(IS_DEPLOY_PROFILE ? deployConfig : researchDefaultConfig);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleCreateGame = async () => {
     console.log('🎮 Starting game creation...');
@@ -241,6 +242,44 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     }
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsCreating(true);
+    setError(null);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result as string;
+        const history = JSON.parse(content);
+
+        if (!Array.isArray(history)) {
+          throw new Error("Invalid save file format (expected array)");
+        }
+
+        await loadGame(history);
+        onGameCreated();
+        onClose();
+      } catch (err) {
+        console.error("Failed to load game:", err);
+        setError(err instanceof Error ? err.message : "Failed to load game file");
+      } finally {
+        setIsCreating(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''; // Reset input
+        }
+      }
+    };
+    reader.onerror = () => {
+      setError("Failed to read the file");
+      setIsCreating(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   if (!isOpen) return null;
 
   // Deploy profile: minimal first-page UI — Human vs MCTS (easy/medium/hard) only, no config
@@ -318,19 +357,41 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             </div>
           )}
 
-          <button
-            onClick={handleCreateGame}
-            disabled={isCreating}
-            className={`
-              w-full py-4 px-6 rounded-lg font-medium text-white transition-colors duration-200
-              ${isCreating
-                ? 'bg-gray-600 cursor-not-allowed'
-                : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
-              }
-            `}
-          >
-            {isCreating ? 'Starting...' : 'Start Game'}
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleCreateGame}
+              disabled={isCreating}
+              className={`
+                flex-1 py-4 px-6 rounded-lg font-medium text-white transition-colors duration-200
+                ${isCreating
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
+                }
+              `}
+            >
+              {isCreating ? 'Starting...' : 'Start Game'}
+            </button>
+            <input
+              type="file"
+              accept=".json"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isCreating}
+              className={`
+                py-4 px-6 rounded-lg font-medium border transition-colors duration-200
+                ${isCreating
+                  ? 'bg-charcoal-700 border-charcoal-600 text-gray-500 cursor-not-allowed'
+                  : 'bg-charcoal-800 border-charcoal-600 text-gray-300 hover:bg-charcoal-700 hover:text-white'
+                }
+              `}
+            >
+              Load
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -452,19 +513,42 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             </div>
 
             {/* Create Game Button */}
-            <button
-              onClick={handleCreateGame}
-              disabled={isCreating}
-              className={`
-                w-full py-3 px-6 rounded-lg font-medium text-white transition-colors duration-200
-                ${isCreating
-                  ? 'bg-gray-600 cursor-not-allowed'
-                  : 'bg-neon-blue hover:bg-neon-blue/80'
-                }
-              `}
-            >
-              {isCreating ? 'Creating Game...' : 'Start New Game'}
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCreateGame}
+                disabled={isCreating}
+                className={`
+                  flex-1 py-3 px-6 rounded-lg font-medium text-white transition-colors duration-200
+                  ${isCreating
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-neon-blue hover:bg-neon-blue/80'
+                  }
+                `}
+              >
+                {isCreating ? 'Creating Game...' : 'Start New Game'}
+              </button>
+
+              <input
+                type="file"
+                accept=".json"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isCreating}
+                className={`
+                  py-3 px-6 rounded-lg font-medium border transition-colors duration-200
+                  ${isCreating
+                    ? 'bg-charcoal-700 border-charcoal-600 text-gray-500 cursor-not-allowed'
+                    : 'bg-charcoal-800 border-charcoal-600 text-gray-300 hover:bg-charcoal-700 hover:text-white'
+                  }
+                `}
+              >
+                Load From File
+              </button>
+            </div>
           </div>
         </div>
       </div>
