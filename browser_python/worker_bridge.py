@@ -131,6 +131,17 @@ class WebWorkerGameBridge:
         center_control = game._calculate_center_bonus(current_player) // 2
         frontier_size = len(game.board.get_frontier(current_player))
         
+        # --- Milestone 4: PieceLockRisk ---
+        # PieceLockRisk: count(piece_id in remaining_pieces where has_move is False)
+        piece_lock_risk = 0
+        has_move = {pid: False for pid in range(1, 22) if pid not in pieces_used_current}
+        for m in engine_moves:
+            has_move[m.piece_id] = True
+            
+        for pid, can_place in has_move.items():
+            if not can_place:
+                piece_lock_risk += 1
+        
         mobility_metrics = {
             "totalPlacements": mobility.totalPlacements,
             "totalOrientationNormalized": mobility.totalOrientationNormalized,
@@ -286,6 +297,45 @@ class WebWorkerGameBridge:
                     # Point has 0 support, it's not even a cluster
                     frontier_clusters["cluster_id"][k] = -1
 
+        # --- Milestone 3: SelfBlockRisk Heuristic ---
+        # Evaluate each move based on clusters touched and frontier points used
+        self_block_risk_moves = []
+        for move_idx, m in enumerate(engine_moves):
+            # Find the frontier points this move uses (from support_sets reversed)
+            used_f = []
+            for k, s in support_sets.items():
+                if move_idx in s:
+                    used_f.append(k)
+                    
+            clusters_touched = set()
+            for k in used_f:
+                cid = frontier_clusters["cluster_id"].get(k, -1)
+                if cid != -1:
+                    clusters_touched.add(cid)
+            
+            n_clusters = len(clusters_touched)
+            n_frontiers = len(used_f)
+            
+            if n_clusters > 0 or n_frontiers > 0:
+                risk_score = 2 * n_clusters + 1 * n_frontiers
+                # Reconstruct action struct for UI tracking
+                frontend_ori = self._get_frontend_ori(m.piece_id, m.orientation)
+                self_block_risk_moves.append({
+                    "piece_id": m.piece_id,
+                    "orientation": frontend_ori,
+                    "anchor_row": m.anchor_row,
+                    "anchor_col": m.anchor_col,
+                    "risk": risk_score,
+                    "clusters_touched": n_clusters,
+                    "frontier_points_used": n_frontiers
+                })
+        
+        # Sort by risk descending, keep top 10
+        self_block_risk_moves.sort(key=lambda x: x["risk"], reverse=True)
+        self_block_risk = {
+            "top_moves": self_block_risk_moves[:10]
+        }
+
         winner_name = None
         if game.is_game_over():
             w = game.board.get_winner()
@@ -339,6 +389,8 @@ class WebWorkerGameBridge:
             "advanced_metrics": advanced_metrics_out,
             "frontier_metrics": frontier_metrics,
             "frontier_clusters": frontier_clusters,
+            "piece_lock_risk": piece_lock_risk,
+            "self_block_risk": self_block_risk,
             "game_history": history_out
         }
 
