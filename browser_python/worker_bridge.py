@@ -194,6 +194,98 @@ class WebWorkerGameBridge:
             bp = frontier_metrics["block_pressure"][f"{fr},{fc}"]
             frontier_metrics["urgency"][f"{fr},{fc}"] = u * (1 + bp)
         
+        # --- Milestone 2: Frontier Redundancy Clusters ---
+        # 1. Build support sets: mapping each frontier point to a set of move IDs
+        support_sets = {f"{fr},{fc}": set() for fr, fc in frontier_cells}
+        for move_idx, m in enumerate(engine_moves):
+            cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
+            if cached_ops:
+                pts = m.get_positions(cached_ops)
+                pts_set = set((pt.row, pt.col) for pt in pts)
+                
+                # Assign this move to any frontier point it connects to diagonally
+                # We could just assign it to the *first* one like in Utility, but
+                # assigning to all it touches is technically more accurate for overlap clustering
+                for fr, fc in frontier_cells:
+                    for r, c in pts_set:
+                        if abs(fr - r) == 1 and abs(fc - c) == 1:
+                            support_sets[f"{fr},{fc}"].add(move_idx)
+                            # Once we found a connection to *this* frontier point, move to the next frontier point
+                            break
+
+        # Filter out low utility frontiers as a guardrail - evaluate only the top 60
+        sorted_frontiers = sorted(frontier_cells, key=lambda f: len(support_sets[f"{f[0]},{f[1]}"]), reverse=True)
+        top_frontiers = sorted_frontiers[:60]
+        
+        # 2. Compute overlaps and build adjacency list
+        overlap_threshold = 0.35
+        adjacency = {f"{fr},{fc}": [] for fr, fc in top_frontiers}
+        
+        for i in range(len(top_frontiers)):
+            f1 = top_frontiers[i]
+            k1 = f"{f1[0]},{f1[1]}"
+            s1 = support_sets[k1]
+            if not s1: continue
+            
+            for j in range(i + 1, len(top_frontiers)):
+                f2 = top_frontiers[j]
+                k2 = f"{f2[0]},{f2[1]}"
+                s2 = support_sets[k2]
+                if not s2: continue
+                
+                # Overlap = |S1 ∩ S2| / min(|S1|, |S2|)
+                intersection = s1.intersection(s2)
+                if len(intersection) == 0: continue
+                
+                overlap = len(intersection) / min(len(s1), len(s2))
+                if overlap >= overlap_threshold:
+                    adjacency[k1].append(k2)
+                    adjacency[k2].append(k1)
+                    
+        # 3. Cluster using DFS
+        visited = set()
+        frontier_clusters = {
+            "cluster_id": {},
+            "cluster_sizes": [],
+            "num_clusters": 0
+        }
+        
+        cluster_id = 0
+        for f in top_frontiers:
+            k = f"{f[0]},{f[1]}"
+            if k not in visited and support_sets[k]: # only cluster frontiers with >0 moves
+                # DFS
+                stack = [k]
+                size = 0
+                while stack:
+                    curr = stack.pop()
+                    if curr not in visited:
+                        visited.add(curr)
+                        frontier_clusters["cluster_id"][curr] = cluster_id
+                        size += 1
+                        for neighbor in adjacency[curr]:
+                            if neighbor not in visited:
+                                stack.append(neighbor)
+                
+                if size > 0:
+                    frontier_clusters["cluster_sizes"].append(size)
+                    cluster_id += 1
+                    
+        frontier_clusters["num_clusters"] = cluster_id
+        
+        # Fill in remaining isolated nodes or non-top-60 nodes (0 support, or low utility)
+        for fr, fc in frontier_cells:
+            k = f"{fr},{fc}"
+            if k not in frontier_clusters["cluster_id"]:
+                if support_sets[k]:
+                    frontier_clusters["cluster_id"][k] = cluster_id
+                    frontier_clusters["cluster_sizes"].append(1)
+                    cluster_id += 1
+                    frontier_clusters["num_clusters"] = cluster_id
+                else:
+                    # Point has 0 support, it's not even a cluster
+                    frontier_clusters["cluster_id"][k] = -1
+
         winner_name = None
         if game.is_game_over():
             w = game.board.get_winner()
@@ -246,6 +338,7 @@ class WebWorkerGameBridge:
             "dead_zones": dead_zones,
             "advanced_metrics": advanced_metrics_out,
             "frontier_metrics": frontier_metrics,
+            "frontier_clusters": frontier_clusters,
             "game_history": history_out
         }
 
