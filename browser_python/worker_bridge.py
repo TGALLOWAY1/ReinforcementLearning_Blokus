@@ -140,6 +140,60 @@ class WebWorkerGameBridge:
             "frontierSize": frontier_size,
         }
         
+        # Calculate utility + block_pressure + urgency
+        frontier_metrics = {
+            "utility": {},
+            "block_pressure": {},
+            "urgency": {}
+        }
+        
+        frontier_cells = game.board.get_frontier(current_player)
+        
+        # Initialize utilities based on legal moves already fetched
+        for fr, fc in frontier_cells:
+            frontier_metrics["utility"][f"{fr},{fc}"] = 0
+            frontier_metrics["block_pressure"][f"{fr},{fc}"] = 0
+            
+        for m in engine_moves:
+            cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
+            if cached_ops:
+                pts = m.get_positions(cached_ops)
+                # Naive inference of which frontier point was used: check adjacency overlap
+                # Just find the first frontier point that this move connects to diagonally
+                used_f = None
+                pts_set = set((pt.row, pt.col) for pt in pts)
+                for fr, fc in frontier_cells:
+                    for r, c in pts_set:
+                        if abs(fr - r) == 1 and abs(fc - c) == 1:
+                            used_f = (fr, fc)
+                            break
+                    if used_f: break
+                
+                if used_f:
+                    frontier_metrics["utility"][f"{used_f[0]},{used_f[1]}"] += 1
+                    
+        # 1-ply BlockPressure: opponent's legal moves next turn
+        # Naive generator fetch to get coverage map
+        block_pressure_map = [[False]*20 for _ in range(20)]
+        for op in EnginePlayer:
+            if op != current_player and not game.is_game_over():
+                op_moves = game.get_legal_moves(op)
+                for m in op_moves:
+                    cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
+                    if cached_ops:
+                        pts = m.get_positions(cached_ops)
+                        for pt in pts:
+                            if 0 <= pt.row < 20 and 0 <= pt.col < 20:
+                                block_pressure_map[pt.row][pt.col] = True
+
+        for fr, fc in frontier_cells:
+            if block_pressure_map[fr][fc]:
+                frontier_metrics["block_pressure"][f"{fr},{fc}"] += 1
+            
+            u = frontier_metrics["utility"][f"{fr},{fc}"]
+            bp = frontier_metrics["block_pressure"][f"{fr},{fc}"]
+            frontier_metrics["urgency"][f"{fr},{fc}"] = u * (1 + bp)
+        
         winner_name = None
         if game.is_game_over():
             w = game.board.get_winner()
@@ -191,6 +245,7 @@ class WebWorkerGameBridge:
             "influence_map": influence_map,
             "dead_zones": dead_zones,
             "advanced_metrics": advanced_metrics_out,
+            "frontier_metrics": frontier_metrics,
             "game_history": history_out
         }
 
