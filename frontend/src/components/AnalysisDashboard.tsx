@@ -135,7 +135,15 @@ export const AnalysisDashboard: React.FC = () => {
                     <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto custom-scrollbar pr-1">
                         <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col min-h-[220px] hover:border-gray-600 transition-colors">
                             <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Frontier (Usable Corners)</h3>
-                            <FrontierMap frontiers={metrics.frontiers} boardState={currentBoard} selectedPlayer={selectedPlayer} />
+                            <FrontierMap
+                                frontiers={metrics.frontiers}
+                                boardState={currentBoard}
+                                selectedPlayer={selectedPlayer}
+                                frontierMetrics={(activeTurnData?.metrics?.frontier_metrics?.[PLAYER_NAMES[selectedPlayer]])
+                                    || gameState?.frontier_metrics?.[PLAYER_NAMES[selectedPlayer]]}
+                                frontierClusters={(activeTurnData?.metrics?.frontier_clusters?.[PLAYER_NAMES[selectedPlayer]])
+                                    || gameState?.frontier_clusters?.[PLAYER_NAMES[selectedPlayer]]}
+                            />
                         </div>
 
                         <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col min-h-[220px] hover:border-gray-600 transition-colors">
@@ -199,7 +207,14 @@ const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
 
 // --- Subcomponents for the dashboard ---
 
-const FrontierMap: React.FC<{ frontiers: Record<number, { r: number, c: number }[]>, boardState: number[][], selectedPlayer: number }> = ({ frontiers, boardState, selectedPlayer }) => {
+const FrontierMap: React.FC<{
+    frontiers: Record<number, { r: number, c: number }[]>,
+    boardState: number[][],
+    selectedPlayer: number,
+    frontierMetrics?: any,
+    frontierClusters?: any
+}> = ({ frontiers, boardState, selectedPlayer, frontierMetrics, frontierClusters }) => {
+    const [colorMode, setColorMode] = useState<'Default' | 'Urgency' | 'Cluster'>('Default');
     const size = boardState.length;
     // Build a quick lookup for selected player's frontier
     const fMap = Array(size).fill(0).map(() => Array(size).fill(false));
@@ -209,20 +224,55 @@ const FrontierMap: React.FC<{ frontiers: Record<number, { r: number, c: number }
     }
 
     return (
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 relative">
+            <div className="absolute top-[-26px] right-0 flex gap-1 z-10">
+                <button onClick={() => setColorMode('Default')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Default' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Def</button>
+                <button onClick={() => setColorMode('Urgency')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Urgency' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Urg</button>
+                <button onClick={() => setColorMode('Cluster')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Cluster' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Cls</button>
+            </div>
             <div className="flex-1 flex items-center justify-center min-h-0 bg-slate-900 rounded p-[1px]">
                 <div className="grid gap-[1px] w-full max-w-full max-h-full aspect-square" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${size}, minmax(0, 1fr))` }}>
                     {boardState.map((row, r) => row.map((val, c) => {
                         let bg = 'bg-slate-800';
                         let isFrontier = fMap[r][c];
+                        let title = undefined;
 
                         if (val > 0) {
                             bg = ['', 'bg-red-500', 'bg-blue-500', 'bg-yellow-400', 'bg-green-500'][val];
                             if (val !== selectedPlayer) bg += ' opacity-40';
                         } else if (isFrontier) {
-                            bg = ['', 'bg-red-400', 'bg-blue-400', 'bg-yellow-300', 'bg-green-400'][selectedPlayer] + ' shadow-[0_0_8px_currentColor]';
+                            const key = `${r},${c}`;
+                            let urg = 0;
+                            let cid = -1;
+
+                            if (frontierMetrics || frontierClusters) {
+                                const u = frontierMetrics?.utility?.[key];
+                                const bp = frontierMetrics?.block_pressure?.[key];
+                                urg = frontierMetrics?.urgency?.[key] || 0;
+                                cid = frontierClusters?.cluster_id?.[key] ?? -1;
+
+                                if (u !== undefined) {
+                                    title = `[${r}, ${c}]\nUtility: ${u}\nBlock Pressure: ${bp}\nUrgency: ${urg}\nCluster ID: ${cid}`;
+                                }
+                            }
+
+                            if (colorMode === 'Default') {
+                                bg = ['', 'bg-red-400', 'bg-blue-400', 'bg-yellow-300', 'bg-green-400'][selectedPlayer] + ' shadow-[0_0_8px_currentColor]';
+                            } else if (colorMode === 'Urgency') {
+                                if (urg >= 4) bg = 'bg-red-500 shadow-[0_0_8px_currentColor]';
+                                else if (urg >= 2) bg = 'bg-orange-400 shadow-[0_0_4px_currentColor]';
+                                else if (urg >= 1) bg = 'bg-yellow-500';
+                                else bg = 'bg-slate-500';
+                            } else if (colorMode === 'Cluster') {
+                                const clusterColors = ['bg-pink-500', 'bg-cyan-400', 'bg-purple-500', 'bg-amber-400', 'bg-lime-400', 'bg-indigo-400'];
+                                if (cid === -1) {
+                                    bg = 'bg-slate-600';
+                                } else {
+                                    bg = clusterColors[cid % clusterColors.length] + ' shadow-[0_0_6px_currentColor]';
+                                }
+                            }
                         }
-                        return <div key={`${r}-${c}`} className={`${bg} ${isFrontier ? 'rounded-full scale-75' : 'rounded-sm'} transition-all`} />
+                        return <div key={`${r}-${c}`} className={`${bg} ${isFrontier ? 'rounded-full scale-75 cursor-help' : 'rounded-sm'} transition-colors`} title={title} />
                     }))}
                 </div>
             </div>
