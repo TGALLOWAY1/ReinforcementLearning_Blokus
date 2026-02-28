@@ -63,6 +63,28 @@ export interface GameState {
       opponent_adjacency: number;
     }
   };
+  frontier_metrics?: {
+    utility: Record<string, number>;
+    block_pressure: Record<string, number>;
+    urgency: Record<string, number>;
+  };
+  frontier_clusters?: {
+    cluster_id: Record<string, number>;
+    cluster_sizes: number[];
+    num_clusters: number;
+  };
+  piece_lock_risk?: number;
+  self_block_risk?: {
+    top_moves: Array<{
+      piece_id: number;
+      orientation: number;
+      anchor_row: number;
+      anchor_col: number;
+      risk: number;
+      clusters_touched: number;
+      frontier_points_used: number;
+    }>;
+  };
   game_history?: GameHistoryEntry[];
 }
 
