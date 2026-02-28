@@ -192,11 +192,9 @@ class WebWorkerGameBridge:
                     pts_set = set((pt.row, pt.col) for pt in pts)
                     
                     for fr, fc in p_frontier_cells:
-                        for r, c in pts_set:
-                            if abs(fr - r) == 1 and abs(fc - c) == 1:
-                                p_metrics["utility"][f"{fr},{fc}"] += 1
-                                p_support_sets[f"{fr},{fc}"].add(move_idx)
-                                break
+                        if (fr, fc) in pts_set:
+                            p_metrics["utility"][f"{fr},{fc}"] += 1
+                            p_support_sets[f"{fr},{fc}"].add(move_idx)
             
             for fr, fc in p_frontier_cells:
                 key = f"{fr},{fc}"
@@ -278,10 +276,8 @@ class WebWorkerGameBridge:
                 pts = m.get_positions(cached_ops)
                 pts_set = set((pt.row, pt.col) for pt in pts)
                 for fr, fc in game.board.get_frontier(current_player):
-                    for r, c in pts_set:
-                        if abs(fr - r) == 1 and abs(fc - c) == 1:
-                            curr_support[f"{fr},{fc}"].add(move_idx)
-                            break
+                    if (fr, fc) in pts_set: # Check if frontier cell is occupied by the move
+                        curr_support[f"{fr},{fc}"].add(move_idx)
         
         curr_clusters = all_frontier_clusters[current_player.name]
         for move_idx, m in enumerate(current_player_moves):
