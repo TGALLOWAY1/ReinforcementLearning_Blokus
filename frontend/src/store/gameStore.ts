@@ -63,16 +63,16 @@ export interface GameState {
       opponent_adjacency: number;
     }
   };
-  frontier_metrics?: {
+  frontier_metrics?: Record<string, {
     utility: Record<string, number>;
     block_pressure: Record<string, number>;
     urgency: Record<string, number>;
-  };
-  frontier_clusters?: {
+  }>;
+  frontier_clusters?: Record<string, {
     cluster_id: Record<string, number>;
     cluster_sizes: number[];
     num_clusters: number;
-  };
+  }>;
   piece_lock_risk?: number;
   self_block_risk?: {
     top_moves: Array<{
@@ -139,6 +139,18 @@ export interface GameHistoryEntry {
     difficult_piece_penalty: Record<string, number>;
     remaining_pieces: Record<string, number[]>;
     influence_map: number[][] | null;
+    frontier_metrics?: Record<string, {
+      utility: Record<string, number>;
+      block_pressure: Record<string, number>;
+      urgency: Record<string, number>;
+    }>;
+    frontier_clusters?: Record<string, {
+      cluster_id: Record<string, number>;
+      cluster_sizes: number[];
+      num_clusters: number;
+    }>;
+    piece_lock_risk?: number;
+    self_block_risk?: any;
   };
 }
 

@@ -139,8 +139,8 @@ export const AnalysisDashboard: React.FC = () => {
                                 frontiers={metrics.frontiers}
                                 boardState={currentBoard}
                                 selectedPlayer={selectedPlayer}
-                                frontierMetrics={gameState?.frontier_metrics}
-                                frontierClusters={gameState?.frontier_clusters}
+                                frontierMetrics={activeTurnData?.metrics?.frontier_metrics?.[PLAYER_NAMES[selectedPlayer]]}
+                                frontierClusters={activeTurnData?.metrics?.frontier_clusters?.[PLAYER_NAMES[selectedPlayer]]}
                             />
                         </div>
 

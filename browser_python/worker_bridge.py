@@ -103,31 +103,36 @@ class WebWorkerGameBridge:
         heatmap = [[0.0 for _ in range(20)] for _ in range(20)]
         
         current_player = game.get_current_player()
-        engine_moves = []
+        all_players_legal_moves = {}
+        for p in EnginePlayer:
+            if not game.is_game_over():
+                all_players_legal_moves[p] = game.get_legal_moves(p)
+            else:
+                all_players_legal_moves[p] = []
         
-        if not game.is_game_over():
-            engine_moves = game.get_legal_moves(current_player)
-            for m in engine_moves:
-                positions = []
-                cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
-                if cached_ops:
-                    pts = m.get_positions(cached_ops)
-                    for pt in pts:
-                        positions.append({"row": pt.row, "col": pt.col})
-                        if 0 <= pt.row < 20 and 0 <= pt.col < 20:
-                            heatmap[pt.row][pt.col] = 1.0
-                
-                frontend_ori = self._get_frontend_ori(m.piece_id, m.orientation)
-                legal_moves_out.append({
-                    "piece_id": m.piece_id,
-                    "orientation": frontend_ori,
-                    "anchor_row": m.anchor_row,
-                    "anchor_col": m.anchor_col,
-                    "positions": positions
-                })
+        current_player_moves = all_players_legal_moves[current_player]
+        
+        for m in current_player_moves:
+            positions = []
+            cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
+            if cached_ops:
+                pts = m.get_positions(cached_ops)
+                for pt in pts:
+                    positions.append({"row": pt.row, "col": pt.col})
+                    if 0 <= pt.row < 20 and 0 <= pt.col < 20:
+                        heatmap[pt.row][pt.col] = 1.0
+            
+            frontend_ori = self._get_frontend_ori(m.piece_id, m.orientation)
+            legal_moves_out.append({
+                "piece_id": m.piece_id,
+                "orientation": frontend_ori,
+                "anchor_row": m.anchor_row,
+                "anchor_col": m.anchor_col,
+                "positions": positions
+            })
         
         pieces_used_current = list(game.board.player_pieces_used[current_player])
-        mobility = compute_player_mobility_metrics(engine_moves, pieces_used_current)
+        mobility = compute_player_mobility_metrics(current_player_moves, pieces_used_current)
         center_control = game._calculate_center_bonus(current_player) // 2
         frontier_size = len(game.board.get_frontier(current_player))
         
@@ -135,7 +140,7 @@ class WebWorkerGameBridge:
         # PieceLockRisk: count(piece_id in remaining_pieces where has_move is False)
         piece_lock_risk = 0
         has_move = {pid: False for pid in range(1, 22) if pid not in pieces_used_current}
-        for m in engine_moves:
+        for m in current_player_moves:
             has_move[m.piece_id] = True
             
         for pid, can_place in has_move.items():
@@ -151,199 +156,155 @@ class WebWorkerGameBridge:
             "frontierSize": frontier_size,
         }
         
-        # Calculate utility + block_pressure + urgency
-        frontier_metrics = {
-            "utility": {},
-            "block_pressure": {},
-            "urgency": {}
-        }
+        # Calculate nested metrics for all players
+        all_frontier_metrics = {}
+        all_frontier_clusters = {}
         
-        frontier_cells = game.board.get_frontier(current_player)
-        
-        # Initialize utilities based on legal moves already fetched
-        for fr, fc in frontier_cells:
-            frontier_metrics["utility"][f"{fr},{fc}"] = 0
-            frontier_metrics["block_pressure"][f"{fr},{fc}"] = 0
-            
-        for m in engine_moves:
-            cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
-            if cached_ops:
-                pts = m.get_positions(cached_ops)
-                # Naive inference of which frontier point was used: check adjacency overlap
-                # Just find the first frontier point that this move connects to diagonally
-                used_f = None
-                pts_set = set((pt.row, pt.col) for pt in pts)
-                for fr, fc in frontier_cells:
-                    for r, c in pts_set:
-                        if abs(fr - r) == 1 and abs(fc - c) == 1:
-                            used_f = (fr, fc)
-                            break
-                    if used_f: break
-                
-                if used_f:
-                    frontier_metrics["utility"][f"{used_f[0]},{used_f[1]}"] += 1
-                    
-        # 1-ply BlockPressure: opponent's legal moves next turn
-        # Naive generator fetch to get coverage map
+        # 1-ply BlockPressure setup: union of all players' moves
         block_pressure_map = [[False]*20 for _ in range(20)]
-        for op in EnginePlayer:
-            if op != current_player and not game.is_game_over():
-                op_moves = game.get_legal_moves(op)
-                for m in op_moves:
-                    cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
-                    if cached_ops:
-                        pts = m.get_positions(cached_ops)
-                        for pt in pts:
-                            if 0 <= pt.row < 20 and 0 <= pt.col < 20:
-                                block_pressure_map[pt.row][pt.col] = True
+        for p in EnginePlayer:
+            for m in all_players_legal_moves[p]:
+                cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
+                if cached_ops:
+                    pts = m.get_positions(cached_ops)
+                    for pt in pts:
+                        if 0 <= pt.row < 20 and 0 <= pt.col < 20:
+                            block_pressure_map[pt.row][pt.col] = True
 
-        for fr, fc in frontier_cells:
-            if block_pressure_map[fr][fc]:
-                frontier_metrics["block_pressure"][f"{fr},{fc}"] += 1
+        for p in EnginePlayer:
+            p_frontier_cells = game.board.get_frontier(p)
+            p_moves = all_players_legal_moves[p]
             
-            u = frontier_metrics["utility"][f"{fr},{fc}"]
-            bp = frontier_metrics["block_pressure"][f"{fr},{fc}"]
-            frontier_metrics["urgency"][f"{fr},{fc}"] = u * (1 + bp)
-        
-        # --- Milestone 2: Frontier Redundancy Clusters ---
-        # 1. Build support sets: mapping each frontier point to a set of move IDs
-        support_sets = {f"{fr},{fc}": set() for fr, fc in frontier_cells}
-        for move_idx, m in enumerate(engine_moves):
-            cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
-            if cached_ops:
-                pts = m.get_positions(cached_ops)
-                pts_set = set((pt.row, pt.col) for pt in pts)
-                
-                # Assign this move to any frontier point it connects to diagonally
-                # We could just assign it to the *first* one like in Utility, but
-                # assigning to all it touches is technically more accurate for overlap clustering
-                for fr, fc in frontier_cells:
-                    for r, c in pts_set:
-                        if abs(fr - r) == 1 and abs(fc - c) == 1:
-                            support_sets[f"{fr},{fc}"].add(move_idx)
-                            # Once we found a connection to *this* frontier point, move to the next frontier point
-                            break
-
-        # Filter out low utility frontiers as a guardrail - evaluate only the top 60
-        sorted_frontiers = sorted(frontier_cells, key=lambda f: len(support_sets[f"{f[0]},{f[1]}"]), reverse=True)
-        top_frontiers = sorted_frontiers[:60]
-        
-        # 2. Compute overlaps and build adjacency list
-        overlap_threshold = 0.35
-        adjacency = {f"{fr},{fc}": [] for fr, fc in top_frontiers}
-        
-        for i in range(len(top_frontiers)):
-            f1 = top_frontiers[i]
-            k1 = f"{f1[0]},{f1[1]}"
-            s1 = support_sets[k1]
-            if not s1: continue
+            # --- Frontier Metrics (Utility, BP, Urgency) ---
+            p_metrics = {
+                "utility": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells},
+                "block_pressure": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells},
+                "urgency": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells}
+            }
             
-            for j in range(i + 1, len(top_frontiers)):
-                f2 = top_frontiers[j]
-                k2 = f"{f2[0]},{f2[1]}"
-                s2 = support_sets[k2]
-                if not s2: continue
-                
-                # Overlap = |S1 ∩ S2| / min(|S1|, |S2|)
-                intersection = s1.intersection(s2)
-                if len(intersection) == 0: continue
-                
-                overlap = len(intersection) / min(len(s1), len(s2))
-                if overlap >= overlap_threshold:
-                    adjacency[k1].append(k2)
-                    adjacency[k2].append(k1)
+            # Support sets for clustering
+            p_support_sets = {f"{fr},{fc}": set() for fr, fc in p_frontier_cells}
+            
+            for move_idx, m in enumerate(p_moves):
+                cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
+                if cached_ops:
+                    pts = m.get_positions(cached_ops)
+                    pts_set = set((pt.row, pt.col) for pt in pts)
                     
-        # 3. Cluster using DFS
-        visited = set()
-        frontier_clusters = {
-            "cluster_id": {},
-            "cluster_sizes": [],
-            "num_clusters": 0
-        }
-        
-        cluster_id = 0
-        for f in top_frontiers:
-            k = f"{f[0]},{f[1]}"
-            if k not in visited and support_sets[k]: # only cluster frontiers with >0 moves
-                # DFS
-                stack = [k]
-                size = 0
-                while stack:
-                    curr = stack.pop()
-                    if curr not in visited:
-                        visited.add(curr)
-                        frontier_clusters["cluster_id"][curr] = cluster_id
-                        size += 1
-                        for neighbor in adjacency[curr]:
-                            if neighbor not in visited:
-                                stack.append(neighbor)
+                    for fr, fc in p_frontier_cells:
+                        for r, c in pts_set:
+                            if abs(fr - r) == 1 and abs(fc - c) == 1:
+                                p_metrics["utility"][f"{fr},{fc}"] += 1
+                                p_support_sets[f"{fr},{fc}"].add(move_idx)
+                                break
+            
+            for fr, fc in p_frontier_cells:
+                key = f"{fr},{fc}"
+                if block_pressure_map[fr][fc]:
+                    p_metrics["block_pressure"][key] = 1 # Simple occupancy check
                 
-                if size > 0:
-                    frontier_clusters["cluster_sizes"].append(size)
-                    cluster_id += 1
-                    
-        frontier_clusters["num_clusters"] = cluster_id
-        
-        # Fill in remaining isolated nodes or non-top-60 nodes (0 support, or low utility)
-        for fr, fc in frontier_cells:
-            k = f"{fr},{fc}"
-            if k not in frontier_clusters["cluster_id"]:
-                if support_sets[k]:
-                    frontier_clusters["cluster_id"][k] = cluster_id
-                    frontier_clusters["cluster_sizes"].append(1)
-                    cluster_id += 1
-                    frontier_clusters["num_clusters"] = cluster_id
-                else:
-                    # Point has 0 support, it's not even a cluster
-                    frontier_clusters["cluster_id"][k] = -1
+                u = p_metrics["utility"][key]
+                bp = p_metrics["block_pressure"][key]
+                p_metrics["urgency"][key] = u * (1 + bp)
+            
+            all_frontier_metrics[p.name] = p_metrics
+            
+            # --- Frontier Redundancy Clusters ---
+            p_top_frontiers = sorted(p_frontier_cells, key=lambda f: len(p_support_sets[f"{f[0]},{f[1]}"]), reverse=True)[:60]
+            
+            p_adjacency = {f"{fr},{fc}": [] for fr, fc in p_top_frontiers}
+            overlap_threshold = 0.35
+            
+            for i in range(len(p_top_frontiers)):
+                f1 = p_top_frontiers[i]
+                k1 = f"{f1[0]},{f1[1]}"
+                s1 = p_support_sets[k1]
+                if not s1: continue
+                for j in range(i + 1, len(p_top_frontiers)):
+                    f2 = p_top_frontiers[j]
+                    k2 = f"{f2[0]},{f2[1]}"
+                    s2 = p_support_sets[k2]
+                    if not s2: continue
+                    intersection = s1.intersection(s2)
+                    if len(intersection) > 0:
+                        overlap = len(intersection) / min(len(s1), len(s2))
+                        if overlap >= overlap_threshold:
+                            p_adjacency[k1].append(k2)
+                            p_adjacency[k2].append(k1)
+            
+            p_visited = set()
+            p_clusters = {"cluster_id": {}, "cluster_sizes": [], "num_clusters": 0}
+            p_cluster_id = 0
+            
+            for f in p_top_frontiers:
+                k = f"{f[0]},{f[1]}"
+                if k not in p_visited and p_support_sets[k]:
+                    stack = [k]
+                    size = 0
+                    while stack:
+                        curr = stack.pop()
+                        if curr not in p_visited:
+                            p_visited.add(curr)
+                            p_clusters["cluster_id"][curr] = p_cluster_id
+                            size += 1
+                            for n in p_adjacency[curr]:
+                                if n not in p_visited: stack.append(n)
+                    if size > 0:
+                        p_clusters["cluster_sizes"].append(size)
+                        p_cluster_id += 1
+            
+            p_clusters["num_clusters"] = p_cluster_id
+            for fr, fc in p_frontier_cells:
+                k = f"{fr},{fc}"
+                if k not in p_clusters["cluster_id"]:
+                    if p_support_sets[k]:
+                        p_clusters["cluster_id"][k] = p_cluster_id
+                        p_clusters["cluster_sizes"].append(1)
+                        p_cluster_id += 1
+                        p_clusters["num_clusters"] = p_cluster_id
+                    else:
+                        p_clusters["cluster_id"][k] = -1
+            
+            all_frontier_clusters[p.name] = p_clusters
 
         # --- Milestone 3: SelfBlockRisk Heuristic ---
-        # Evaluate each move based on clusters touched and frontier points used
+        # (Keep for current player)
         self_block_risk_moves = []
-        for move_idx, m in enumerate(engine_moves):
-            # Find the frontier points this move uses (from support_sets reversed)
-            used_f = []
-            for k, s in support_sets.items():
-                if move_idx in s:
-                    used_f.append(k)
-                    
-            clusters_touched = set()
-            for k in used_f:
-                cid = frontier_clusters["cluster_id"].get(k, -1)
-                if cid != -1:
-                    clusters_touched.add(cid)
-            
-            n_clusters = len(clusters_touched)
-            n_frontiers = len(used_f)
-            
+        # Re-using current_player_moves and current_player metrics
+        curr_support = {f"{fr},{fc}": set() for fr, fc in game.board.get_frontier(current_player)}
+        for move_idx, m in enumerate(current_player_moves):
+            cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
+            if cached_ops:
+                pts = m.get_positions(cached_ops)
+                pts_set = set((pt.row, pt.col) for pt in pts)
+                for fr, fc in game.board.get_frontier(current_player):
+                    for r, c in pts_set:
+                        if abs(fr - r) == 1 and abs(fc - c) == 1:
+                            curr_support[f"{fr},{fc}"].add(move_idx)
+                            break
+        
+        curr_clusters = all_frontier_clusters[current_player.name]
+        for move_idx, m in enumerate(current_player_moves):
+            used_f = [k for k, s in curr_support.items() if move_idx in s]
+            c_touched = set(curr_clusters["cluster_id"].get(k, -1) for k in used_f if curr_clusters["cluster_id"].get(k, -1) != -1)
+            n_clusters, n_frontiers = len(c_touched), len(used_f)
             if n_clusters > 0 or n_frontiers > 0:
-                risk_score = 2 * n_clusters + 1 * n_frontiers
-                # Reconstruct action struct for UI tracking
-                frontend_ori = self._get_frontend_ori(m.piece_id, m.orientation)
+                risk = 2 * n_clusters + 1 * n_frontiers
                 self_block_risk_moves.append({
-                    "piece_id": m.piece_id,
-                    "orientation": frontend_ori,
-                    "anchor_row": m.anchor_row,
-                    "anchor_col": m.anchor_col,
-                    "risk": risk_score,
-                    "clusters_touched": n_clusters,
-                    "frontier_points_used": n_frontiers
+                    "piece_id": m.piece_id, "orientation": self._get_frontend_ori(m.piece_id, m.orientation),
+                    "anchor_row": m.anchor_row, "anchor_col": m.anchor_col, "risk": risk,
+                    "clusters_touched": n_clusters, "frontier_points_used": n_frontiers
                 })
         
-        # Sort by risk descending, keep top 10
         self_block_risk_moves.sort(key=lambda x: x["risk"], reverse=True)
-        self_block_risk = {
-            "top_moves": self_block_risk_moves[:10]
-        }
+        self_block_risk = {"top_moves": self_block_risk_moves[:10]}
 
         winner_name = None
         if game.is_game_over():
             w = game.board.get_winner()
-            if w:
-                winner_name = w.name
+            if w: winner_name = w.name
                 
         status = "finished" if game.is_game_over() else "in_progress"
-        
         influence_map, territory_ratios = compute_territory_control(game.board)
         dead_zones = compute_dead_zones(game.board)
         
@@ -357,6 +318,16 @@ class WebWorkerGameBridge:
                 "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
             }
         
+        # PERSISTENCE: Inject into history if missing
+        latest_history_idx = len(game.game_history) - 1
+        if latest_history_idx >= 0:
+            hist_entry = game.game_history[latest_history_idx]
+            if "frontier_metrics" not in hist_entry["metrics"]:
+                hist_entry["metrics"]["frontier_metrics"] = all_frontier_metrics
+                hist_entry["metrics"]["frontier_clusters"] = all_frontier_clusters
+                hist_entry["metrics"]["piece_lock_risk"] = piece_lock_risk
+                hist_entry["metrics"]["self_block_risk"] = self_block_risk
+
         history_out = []
         for entry in game.game_history:
             entry_copy = dict(entry)
@@ -368,31 +339,17 @@ class WebWorkerGameBridge:
             history_out.append(entry_copy)
 
         return {
-            "game_id": self.game_id,
-            "status": status,
-            "current_player": current_player.name,
-            "board": board_list,
-            "scores": scores,
-            "pieces_used": pieces_used,
-            "move_count": game.get_move_count(),
-            "game_over": game.is_game_over(),
-            "winner": winner_name,
-            "legal_moves": legal_moves_out,
-            "created_at": "",
-            "updated_at": "",
-            "players": self.players_config,
-            "heatmap": heatmap,
-            "mobility_metrics": mobility_metrics,
-            "mcts_top_moves": self.mcts_top_moves,
-            "influence_map": influence_map,
-            "dead_zones": dead_zones,
-            "advanced_metrics": advanced_metrics_out,
-            "frontier_metrics": frontier_metrics,
-            "frontier_clusters": frontier_clusters,
-            "piece_lock_risk": piece_lock_risk,
-            "self_block_risk": self_block_risk,
+            "game_id": self.game_id, "status": status, "current_player": current_player.name,
+            "board": board_list, "scores": scores, "pieces_used": pieces_used,
+            "move_count": game.get_move_count(), "game_over": game.is_game_over(), "winner": winner_name,
+            "legal_moves": legal_moves_out, "created_at": "", "updated_at": "", "players": self.players_config,
+            "heatmap": heatmap, "mobility_metrics": mobility_metrics, "mcts_top_moves": self.mcts_top_moves,
+            "influence_map": influence_map, "dead_zones": dead_zones, "advanced_metrics": advanced_metrics_out,
+            "frontier_metrics": all_frontier_metrics, "frontier_clusters": all_frontier_clusters,
+            "piece_lock_risk": piece_lock_risk, "self_block_risk": self_block_risk,
             "game_history": history_out
         }
+
 
     def load_game(self, history: List[Dict[str, Any]]):
         self.game = BlokusGame()
