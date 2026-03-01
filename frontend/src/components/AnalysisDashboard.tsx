@@ -34,6 +34,7 @@ export const AnalysisDashboard: React.FC = () => {
     const currentSliderTurn = useGameStore(s => s.currentSliderTurn);
     const setCurrentSliderTurn = useGameStore(s => s.setCurrentSliderTurn);
     const [selectedPlayer, setSelectedPlayer] = useState<number>(2); // Default BLUE
+    const [xAxisMode, setXAxisMode] = useState<'move' | 'round'>('move');
 
     const gameHistory = gameState?.game_history || [];
     const totalTurns = gameHistory.length;
@@ -82,7 +83,23 @@ export const AnalysisDashboard: React.FC = () => {
             <div className="shrink-0 p-4 border-b border-charcoal-700 bg-charcoal-800">
                 <div className="flex items-center justify-between mb-2">
                     <h2 className="text-sm font-bold tracking-wider uppercase text-slate-300">Blokus Game Analysis & Prediction</h2>
-                    <span className="text-xs font-mono bg-blue-900/50 text-blue-400 px-2 py-1 rounded">Turn {currentSliderTurn || totalTurns} / {totalTurns} ({currentPlayerStr} to move)</span>
+                    <div className="flex items-center gap-4">
+                        <div className="flex bg-charcoal-900 p-0.5 rounded border border-charcoal-600">
+                            <button
+                                onClick={() => setXAxisMode('move')}
+                                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${xAxisMode === 'move' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                MOVE
+                            </button>
+                            <button
+                                onClick={() => setXAxisMode('round')}
+                                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${xAxisMode === 'round' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                ROUND
+                            </button>
+                        </div>
+                        <span className="text-xs font-mono bg-blue-900/50 text-blue-400 px-2 py-1 rounded">Move {currentSliderTurn || totalTurns} / {totalTurns} ({currentPlayerStr} to move)</span>
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-xs font-mono text-slate-500">1</span>
@@ -106,15 +123,15 @@ export const AnalysisDashboard: React.FC = () => {
                     <SectionTitle title="Predictive Line Charts" />
 
                     <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
-                        <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} />
+                        <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
                     </div>
 
                     <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
-                        <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} />
+                        <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
                     </div>
 
                     <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
-                        <ModuleF_UrgencyChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} />
+                        <ModuleF_UrgencyChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
                     </div>
                 </div>
 
@@ -526,118 +543,191 @@ const PlayerStatusSummary: React.FC<{ metrics: DashboardMetrics, remainingPieces
 
 // --- Reused Charts from original file (Modified for new theme) ---
 
-export const ModuleC_CornerChart: React.FC<{ gameHistory: any[]; currentTurn: number; }> = React.memo(({ gameHistory, currentTurn }) => {
-    const chartData = useMemo(() => {
-        if (!gameHistory || gameHistory.length === 0) return [];
-        return gameHistory.map((entry, idx) => {
-            const turnNum = idx + 1;
-            const metrics = entry.metrics;
-            if (!metrics || !metrics.corner_count) return { turn: turnNum };
-            return {
-                turn: turnNum,
-                RED: metrics.corner_count['RED'] || 0,
-                BLUE: metrics.corner_count['BLUE'] || 0,
-                YELLOW: metrics.corner_count['YELLOW'] || 0,
-                GREEN: metrics.corner_count['GREEN'] || 0,
-            };
-        });
-    }, [gameHistory]);
+// --- Chart Round alignment helpers ---
 
-    return (
-        <div className="flex flex-col h-full w-full min-w-0">
-            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">Corner Differential (Mobility)</h3>
-            <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                        <XAxis dataKey="turn" stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
-                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
-                        <ReferenceLine x={currentTurn} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
-                        <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="YELLOW" stroke="#EAB308" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="GREEN" stroke="#22C55E" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
-        </div>
-    );
-});
+const transformToRounds = (gameHistory: any[], extractor: (entry: any) => Record<string, number>) => {
+    if (!gameHistory || gameHistory.length === 0) return [];
 
-export const ModuleE_FrontierChart: React.FC<{ gameHistory: any[]; currentTurn: number; }> = React.memo(({ gameHistory, currentTurn }) => {
-    const chartData = useMemo(() => {
-        if (!gameHistory || gameHistory.length === 0) return [];
-        return gameHistory.map((entry, idx) => {
-            const turnNum = idx + 1;
-            const metrics = entry.metrics;
-            if (!metrics || !metrics.frontier_size) return { turn: turnNum };
-            return {
-                turn: turnNum,
-                RED: metrics.frontier_size['RED'] || 0,
-                BLUE: metrics.frontier_size['BLUE'] || 0,
-                YELLOW: metrics.frontier_size['YELLOW'] || 0,
-                GREEN: metrics.frontier_size['GREEN'] || 0,
-            };
-        });
-    }, [gameHistory]);
+    const numRounds = Math.ceil(gameHistory.length / 4);
+    const roundData = [];
 
-    return (
-        <div className="flex flex-col h-full w-full min-w-0">
-            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">Mobility (Frontier Size) vs Turn</h3>
-            <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                        <XAxis dataKey="turn" stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
-                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
-                        <ReferenceLine x={currentTurn} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
-                        <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="YELLOW" stroke="#EAB308" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="GREEN" stroke="#22C55E" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
-        </div>
-    );
-});
+    // We want to represent each round by the snapshot AFTER all (possible) moves in that round occurred.
+    for (let r = 0; r < numRounds; r++) {
+        const roundEntry: any = { round: r + 1 };
+        const players = ['RED', 'BLUE', 'YELLOW', 'GREEN'];
 
-export const ModuleF_UrgencyChart: React.FC<{ gameHistory: any[]; currentTurn: number; }> = React.memo(({ gameHistory, currentTurn }) => {
-    const chartData = useMemo(() => {
-        if (!gameHistory || gameHistory.length === 0) return [];
-        return gameHistory.map((entry, idx) => {
-            const turnNum = idx + 1;
-            const fm = entry.metrics?.frontier_metrics;
-            if (!fm) return { turn: turnNum };
-            const result: Record<string, any> = { turn: turnNum };
-            for (const playerName of ['RED', 'BLUE', 'YELLOW', 'GREEN']) {
-                const playerFm = fm[playerName];
-                if (playerFm?.urgency) {
-                    const urgencyValues = Object.values(playerFm.urgency) as number[];
-                    result[playerName] = urgencyValues.length > 0
-                        ? Math.max(...urgencyValues)
-                        : 0;
-                } else {
-                    result[playerName] = 0;
+        // Final state of round r is the state at move index (r * 4) + 3 (or latest available)
+        const roundEndIdx = Math.min((r * 4) + 3, gameHistory.length - 1);
+
+        for (const p of players) {
+            // Find the last known value for this player at or before roundEndIdx
+            // Since player order is fixed, we can be more efficient, but scan-back is robust.
+            let val = 0;
+            for (let i = roundEndIdx; i >= 0; i--) {
+                const metrics = extractor(gameHistory[i]);
+                if (metrics && metrics[p] !== undefined) {
+                    val = metrics[p];
+                    break;
                 }
             }
-            return result;
+            roundEntry[p] = val;
+        }
+        roundData.push(roundEntry);
+    }
+    return roundData;
+};
+
+// --- Reused Charts from original file (Modified for new theme) ---
+
+export const ModuleC_CornerChart: React.FC<{ gameHistory: any[]; currentTurn: number; mode: 'move' | 'round'; }> = React.memo(({ gameHistory, currentTurn, mode }) => {
+    const chartData = useMemo(() => {
+        if (!gameHistory || gameHistory.length === 0) return [];
+
+        const extractor = (entry: any) => entry.metrics?.corner_count || {};
+
+        if (mode === 'round') {
+            return transformToRounds(gameHistory, extractor);
+        }
+
+        return gameHistory.map((entry, idx) => {
+            const turnNum = idx + 1;
+            const metrics = extractor(entry);
+            return {
+                turn: turnNum,
+                RED: metrics['RED'] || 0,
+                BLUE: metrics['BLUE'] || 0,
+                YELLOW: metrics['YELLOW'] || 0,
+                GREEN: metrics['GREEN'] || 0,
+            };
         });
-    }, [gameHistory]);
+    }, [gameHistory, mode]);
+
+    const xKey = mode === 'move' ? 'turn' : 'round';
+    const xRef = mode === 'move' ? currentTurn : Math.floor((currentTurn - 1) / 4) + 1;
 
     return (
         <div className="flex flex-col h-full w-full min-w-0">
-            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">Frontier Urgency (Max) vs Turn</h3>
+            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
+                Corner Differential (Mobility) vs {mode === 'move' ? 'Move' : 'Round'}
+            </h3>
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                        <XAxis dataKey="turn" stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
+                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
                         <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
                         <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
-                        <ReferenceLine x={currentTurn} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
+                        <ReferenceLine x={xRef} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="YELLOW" stroke="#EAB308" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="GREEN" stroke="#22C55E" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+});
+
+export const ModuleE_FrontierChart: React.FC<{ gameHistory: any[]; currentTurn: number; mode: 'move' | 'round'; }> = React.memo(({ gameHistory, currentTurn, mode }) => {
+    const chartData = useMemo(() => {
+        if (!gameHistory || gameHistory.length === 0) return [];
+
+        const extractor = (entry: any) => entry.metrics?.frontier_size || {};
+
+        if (mode === 'round') {
+            return transformToRounds(gameHistory, extractor);
+        }
+
+        return gameHistory.map((entry, idx) => {
+            const turnNum = idx + 1;
+            const metrics = extractor(entry);
+            return {
+                turn: turnNum,
+                RED: metrics['RED'] || 0,
+                BLUE: metrics['BLUE'] || 0,
+                YELLOW: metrics['YELLOW'] || 0,
+                GREEN: metrics['GREEN'] || 0,
+            };
+        });
+    }, [gameHistory, mode]);
+
+    const xKey = mode === 'move' ? 'turn' : 'round';
+    const xRef = mode === 'move' ? currentTurn : Math.floor((currentTurn - 1) / 4) + 1;
+
+    return (
+        <div className="flex flex-col h-full w-full min-w-0">
+            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
+                Mobility (Frontier) vs {mode === 'move' ? 'Move' : 'Round'}
+            </h3>
+            <div className="flex-1 w-full min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
+                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
+                        <ReferenceLine x={xRef} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="YELLOW" stroke="#EAB308" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="GREEN" stroke="#22C55E" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+});
+
+export const ModuleF_UrgencyChart: React.FC<{ gameHistory: any[]; currentTurn: number; mode: 'move' | 'round'; }> = React.memo(({ gameHistory, currentTurn, mode }) => {
+    const chartData = useMemo(() => {
+        if (!gameHistory || gameHistory.length === 0) return [];
+
+        const extractor = (entry: any) => {
+            const fm = entry.metrics?.frontier_metrics;
+            if (!fm) return {};
+            const res: Record<string, number> = {};
+            for (const p of ['RED', 'BLUE', 'YELLOW', 'GREEN']) {
+                if (fm[p]?.urgency) {
+                    const vals = Object.values(fm[p].urgency) as number[];
+                    res[p] = vals.length > 0 ? Math.max(...vals) : 0;
+                } else {
+                    res[p] = 0;
+                }
+            }
+            return res;
+        };
+
+        if (mode === 'round') {
+            return transformToRounds(gameHistory, extractor);
+        }
+
+        return gameHistory.map((entry, idx) => {
+            const turnNum = idx + 1;
+            const metrics = extractor(entry);
+            return {
+                turn: turnNum,
+                ...metrics
+            };
+        });
+    }, [gameHistory, mode]);
+
+    const xKey = mode === 'move' ? 'turn' : 'round';
+    const xRef = mode === 'move' ? currentTurn : Math.floor((currentTurn - 1) / 4) + 1;
+
+    return (
+        <div className="flex flex-col h-full w-full min-w-0">
+            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
+                Frontier Urgency vs {mode === 'move' ? 'Move' : 'Round'}
+            </h3>
+            <div className="flex-1 w-full min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
+                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
+                        <ReferenceLine x={xRef} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
                         <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
                         <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
                         <Line type="monotone" dataKey="YELLOW" stroke="#EAB308" strokeWidth={1.5} dot={false} isAnimationActive={false} />
