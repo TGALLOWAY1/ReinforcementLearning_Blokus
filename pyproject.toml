@@ -73,3 +73,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Allow importing worker_bridge and its deps (engine.*, agents.*, mcts.*)
+# Project root must come first so top-level engine/advanced_metrics.py takes
+# precedence over browser_python/engine/ which doesn't have that module.
+pythonpath = [".", "browser_python"]

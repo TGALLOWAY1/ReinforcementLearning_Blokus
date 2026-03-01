@@ -219,6 +219,12 @@ const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
 
 // --- Subcomponents for the dashboard ---
 
+const FRONTIER_MODE_INFO = {
+    Default: { label: 'Default', title: 'Show frontier (usable corner) points in your player color' },
+    Urgency: { label: 'Urgency', title: 'Color by urgency = how many legal moves use this corner × (1 + opponent pressure). Red=high, grey=low' },
+    Cluster: { label: 'Cluster', title: 'Color by redundancy cluster — corners sharing similar move-sets are grouped by color. Isolated corners (no cluster) are grey.' },
+};
+
 const FrontierMap: React.FC<{
     frontiers: Record<number, { r: number, c: number }[]>,
     boardState: number[][],
@@ -235,12 +241,22 @@ const FrontierMap: React.FC<{
         fMap[r][c] = true;
     }
 
+    const hasMetrics = !!(frontierMetrics?.urgency && Object.keys(frontierMetrics.urgency).length > 0);
+
     return (
         <div className="flex-1 flex flex-col min-h-0 relative">
+            {/* Mode toggle buttons */}
             <div className="absolute top-[-26px] right-0 flex gap-1 z-10">
-                <button onClick={() => setColorMode('Default')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Default' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Def</button>
-                <button onClick={() => setColorMode('Urgency')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Urgency' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Urg</button>
-                <button onClick={() => setColorMode('Cluster')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Cluster' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Cls</button>
+                {(['Default', 'Urgency', 'Cluster'] as const).map(mode => (
+                    <button
+                        key={mode}
+                        onClick={() => setColorMode(mode)}
+                        title={FRONTIER_MODE_INFO[mode].title}
+                        className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${colorMode === mode ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}
+                    >
+                        {FRONTIER_MODE_INFO[mode].label}
+                    </button>
+                ))}
             </div>
             <div className="flex-1 flex items-center justify-center min-h-0 bg-slate-900 rounded p-[1px]">
                 <div className="grid gap-[1px] w-full max-w-full max-h-full aspect-square" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${size}, minmax(0, 1fr))` }}>
@@ -284,13 +300,31 @@ const FrontierMap: React.FC<{
                                 }
                             }
                         }
-                        return <div key={`${r}-${c}`} className={`${bg} ${isFrontier ? 'rounded-full scale-75 cursor-help' : 'rounded-sm'} transition-colors`} title={title} />
+                        return <div key={`${r}-${c}`} className={`${bg} ${isFrontier ? 'rounded-full scale-75 cursor-help' : 'rounded-sm'} transition-colors`} title={title} />;
                     }))}
                 </div>
             </div>
+            {/* Mode legend */}
+            {colorMode !== 'Default' && (
+                <div className="mt-1 text-[8px] text-slate-500 leading-tight text-center">
+                    {colorMode === 'Urgency' && !hasMetrics && (
+                        <span className="text-amber-600">Urgency data missing — play a move to populate</span>
+                    )}
+                    {colorMode === 'Urgency' && hasMetrics && (
+                        <span><span className="text-red-400">■</span> High (&ge;4) &nbsp;<span className="text-orange-400">■</span> Med (&ge;2) &nbsp;<span className="text-yellow-500">■</span> Low (&ge;1) &nbsp;<span className="text-slate-500">■</span> None</span>
+                    )}
+                    {colorMode === 'Cluster' && !hasMetrics && (
+                        <span className="text-amber-600">Cluster data missing — play a move to populate</span>
+                    )}
+                    {colorMode === 'Cluster' && hasMetrics && (
+                        <span>Each color = a redundancy cluster &nbsp;<span className="text-slate-500">■</span> = isolated / no cluster</span>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
+
 
 const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState: number[][], selectedPlayer: number }> = ({ deadZones, boardState, selectedPlayer }) => {
     const size = boardState.length;

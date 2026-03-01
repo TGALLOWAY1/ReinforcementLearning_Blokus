@@ -1665,6 +1665,7 @@ def create_app(
         create_game=create_game,
         get_game=get_game,
         make_move=make_move,
+        finish_game=finish_game,
         get_agents=get_agents,
         list_games=list_games,
         advance_turn=advance_turn,

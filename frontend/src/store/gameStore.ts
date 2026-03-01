@@ -397,13 +397,19 @@ export const useGameStore = create<GameStore>()(
       };
       await waitForWorker();
 
-      return new Promise((resolve) => {
+      return new Promise<void>((resolve) => {
+        // Wire initResolver so we wait for the worker's state_update before resolving.
+        // This fixes the bug where the modal closed before the game state was loaded.
+        initResolver = (_gameId: string) => resolve();
         set({ connectionStatus: 'connecting' });
-        workerInstance!.postMessage({ type: 'load_game', history });
-        // The worker will respond with state_update which calls setGameState
-        // and resolve the promise implicitly via message listener if needed, 
-        // but for now we just wait for the update to happen.
-        resolve();
+        // Strip each entry to only action + player_to_move — the fields load_game actually
+        // needs to replay moves. This avoids expensive Pyodide conversion of nested
+        // metrics objects (frontier_metrics, board_state, etc.) that load_game ignores.
+        const stripped = history.map(e => ({
+          player_to_move: e.player_to_move,
+          action: e.action,
+        }));
+        workerInstance!.postMessage({ type: 'load_game', history: stripped });
       });
     },
   }))

@@ -316,15 +316,16 @@ class WebWorkerGameBridge:
                 "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
             }
         
-        # PERSISTENCE: Inject into history if missing
-        latest_history_idx = len(game.game_history) - 1
-        if latest_history_idx >= 0:
-            hist_entry = game.game_history[latest_history_idx]
-            if "frontier_metrics" not in hist_entry["metrics"]:
-                hist_entry["metrics"]["frontier_metrics"] = all_frontier_metrics
-                hist_entry["metrics"]["frontier_clusters"] = all_frontier_clusters
-                hist_entry["metrics"]["piece_lock_risk"] = piece_lock_risk
-                hist_entry["metrics"]["self_block_risk"] = self_block_risk
+        # PERSISTENCE: Backfill frontier metrics into any history entry that is missing them.
+        # We loop all entries (not just the latest) so that saveGame() always captures
+        # complete data regardless of when the user triggers a save.
+        for hist_entry in game.game_history:
+            m = hist_entry.get("metrics", {})
+            if "frontier_metrics" not in m:
+                m["frontier_metrics"] = all_frontier_metrics
+                m["frontier_clusters"] = all_frontier_clusters
+                m["piece_lock_risk"] = piece_lock_risk
+                m["self_block_risk"] = self_block_risk
 
         history_out = []
         for entry in game.game_history:
@@ -352,8 +353,11 @@ class WebWorkerGameBridge:
     def load_game(self, history: List[Dict[str, Any]]):
         self.game = BlokusGame()
         self.mcts_top_moves = []
+        self.game_id = "loaded-game"
         
-        # Replay history
+        # Replay history — only 'action' and 'player_to_move' are needed.
+        # The frontend strips all other fields (board_state, metrics, etc.)
+        # before sending to keep the Pyodide payload small.
         for entry in history:
             action = entry.get("action")
             if action:

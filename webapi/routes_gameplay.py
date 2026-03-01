@@ -21,6 +21,8 @@ def register_gameplay_routes(
     health: SyncHandler,
     root: AsyncHandler,
     create_game: AsyncHandler,
+    get_game: AsyncHandler,
+    make_move: AsyncHandler,
     finish_game: AsyncHandler,
     get_agents: AsyncHandler,
     list_games: AsyncHandler,
