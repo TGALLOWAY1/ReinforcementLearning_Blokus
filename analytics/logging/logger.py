@@ -140,7 +140,11 @@ class StrategyLogger:
             legal_moves_before=legal_moves_before,
             legal_moves_after=legal_moves_after,
             pieces_remaining=remaining,
-            metrics=metrics
+            metrics=metrics,
+            # Round alignment derivations
+            round_index=turn_index // 4,
+            position_in_round=turn_index % 4,
+            seat_index=player_id - 1
         )
         
         self.log_step(log_entry)

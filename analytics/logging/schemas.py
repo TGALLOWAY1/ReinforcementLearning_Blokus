@@ -25,6 +25,11 @@ class StepLog(BaseModel):
     
     # Derived metrics
     metrics: Dict[str, Any]
+    
+    # Round alignment (additive/optional)
+    round_index: Optional[int] = None
+    position_in_round: Optional[int] = None
+    seat_index: Optional[int] = None
 
 class GameResultLog(BaseModel):
     """Schema for game end result."""
