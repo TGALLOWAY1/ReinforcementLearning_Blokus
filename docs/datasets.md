@@ -91,3 +91,18 @@ else:
 games = pd.read_json(run_dir / "games.jsonl", lines=True)
 ```
 
+## Pairwise Training Dataset
+
+For modeling, snapshot rows are transformed into pairwise examples:
+
+- group by `(run_id, game_id, checkpoint_index)`
+- for each player pair `(i, j)`, compute features as `x = features_i - features_j`
+- label `y = 1` if `final_score_i > final_score_j`, else `0`
+- reciprocal rows `(j, i)` are added for symmetry
+- ties are currently dropped (`tie_policy=drop`)
+
+Reference implementation:
+
+- `analytics/winprob/dataset.py`
+- `scripts/train_winprob_v1.py`
+- `scripts/train_winprob_v2.py`
