@@ -1,6 +1,6 @@
 # Project Documentation Index
 
-Last verified: February 2026.
+Last verified: March 2026.
 
 Welcome to the Blokus RL documentation directory. This folder aggregates all technical documentation, architecture notes, and guides for the project.
 
@@ -12,7 +12,9 @@ Welcome to the Blokus RL documentation directory. This folder aggregates all tec
 - **/engine/**: Move generation logic, win detection, and game engine internals.
 - **/frontend/**: Setup instructions and design notes for the React UI.
 - **/training/**: Documentation covering SB3 / PettingZoo reinforcement learning pipelines, RL agent evaluation, and metrics.
-- **/webapi/**: Documentation for the FastAPI endpoints and WebSocket implementation.
+- **/webapi/**: Documentation for FastAPI gameplay and research endpoints.
 - **/metrics/**: Notes on advanced mobility metrics, frontier calculations, etc.
+- **arena.md**: Reproducible arena experiment runner, output artifacts, summary interpretation, win-probability training commands, and learned-evaluator MCTS integration.
+- **datasets.md**: Arena dataset schemas (`games.jsonl`, snapshots parquet/csv), pairwise transformation, and loading examples.
 
 *To start running or developing the project, please see the root [README.md](../README.md).*

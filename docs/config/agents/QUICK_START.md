@@ -10,10 +10,10 @@ python training/trainer.py --agent-config config/agents/ppo_agent_v1.yaml
 
 ```bash
 # Quick sweep (100 episodes per config)
-python training/run_sweep.py config/agents/ppo_agent_sweep_*.yaml --episodes 100
+python training/run_sweep.py "config/agents/ppo_agent_sweep_*.yaml" --episodes 100
 
 # Longer sweep (500 episodes)
-python training/run_sweep.py config/agents/ppo_agent_sweep_*.yaml --episodes 500
+python training/run_sweep.py "config/agents/ppo_agent_sweep_*.yaml" --episodes 500
 ```
 
 ## Viewing Results
@@ -38,4 +38,3 @@ python training/run_sweep.py config/agents/ppo_agent_sweep_*.yaml --episodes 500
    ```
 
 See `docs/hyperparams.md` for complete documentation.
-

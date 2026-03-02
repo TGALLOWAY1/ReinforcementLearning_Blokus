@@ -12,9 +12,9 @@ Each agent config file defines:
 ## File Naming
 
 - `ppo_agent_v1.yaml` - Base PPO agent config version 1
-- `ppo_agent_v2.yaml` - Updated PPO agent config
 - `ppo_agent_sweep_lr_high.yaml` - High learning rate variant for sweeps
 - `ppo_agent_sweep_lr_low.yaml` - Low learning rate variant for sweeps
+- `ppo_agent_sweep_gamma_high.yaml` - High gamma variant for sweeps
 
 ## Usage
 
@@ -23,6 +23,5 @@ Each agent config file defines:
 python training/trainer.py --agent-config config/agents/ppo_agent_v1.yaml
 
 # Run hyperparameter sweep
-python training/run_sweep.py config/agents/ppo_agent_sweep_*.yaml
+python training/run_sweep.py "config/agents/ppo_agent_sweep_*.yaml"
 ```
-

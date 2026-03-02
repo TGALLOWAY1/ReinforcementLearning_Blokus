@@ -201,9 +201,11 @@ In smoke-test mode, detailed logs are written at DEBUG level. Check for:
 ### Step 4: Verify Checkpoints
 
 After training, check that:
-- Model checkpoint is saved in `checkpoints/ppo_blokus`
-- Training config is saved in `checkpoints/training_config.yaml`
+- Checkpoints are saved under `checkpoints/<agent_id>/<run_id>/` when checkpointing is enabled
+- `training_config.yaml` is saved in the same run directory
 - TensorBoard logs are in `./logs/`
+
+Note: in smoke mode, checkpointing is disabled by default unless you explicitly set `checkpoint_interval_episodes`.
 
 ### Step 5: Run Full Training
 
@@ -250,7 +252,7 @@ Seeds can be set in three ways:
 
 After training, the effective configuration is saved to:
 ```
-checkpoints/training_config.yaml
+checkpoints/<agent_id>/<run_id>/training_config.yaml
 ```
 
 This allows you to reproduce exact training runs by loading the saved config.
@@ -309,4 +311,3 @@ The training system uses Stable-Baselines3's MaskablePPO with:
 - Checkpoint saving for model persistence
 
 See [Stable-Baselines3 documentation](https://stable-baselines3.readthedocs.io/) for more details on the PPO algorithm and hyperparameters.
-

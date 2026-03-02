@@ -11,7 +11,7 @@ This project provides a full-stack implementation of Blokus with:
 - **Multiple AI agents** (Random, Heuristic, MCTS)
 - **Reinforcement learning environment** compatible with PettingZoo and Gymnasium
 - **Web interface** for interactive gameplay
-- **REST API & WebSocket** for programmatic access
+- **REST API** for programmatic access and research tooling
 - **Arena system** for agent evaluation and tournaments
 
 ## ✨ Features
@@ -42,21 +42,24 @@ This project provides a full-stack implementation of Blokus with:
 - React + TypeScript frontend
 - Real-time game visualization with SVG
 - Interactive piece placement (drag, rotate, flip)
-- WebSocket integration for live updates
+- In-browser Pyodide worker for local gameplay and fast iteration
 - Color-blind friendly design
 - Agent visualization and research tools
 
 ### API & Backend
 - FastAPI REST API
-- WebSocket support for real-time gameplay
-- Automatic turn management for AI agents
-- Human player support via WebSocket
+- Automatic turn management for AI agents via `advance_turn`
+- Human pass/move support via REST endpoints
 - Game state persistence and management
 
 ### Evaluation Tools
 - Arena system for round-robin tournaments
 - Agent performance statistics
 - Match result logging and analysis
+- Snapshot dataset export (`snapshots.parquet` / `snapshots.csv`) for ML modeling
+- Win-probability training scripts:
+  - `scripts/train_winprob_v1.py` (pairwise logistic regression, calibrated baseline)
+  - `scripts/train_winprob_v2.py` (phase-aware gradient boosting)
 
 ## Stage 3 Self-Play League (Checkpoint-Only)
 
@@ -188,6 +191,29 @@ PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
 
 3. **Open your browser** and navigate to `http://localhost:5173`
 
+### Arena + Win-Probability Workflow
+
+Run a reproducible 100-game arena benchmark:
+
+```bash
+python scripts/arena.py --config scripts/arena_config.json
+```
+
+Run fair-time benchmark (equal think times):
+
+```bash
+python scripts/arena.py --config scripts/arena_config_fair_time.json
+```
+
+Train v1/v2 win-probability models from a completed run:
+
+```bash
+python scripts/train_winprob_v1.py --snapshots arena_runs/<run_id>
+python scripts/train_winprob_v2.py --snapshots arena_runs/<run_id>
+```
+
+Detailed arena/modeling docs: [`docs/arena.md`](docs/arena.md), [`docs/datasets.md`](docs/datasets.md)
+
 ## 📖 Usage
 
 ### Playing a Game via Web Interface
@@ -301,38 +327,70 @@ python -m rl.smoke_test
 
 ### Running Agent Arena
 
-Run round-robin tournaments between agents:
+Run a reproducible multi-agent arena experiment:
 
 ```bash
-python scripts/arena.py --config scripts/arena_config.json --rounds 5 --verbose
+python scripts/arena.py --config scripts/arena_config.json
 ```
 
 Configuration file format:
 ```json
 {
-  "RandomAgent": {
-    "type": "random",
-    "seed": 42
-  },
-  "HeuristicAgent": {
-    "type": "heuristic",
-    "seed": 43,
-    "weights": {
-      "piece_size": 1.0,
-      "corner_creation": 2.0,
-      "edge_avoidance": -1.5,
-      "center_preference": 0.5
+  "agents": [
+    {
+      "name": "mcts_25ms",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 25,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414
+      }
+    },
+    {
+      "name": "mcts_50ms",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 50,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414
+      }
+    },
+    {
+      "name": "mcts_100ms",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414
+      }
+    },
+    {
+      "name": "mcts_200ms",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414
+      }
     }
-  },
-  "MCTSAgent": {
-    "type": "mcts",
-    "iterations": 500,
-    "exploration_constant": 1.414,
-    "use_transposition_table": true,
-    "seed": 44
-  }
+  ],
+  "num_games": 100,
+  "seed": 20260301,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500
 }
 ```
+
+See `docs/arena.md` for full run schema and output artifacts.
 
 ## 🏗️ Project Structure
 
@@ -402,9 +460,8 @@ def select_action(board: Board, player: Player, legal_moves: List[Move]) -> Move
 
 ### Web API (`webapi/app.py`)
 
-- **REST Endpoints**: Create games, get state, make moves, list agents
-- **WebSocket**: Real-time game updates and human player input
-- **Turn Loop**: Automatic agent moves with human player support
+- **REST Endpoints**: Create games, get state, make moves, pass turns, list agents
+- **Turn Loop**: Automatic agent moves with human player support via REST
 - **Game Manager**: Session management and state persistence
 
 ## 🧪 Testing
@@ -463,7 +520,7 @@ The training system includes:
 - **Checkpointing**: Periodic checkpoint saving with resume capability
 - **Training History**: Automatic logging of all training runs to MongoDB with web interface
 
-See `docs/training/README.md` for complete documentation.
+See `training/README.md` for complete documentation.
 
 ### Training History
 
@@ -479,7 +536,7 @@ Features:
 - **Checkpoints**: View all saved checkpoints with resume commands
 - **API access**: REST endpoints for programmatic access
 
-See `docs/training/training-history.md` for complete documentation.
+See `docs/training-history.md` for complete documentation.
 
 ### Checkpointing and Resume
 
@@ -499,7 +556,7 @@ python training/trainer.py --mode full --checkpoint-interval-episodes 50
 python training/trainer.py --resume-from-checkpoint checkpoints/ppo_agent/run123/ep000100.zip
 ```
 
-See `docs/training/checkpoints.md` for complete checkpointing documentation.
+See `docs/checkpoints.md` for complete checkpointing documentation.
 
 ### Hyperparameter Configuration and Sweeps
 
@@ -519,7 +576,7 @@ python training/trainer.py --agent-config config/agents/ppo_agent_v1.yaml
 python training/run_sweep.py config/agents/ppo_agent_sweep_*.yaml --episodes 100
 ```
 
-See `docs/training/hyperparams.md` for complete hyperparameter documentation.
+See `docs/hyperparams.md` for complete hyperparameter documentation.
 
 ### Evaluation and Baselines
 
@@ -536,7 +593,7 @@ Example:
 python training/evaluate_agent.py checkpoints/ppo_agent/run123/ep000100.zip --num-games 100
 ```
 
-See `docs/training/evaluation.md` for complete evaluation documentation.
+See `docs/evaluation.md` for complete evaluation documentation.
 
 ### Example with Stable-Baselines3 (Direct)
 
@@ -564,7 +621,8 @@ model.learn(total_timesteps=100000)
 1. Create a new agent class in `agents/`
 2. Inherit from base agent interface
 3. Implement `select_action()` method
-4. Register in `webapi/app.py` and `scripts/arena.py`
+4. Register in API agent creation paths (for example `webapi/app.py`)
+5. Register in arena builder (`analytics/tournament/arena_runner.py`) if you want arena support
 
 ### Adding New Features
 
@@ -581,9 +639,10 @@ Full API documentation available at `http://localhost:8000/docs` when server is 
 - `POST /api/games` - Create new game
 - `GET /api/games/{game_id}` - Get game state
 - `POST /api/games/{game_id}/move` - Make a move
+- `POST /api/games/{game_id}/pass` - Pass a human turn
+- `POST /api/games/{game_id}/advance_turn` - Advance one AI turn
 - `GET /api/agents` - List available agents
 - `GET /api/games` - List all games
-- `WS /ws/games/{game_id}` - WebSocket connection
 - `GET /api/analysis/{game_id}` - Game analysis (research profile)
 - `GET /api/analysis/{game_id}/replay?move_index=N` - Move-by-move replay (research profile)
 - `GET /api/history` - List recently finished games (research profile)
@@ -600,7 +659,7 @@ Games are stored in MongoDB when they end, but **only in research profile** (`AP
    ```
    Or use your main webapi entrypoint if you have one.
 
-2. **Configure MongoDB** (see `docs/deployment/mongodb.md`):
+2. **Configure MongoDB** (see `docs/mongodb.md`):
    - `MONGODB_URI`: Connection string (default: `mongodb://localhost:27017`)
    - `MONGODB_DB_NAME`: Database name (default: `blokusdb`)
 
@@ -643,7 +702,7 @@ curl "http://localhost:8000/api/history?limit=20"
 
 ### Deploy Profile
 
-In deploy profile (e.g. Vercel), MongoDB is not used. For persistence there you would need either MongoDB Atlas (or similar) with `MONGODB_URI` set in Vercel env, or a different storage backend. See `docs/deployment/mongodb.md` for details.
+In deploy profile (e.g. Vercel), MongoDB is not used. For persistence there you would need either MongoDB Atlas (or similar) with `MONGODB_URI` set in Vercel env, or a different storage backend. See `docs/mongodb.md` for details.
 
 ## 🎮 Game Rules
 
@@ -680,7 +739,7 @@ This project is part of a reinforcement learning research environment.
 ### Common Issues
 
 1. **Port already in use**: Change port in `run_server.py` or `frontend/vite.config.ts`
-2. **WebSocket connection fails**: Ensure backend is running on port 8000
+2. **API connection fails**: Ensure backend is running on port 8000 for server-backed routes
 3. **Import errors**: Ensure you've installed dependencies with `pip install -e .`
 4. **Frontend build errors**: Run `npm install` in `frontend/` directory
 
@@ -696,7 +755,7 @@ If the game reports "Invalid move" for moves you believe are legal:
 **Likely causes:**
 1. **Anchor convention**: The engine expects the anchor to be the **top-left** of the piece. The frontend treats the clicked cell as the anchor. If you click a cell that is not the top-left of the piece, the move will be wrong.
 2. **Piece shape/orientation mismatch**: Frontend and backend may use different orientation conventions.
-3. **State desync**: Board state may differ between frontend and backend (e.g. WebSocket lag).
+3. **State desync**: Board state may differ between frontend and backend (e.g. stale local state).
 
 **Debugging steps:**
 

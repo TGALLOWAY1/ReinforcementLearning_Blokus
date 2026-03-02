@@ -12,6 +12,7 @@ from engine.board import Board, Player, Position
 from engine.move_generator import LegalMoveGenerator, Move
 from engine.pieces import PieceGenerator
 
+from .learned_evaluator import LearnedWinProbabilityEvaluator
 from .zobrist import TranspositionTable, ZobristHash
 
 
@@ -20,7 +21,13 @@ class MCTSNode:
     Node in the Monte Carlo Tree Search tree.
     """
     
-    def __init__(self, board: Board, player: Player, move: Optional[Move] = None, parent: Optional['MCTSNode'] = None):
+    def __init__(
+        self,
+        board: Board,
+        player: Player,
+        move: Optional[Move] = None,
+        parent: Optional['MCTSNode'] = None,
+    ):
         """
         Initialize MCTS node.
         
@@ -39,6 +46,7 @@ class MCTSNode:
         # MCTS statistics
         self.visits = 0
         self.total_reward = 0.0
+        self.prior_bias = 0.0
         self.untried_moves: List[Move] = []
         
         # Initialize untried moves
@@ -57,7 +65,11 @@ class MCTSNode:
         """Check if node is terminal."""
         return len(self.untried_moves) == 0 and len(self.children) == 0
         
-    def ucb1_value(self, exploration_constant: float = 1.414) -> float:
+    def ucb1_value(
+        self,
+        exploration_constant: float = 1.414,
+        progressive_bias_weight: float = 0.0,
+    ) -> float:
         """
         Calculate UCB1 value for node selection.
         
@@ -73,9 +85,14 @@ class MCTSNode:
         exploitation = self.total_reward / self.visits
         exploration = exploration_constant * np.sqrt(np.log(self.parent.visits) / self.visits)
         
-        return exploitation + exploration
+        bias_term = progressive_bias_weight * (self.prior_bias / (1.0 + self.visits))
+        return exploitation + exploration + bias_term
         
-    def select_child(self, exploration_constant: float = 1.414) -> 'MCTSNode':
+    def select_child(
+        self,
+        exploration_constant: float = 1.414,
+        progressive_bias_weight: float = 0.0,
+    ) -> 'MCTSNode':
         """
         Select child node using UCB1.
         
@@ -85,7 +102,13 @@ class MCTSNode:
         Returns:
             Selected child node
         """
-        return max(self.children, key=lambda child: child.ucb1_value(exploration_constant))
+        return max(
+            self.children,
+            key=lambda child: child.ucb1_value(
+                exploration_constant=exploration_constant,
+                progressive_bias_weight=progressive_bias_weight,
+            ),
+        )
         
     def expand(self) -> 'MCTSNode':
         """
@@ -176,13 +199,24 @@ class MCTSAgent:
     heuristic rollouts and Zobrist hashing for efficient state representation.
     """
     
-    def __init__(self, 
-                 iterations: int = 1000,
-                 time_limit: Optional[float] = None,
-                 exploration_constant: float = 1.414,
-                 rollout_agent: Optional[HeuristicAgent] = None,
-                 use_transposition_table: bool = True,
-                 seed: Optional[int] = None):
+    def __init__(
+        self,
+        iterations: int = 1000,
+        time_limit: Optional[float] = None,
+        exploration_constant: float = 1.414,
+        rollout_agent: Optional[HeuristicAgent] = None,
+        use_transposition_table: bool = True,
+        seed: Optional[int] = None,
+        learned_model_path: Optional[str] = None,
+        leaf_evaluation_enabled: bool = False,
+        progressive_bias_enabled: bool = False,
+        progressive_bias_weight: float = 0.25,
+        potential_shaping_enabled: bool = False,
+        potential_shaping_gamma: float = 1.0,
+        potential_shaping_weight: float = 1.0,
+        potential_mode: str = "prob",
+        max_rollout_moves: int = 50,
+    ):
         """
         Initialize MCTS agent.
         
@@ -193,11 +227,45 @@ class MCTSAgent:
             rollout_agent: Agent to use for rollouts (default: HeuristicAgent)
             use_transposition_table: Whether to use transposition table
             seed: Random seed for reproducible behavior
+            learned_model_path: Optional model artifact path (`.pkl`) for learned evaluation
+            leaf_evaluation_enabled: Enable learned leaf evaluation in place of rollout
+            progressive_bias_enabled: Enable progressive bias term from learned value deltas
+            progressive_bias_weight: Selection bias weight (decays with child visits)
+            potential_shaping_enabled: Enable potential-based shaping in truncated rollouts
+            potential_shaping_gamma: Gamma term in shaping: gamma * Phi(s') - Phi(s)
+            potential_shaping_weight: Scale factor for shaping contribution
+            potential_mode: Potential representation ('prob' or 'logit')
+            max_rollout_moves: Maximum rollout length when rollouts are used
         """
         self.iterations = iterations
         self.time_limit = time_limit
         self.exploration_constant = exploration_constant
         self.use_transposition_table = use_transposition_table
+        self.leaf_evaluation_enabled = bool(leaf_evaluation_enabled)
+        self.progressive_bias_enabled = bool(progressive_bias_enabled)
+        self.progressive_bias_weight = float(progressive_bias_weight)
+        self.potential_shaping_enabled = bool(potential_shaping_enabled)
+        self.potential_shaping_gamma = float(potential_shaping_gamma)
+        self.potential_shaping_weight = float(potential_shaping_weight)
+        self.potential_mode = potential_mode
+        self.learned_model_path = learned_model_path
+        self.max_rollout_moves = int(max_rollout_moves)
+
+        if self.potential_mode not in {"prob", "logit"}:
+            raise ValueError("potential_mode must be either 'prob' or 'logit'.")
+        if self.max_rollout_moves <= 0:
+            raise ValueError("max_rollout_moves must be > 0.")
+
+        self._requires_learned_evaluator = (
+            self.leaf_evaluation_enabled
+            or self.progressive_bias_enabled
+            or self.potential_shaping_enabled
+        )
+        if self._requires_learned_evaluator and not self.learned_model_path:
+            raise ValueError(
+                "learned_model_path is required when learned evaluation, progressive bias, "
+                "or potential shaping is enabled."
+            )
         
         # Initialize components
         self.move_generator = LegalMoveGenerator()
@@ -213,13 +281,24 @@ class MCTSAgent:
             self.transposition_table = TranspositionTable()
         else:
             self.transposition_table = None
+
+        self.learned_evaluator: Optional[LearnedWinProbabilityEvaluator] = None
+        if self.learned_model_path:
+            self.learned_evaluator = LearnedWinProbabilityEvaluator(
+                self.learned_model_path,
+                potential_mode=potential_mode,
+            )
             
         # Statistics
         self.stats = {
             "iterations_run": 0,
             "time_elapsed": 0.0,
             "transposition_hits": 0,
-            "rollout_rewards": []
+            "rollout_rewards": [],
+            "leaf_eval_calls": 0,
+            "progressive_bias_updates": 0,
+            "potential_shaping_terms": [],
+            "evaluator_errors": 0,
         }
         
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
@@ -290,9 +369,11 @@ class MCTSAgent:
         
         # Expansion: expand node if not fully expanded
         if not node.is_fully_expanded() and not node.is_terminal():
+            parent = node
             node = node.expand()
             if node is None:
                 return
+            self._update_progressive_bias(parent, node)
                 
         # Simulation: run rollout
         reward = self._simulation(node)
@@ -314,7 +395,13 @@ class MCTSAgent:
             if not node.is_fully_expanded():
                 return node
             else:
-                node = node.select_child(self.exploration_constant)
+                progressive_bias_weight = (
+                    self.progressive_bias_weight if self.progressive_bias_enabled else 0.0
+                )
+                node = node.select_child(
+                    exploration_constant=self.exploration_constant,
+                    progressive_bias_weight=progressive_bias_weight,
+                )
                 
         return node
         
@@ -335,9 +422,12 @@ class MCTSAgent:
             if cached_result:
                 self.stats["transposition_hits"] += 1
                 return cached_result["reward"]
-                
-        # Run rollout
-        reward = self._rollout(node.board, node.player)
+
+        # Run learned leaf evaluation or rollout.
+        if self.leaf_evaluation_enabled and self.learned_evaluator is not None:
+            reward = self._evaluate_leaf(node.board, node.player)
+        else:
+            reward = self._rollout(node.board, node.player)
         
         # Cache result
         if self.transposition_table:
@@ -345,6 +435,37 @@ class MCTSAgent:
             
         self.stats["rollout_rewards"].append(reward)
         return reward
+
+    def _evaluate_leaf(self, board: Board, player: Player) -> float:
+        """Evaluate leaf with learned model-backed win probability."""
+        if self.learned_evaluator is None:
+            return self._rollout(board, player)
+        try:
+            probability = self.learned_evaluator.predict_player_win_probability(
+                board, player
+            )
+            self.stats["leaf_eval_calls"] += 1
+            return float(probability)
+        except Exception:
+            self.stats["evaluator_errors"] += 1
+            return self._rollout(board, player)
+
+    def _update_progressive_bias(self, parent: MCTSNode, child: MCTSNode) -> None:
+        """Set child prior bias from learned value delta."""
+        if not self.progressive_bias_enabled or self.learned_evaluator is None:
+            return
+        try:
+            parent_value = self.learned_evaluator.predict_player_win_probability(
+                parent.board, parent.player
+            )
+            child_value = self.learned_evaluator.predict_player_win_probability(
+                child.board, parent.player
+            )
+            child.prior_bias = float(child_value - parent_value)
+            self.stats["progressive_bias_updates"] += 1
+        except Exception:
+            child.prior_bias = 0.0
+            self.stats["evaluator_errors"] += 1
         
     def _rollout(self, board: Board, player: Player) -> float:
         """
@@ -363,12 +484,18 @@ class MCTSAgent:
         
         # Get initial score
         initial_score = sim_board.get_score(player)
-        
+        initial_potential = None
+        if self.potential_shaping_enabled and self.learned_evaluator is not None:
+            try:
+                initial_potential = self.learned_evaluator.potential(sim_board, player)
+            except Exception:
+                self.stats["evaluator_errors"] += 1
+                initial_potential = None
+
         # Simulate until game ends or max moves
-        max_rollout_moves = 50
         moves_made = 0
-        
-        while moves_made < max_rollout_moves:
+
+        while moves_made < self.max_rollout_moves:
             # Get legal moves
             legal_moves = self.move_generator.get_legal_moves(sim_board, current_player)
             
@@ -393,7 +520,7 @@ class MCTSAgent:
             current_idx = players.index(current_player)
             current_player = players[(current_idx + 1) % len(players)]
             moves_made += 1
-            
+
         # Calculate reward
         final_score = sim_board.get_score(player)
         reward = final_score - initial_score
@@ -405,7 +532,26 @@ class MCTSAgent:
                 reward += 100
             elif winner is None:
                 reward += 10
-                
+
+        # Apply potential-based shaping only on truncated rollouts.
+        if (
+            self.potential_shaping_enabled
+            and self.learned_evaluator is not None
+            and initial_potential is not None
+            and moves_made >= self.max_rollout_moves
+            and not sim_board.is_game_over()
+        ):
+            try:
+                final_potential = self.learned_evaluator.potential(sim_board, player)
+                shaping_term = self.potential_shaping_weight * (
+                    (self.potential_shaping_gamma * final_potential) - initial_potential
+                )
+                reward += shaping_term
+                if len(self.stats["potential_shaping_terms"]) < 2048:
+                    self.stats["potential_shaping_terms"].append(float(shaping_term))
+            except Exception:
+                self.stats["evaluator_errors"] += 1
+
         return reward
         
     def _get_move_positions(self, move: Move) -> List[Position]:
@@ -446,7 +592,16 @@ class MCTSAgent:
                 "iterations": self.iterations,
                 "time_limit": self.time_limit,
                 "exploration_constant": self.exploration_constant,
-                "use_transposition_table": self.use_transposition_table
+                "use_transposition_table": self.use_transposition_table,
+                "max_rollout_moves": self.max_rollout_moves,
+                "learned_model_path": self.learned_model_path,
+                "leaf_evaluation_enabled": self.leaf_evaluation_enabled,
+                "progressive_bias_enabled": self.progressive_bias_enabled,
+                "progressive_bias_weight": self.progressive_bias_weight,
+                "potential_shaping_enabled": self.potential_shaping_enabled,
+                "potential_shaping_gamma": self.potential_shaping_gamma,
+                "potential_shaping_weight": self.potential_shaping_weight,
+                "potential_mode": self.potential_mode,
             },
             "stats": self.stats.copy()
         }
@@ -462,7 +617,11 @@ class MCTSAgent:
             "iterations_run": 0,
             "time_elapsed": 0.0,
             "transposition_hits": 0,
-            "rollout_rewards": []
+            "rollout_rewards": [],
+            "leaf_eval_calls": 0,
+            "progressive_bias_updates": 0,
+            "potential_shaping_terms": [],
+            "evaluator_errors": 0,
         }
         
         if self.transposition_table:

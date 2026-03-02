@@ -3,7 +3,7 @@
     {
       "name": "mcts_25ms",
       "type": "gameplay_fast_mcts",
-      "thinking_time_ms": 25,
+      "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations": 5000,
@@ -14,7 +14,7 @@
     {
       "name": "mcts_50ms",
       "type": "gameplay_fast_mcts",
-      "thinking_time_ms": 50,
+      "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations": 5000,
@@ -36,7 +36,7 @@
     {
       "name": "mcts_200ms",
       "type": "gameplay_fast_mcts",
-      "thinking_time_ms": 200,
+      "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations": 5000,
@@ -55,5 +55,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "as-is benchmark with different thinking times"
+  "notes": "fair-time benchmark with equal thinking times"
 }

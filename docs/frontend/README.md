@@ -6,7 +6,7 @@ A React-based web interface for playing Blokus against AI agents.
 
 - **Visual Game Board**: 20x20 SVG grid with color-blind friendly palette
 - **Interactive Piece Selection**: Draggable, rotatable pieces with keyboard shortcuts
-- **Real-time Updates**: WebSocket integration for live game state
+- **Real-time Updates**: In-browser Pyodide WebWorker loop for local gameplay state
 - **Agent Controls**: Configure different AI opponents
 - **Responsive Design**: Works on desktop and mobile devices
 
@@ -55,18 +55,20 @@ A React-based web interface for playing Blokus against AI agents.
 
 ### Playing a Game
 
-1. **Start the Backend**: Make sure the Blokus API server is running:
+1. **Start the Frontend** and create a local game from the home page.
+
+2. **Optional Backend**: Start the API server if you need server-backed routes (history/training APIs):
    ```bash
    cd ..  # Go back to project root
    python3 run_server.py
    ```
 
-2. **Create a Game**: On the home page, configure your game:
+3. **Create a Game**: On the home page, configure your game:
    - Choose opponents (Random, Heuristic, MCTS agents)
    - Set game parameters
    - Click "Start New Game"
 
-3. **Play**: 
+4. **Play**:
    - Select a piece from your tray
    - Use **R** to rotate, **F** to flip
    - Click on the board to place the piece
@@ -119,12 +121,12 @@ frontend/src/
 3. **State Management**: Extend `src/store/gameStore.ts`
 4. **Styling**: Use Tailwind CSS classes
 
-### WebSocket Integration
+### Worker Integration
 
-The frontend connects to the backend via WebSocket for real-time updates:
+Gameplay state is managed in a local WebWorker (`frontend/src/store/blokusWorker.ts`) backed by Pyodide:
 
 ```typescript
-// Connect to game
+// Connect to local in-browser game state
 const { connect } = useGameStore();
 await connect(gameId);
 
@@ -145,9 +147,9 @@ await makeMove({
 
 1. **"Module not found" errors**: Run `npm install` to ensure all dependencies are installed
 
-2. **WebSocket connection fails**: 
-   - Ensure the backend server is running on `http://localhost:8000`
-   - Check browser console for connection errors
+2. **Worker initialization fails**:
+   - Check browser console for Pyodide/WebWorker startup errors
+   - Reload the page to restart worker initialization
 
 3. **Pieces not displaying**: 
    - Verify the game state is loaded
