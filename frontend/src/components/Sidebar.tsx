@@ -14,11 +14,11 @@ export const Sidebar: React.FC<SidebarProps> = () => {
   const getPlayerColor = (player: string) => {
     const colors = {
       RED: 'bg-red-500',
-      BLUE: 'bg-blue-500', 
+      BLUE: 'bg-blue-500',
       GREEN: 'bg-green-500',
       YELLOW: 'bg-yellow-500',
       red: 'bg-red-500',
-      blue: 'bg-blue-500', 
+      blue: 'bg-blue-500',
       green: 'bg-green-500',
       yellow: 'bg-yellow-500'
     };
@@ -60,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             </svg>
           </div>
         </button>
-        
+
         {/* Collapsible Status Details */}
         {isStatusExpanded && gameState && (
           <div className="px-4 pb-4">
@@ -77,11 +77,10 @@ export const Sidebar: React.FC<SidebarProps> = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-slate-600">Status</span>
-                <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
-                  gameState?.game_over 
-                    ? 'bg-red-100 text-red-700' 
-                    : 'bg-green-100 text-green-700'
-                }`}>
+                <span className={`text-sm font-semibold px-2 py-1 rounded-full ${gameState?.game_over
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-green-100 text-green-700'
+                  }`}>
                   {gameState?.game_over ? 'Finished' : 'Active'}
                 </span>
               </div>
@@ -114,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             </svg>
           </div>
         </button>
-        
+
         {isPlayersExpanded && gameState?.scores && (
           <div className="px-4 pb-4 space-y-3">
             {Object.keys(gameState.scores).map((playerKey) => {
@@ -122,13 +121,13 @@ export const Sidebar: React.FC<SidebarProps> = () => {
               const score = gameState?.scores?.[playerKey];
               const piecesUsed = gameState?.pieces_used?.[playerKey] || [];
               const piecesRemaining = 21 - piecesUsed.length;
-              
+
               return (
                 <div key={playerKey} className="group relative">
                   <div className={`
                     p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]
-                    ${isActive 
-                      ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg shadow-blue-200/50' 
+                    ${isActive
+                      ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg shadow-blue-200/50'
                       : 'border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 hover:border-slate-300 hover:shadow-md'
                     }
                   `}>
@@ -139,8 +138,35 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                           <span className="font-bold text-slate-800 capitalize text-lg">
                             {playerKey.toLowerCase()}
                           </span>
+                          {(() => {
+                            const config = gameState?.players?.find(p => p.player === playerKey);
+                            if (!config) return null;
+                            const difficulty = config.agent_config?.difficulty;
+                            const budget = config.agent_config?.time_budget_ms;
+
+                            return (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${config.agent_type === 'human' ? 'bg-slate-200 text-slate-600' : 'bg-neon-blue/20 text-neon-blue'
+                                  }`}>
+                                  {config.agent_type}
+                                </span>
+                                {difficulty && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${difficulty === 'hard' ? 'bg-red-100 text-red-600' :
+                                    difficulty === 'medium' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'
+                                    }`}>
+                                    {difficulty}
+                                  </span>
+                                )}
+                                {budget && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-slate-100 text-slate-500 uppercase">
+                                    {budget}ms
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                           {isActive && (
-                            <div className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full font-medium mt-1 animate-pulse">
+                            <div className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full font-medium mt-1 animate-pulse inline-block">
                               Current Turn
                             </div>
                           )}
@@ -151,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                         <div className="text-xs text-slate-500">points</div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Pieces Left:</span>
@@ -162,14 +188,13 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                         <span className="font-semibold text-slate-800">{piecesUsed.length}/21</span>
                       </div>
                     </div>
-                    
+
                     {/* Progress bar for pieces */}
                     <div className="mt-3">
                       <div className="w-full bg-slate-200 rounded-full h-2.5">
                         <div
-                          className={`h-2.5 rounded-full transition-all duration-500 ${
-                            isActive ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-slate-400 to-slate-500'
-                          }`}
+                          className={`h-2.5 rounded-full transition-all duration-500 ${isActive ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-slate-400 to-slate-500'
+                            }`}
                           style={{
                             width: `${(piecesUsed.length / 21) * 100}%`
                           }}
@@ -180,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Active player indicator */}
                   {isActive && (
                     <div className="absolute -top-1 -right-1">

@@ -188,6 +188,7 @@ export const AnalysisDashboard: React.FC = () => {
 
                     <div className="shrink-0 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 hover:border-gray-600 transition-colors">
                         <PlayerStatusSummary
+                            gameState={gameState}
                             metrics={metrics}
                             remainingPieces={activeTurnData?.metrics?.remaining_pieces}
                             pieceLockRisk={activeTurnData?.metrics?.piece_lock_risk || gameState?.piece_lock_risk}
@@ -508,14 +509,14 @@ const PiecesRemainingTable: React.FC<{ remainingPieces?: Record<string, number[]
     );
 };
 
-const PlayerStatusSummary: React.FC<{ metrics: DashboardMetrics, remainingPieces?: Record<string, number[]>, pieceLockRisk?: Record<string, number> }> = ({ metrics, remainingPieces, pieceLockRisk }) => {
+const PlayerStatusSummary: React.FC<{ gameState: any, metrics: DashboardMetrics, remainingPieces?: Record<string, number[]>, pieceLockRisk?: Record<string, number> }> = ({ gameState, metrics, remainingPieces, pieceLockRisk }) => {
     const players = [2, 4, 1, 3]; // BLUE, GREEN, RED, YELLOW
 
     return (
         <div>
             <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Player Status</h3>
-            <div className="grid grid-cols-4 text-[9px] uppercase tracking-wider text-gray-500 mb-1 px-2 text-center">
-                <div className="text-left py-1">Player</div>
+            <div className="grid grid-cols-5 text-[9px] uppercase tracking-wider text-gray-500 mb-1 px-2 text-center">
+                <div className="text-left py-1 col-span-2">Player / Agent</div>
                 <div className="py-1">Frontier</div>
                 <div className="py-1">Pieces</div>
                 <div className="py-1">Lock Risk</div>
@@ -526,10 +527,23 @@ const PlayerStatusSummary: React.FC<{ metrics: DashboardMetrics, remainingPieces
                     const fSize = metrics.frontiers[p].length;
                     const handSize = remainingPieces && Array.isArray(remainingPieces[pName]) ? remainingPieces[pName].length : 0;
                     const lockRisk = pieceLockRisk?.[pName] ?? 0;
+                    const config = gameState?.players?.find((pc: any) => pc.player === pName);
+                    const agentType = config?.agent_type || 'human';
+                    const diff = config?.agent_config?.difficulty;
 
                     return (
-                        <div key={p} className="grid grid-cols-4 text-[11px] font-mono bg-charcoal-900 rounded border border-charcoal-700 px-2 py-1.5 text-center items-center h-[28px]">
-                            <div className="font-bold text-left tracking-widest" style={{ color: PLAYER_COLORS[p], textShadow: `0 0 10px ${PLAYER_COLORS[p]}40` }}>{pName}</div>
+                        <div key={p} className="grid grid-cols-5 text-[11px] font-mono bg-charcoal-900 rounded border border-charcoal-700 px-2 py-1.5 text-center items-center h-[32px]">
+                            <div className="text-left flex flex-col justify-center leading-tight col-span-2">
+                                <div className="font-bold tracking-widest text-[10px]" style={{ color: PLAYER_COLORS[p], textShadow: `0 0 10px ${PLAYER_COLORS[p]}40` }}>{pName}</div>
+                                <div className="flex gap-1 mt-0.5">
+                                    <span className={`text-[8px] px-1 rounded-sm font-bold uppercase ${agentType === 'human' ? 'bg-slate-700 text-slate-400' : 'bg-blue-900 text-blue-400'}`}>
+                                        {agentType === 'mcts' ? (diff || 'MCTS') : agentType}
+                                    </span>
+                                    {config?.agent_config?.time_budget_ms && (
+                                        <span className="text-[8px] text-slate-500">{config.agent_config.time_budget_ms}ms</span>
+                                    )}
+                                </div>
+                            </div>
                             <div className="text-slate-300">{fSize}</div>
                             <div className="text-slate-300">{handSize}</div>
                             <div className={lockRisk > 0 ? 'text-red-400 font-bold' : 'text-slate-500'}>{lockRisk}</div>

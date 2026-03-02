@@ -128,8 +128,7 @@ class FastMCTSAgent:
         # Run MCTS with strict time limit
         iteration = 0
         while (time.perf_counter() - start_wall < budget_s and 
-               iteration < self.iterations and 
-               not root.is_fully_expanded()):
+               iteration < self.iterations):
             self._fast_mcts_iteration(root, board, player)
             iteration += 1
             
@@ -150,11 +149,13 @@ class FastMCTSAgent:
             
         best_move = root.get_best_move()
         top_moves = self._get_top_moves(root, top_n=10)
+        time_spent_ms = int((time.perf_counter() - start_time) * 1000)
+        # print(f"MCTS think: budget={time_budget_ms}ms, spent={time_spent_ms}ms, iterations={iteration}")
         return {
             "move": best_move if best_move else legal_moves[0],
             "stats": {
                 "timeBudgetMs": time_budget_ms,
-                "timeSpentMs": int((time.perf_counter() - start_time) * 1000),
+                "timeSpentMs": time_spent_ms,
                 "nodesEvaluated": max(iteration, 1),
                 "maxDepthReached": 2,
                 "topMoves": top_moves,
@@ -190,7 +191,7 @@ class FastMCTSAgent:
         return node
         
     def _fast_rollout(self, board: Board, player: Player) -> float:
-        """Ultra-fast rollout using random moves only."""
+        """Ultra-fast rollout using randomized heuristics."""
         # Simple heuristic: prefer larger pieces and center positions
         legal_moves = self._get_cached_legal_moves(board, player)
         if not legal_moves:
@@ -201,12 +202,16 @@ class FastMCTSAgent:
         if move is None:
             return 0.0
             
-        # Simple reward based on piece size and position
+        # Simple reward based on piece size
         reward = move.piece_id * 0.1  # Larger pieces are better
         
-        # Center bonus
+        # Center bonus (higher is better)
         center_distance = abs(move.anchor_row - 9.5) + abs(move.anchor_col - 9.5)
         reward += (20 - center_distance) * 0.05
+        
+        # Add a random factor so multiple iterations don't just repeat the exact same evaluation
+        # This allows MCTS to actually benefit from more iterations by 'averaging'
+        reward += self.rng.random() * 0.1
         
         return reward
         

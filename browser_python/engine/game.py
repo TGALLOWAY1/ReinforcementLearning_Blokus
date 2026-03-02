@@ -103,8 +103,13 @@ class BlokusGame:
                 used_pieces = self.board.player_pieces_used[p]
                 remaining_pieces[p.name] = [pid for pid in range(1, 22) if pid not in used_pieces]
 
+            move_index = len(self.game_history)
             self.game_history.append({
-                'turn_number': len(self.game_history) + 1,
+                'turn_number': move_index + 1,
+                'move_index': move_index,
+                'round_index': move_index // 4,
+                'position_in_round': move_index % 4,
+                'seat_index': player.value - 1,
                 'player_to_move': player.name,
                 'action': {
                     'piece_id': move.piece_id,

@@ -26,6 +26,7 @@ class WebWorkerGameBridge:
         self.agents = {}
         self.players_config = []
         self.mcts_top_moves = []
+        self.mcts_stats = {}
         self.game_id = "local-webworker"
         
         self.frontend_to_backend = {}
@@ -69,10 +70,20 @@ class WebWorkerGameBridge:
 
     def init_game(self, config_dict: Dict[str, Any]):
         self.game = BlokusGame()
-        self.players_config = config_dict.get("players", [])
+        # Convert config_dict to native Python objects to avoid Pyodide proxy destruction issues
+        self.players_config = []
+        for p in config_dict.get("players", []):
+            p_dict = {
+                "player": str(p["player"]),
+                "agent_type": str(p["agent_type"]),
+                "agent_config": dict(p["agent_config"]) if p.get("agent_config") else {}
+            }
+            self.players_config.append(p_dict)
+            
         self.agents = {}
         self.mcts_top_moves = []
-        self.game_id = config_dict.get("game_id", "local-webworker")
+        self.mcts_stats = {}
+        self.game_id = str(config_dict.get("game_id", "local-webworker"))
         
         for pc in self.players_config:
             player_enum = EnginePlayer[pc["player"]]
@@ -81,7 +92,7 @@ class WebWorkerGameBridge:
             if agent_type == "mcts":
                 budget_ms = int(agent_config.get("time_budget_ms", 1000))
                 self.agents[player_enum] = FastMCTSAgent(
-                    iterations=5000,
+                    iterations=500000,
                     time_limit=max(budget_ms, 1) / 1000.0,
                     exploration_constant=1.414
                 )
@@ -136,8 +147,7 @@ class WebWorkerGameBridge:
         center_control = game._calculate_center_bonus(current_player) // 2
         frontier_size = len(game.board.get_frontier(current_player))
         
-        # piece_lock_risk is now computed per-player inside the per-player loop below
-        piece_lock_risk = {}  # Dict keyed by player name
+        piece_lock_risk = {}
         
         mobility_metrics = {
             "totalPlacements": mobility.totalPlacements,
@@ -148,15 +158,12 @@ class WebWorkerGameBridge:
             "frontierSize": frontier_size,
         }
         
-        # Calculate nested metrics for all players
         all_frontier_metrics = {}
         all_frontier_clusters = {}
 
         for p in EnginePlayer:
             p_frontier_cells = game.board.get_frontier(p)
             p_moves = all_players_legal_moves[p]
-            
-            # --- Milestone 4: PieceLockRisk (per-player) ---
             p_pieces_used = list(game.board.player_pieces_used[p])
             p_has_move = {pid: False for pid in range(1, 22) if pid not in p_pieces_used}
             for m in p_moves:
@@ -164,11 +171,9 @@ class WebWorkerGameBridge:
                     p_has_move[m.piece_id] = True
             piece_lock_risk[p.name] = sum(1 for can_place in p_has_move.values() if not can_place)
             
-            # --- BlockPressure: only count OPPONENT moves occupying frontier cells ---
             block_pressure_map = [[False]*20 for _ in range(20)]
             for opp in EnginePlayer:
-                if opp == p:
-                    continue  # Skip the frontier owner's own moves
+                if opp == p: continue
                 for m in all_players_legal_moves[opp]:
                     cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
                     if cached_ops:
@@ -177,14 +182,11 @@ class WebWorkerGameBridge:
                             if 0 <= pt.row < 20 and 0 <= pt.col < 20:
                                 block_pressure_map[pt.row][pt.col] = True
             
-            # --- Frontier Metrics (Utility, BP, Urgency) ---
             p_metrics = {
                 "utility": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells},
                 "block_pressure": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells},
                 "urgency": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells}
             }
-            
-            # Support sets for clustering
             p_support_sets = {f"{fr},{fc}": set() for fr, fc in p_frontier_cells}
             
             for move_idx, m in enumerate(p_moves):
@@ -192,7 +194,6 @@ class WebWorkerGameBridge:
                 if cached_ops:
                     pts = m.get_positions(cached_ops)
                     pts_set = set((pt.row, pt.col) for pt in pts)
-                    
                     for fr, fc in p_frontier_cells:
                         if (fr, fc) in pts_set:
                             p_metrics["utility"][f"{fr},{fc}"] += 1
@@ -200,30 +201,23 @@ class WebWorkerGameBridge:
             
             for fr, fc in p_frontier_cells:
                 key = f"{fr},{fc}"
-                if block_pressure_map[fr][fc]:
-                    p_metrics["block_pressure"][key] = 1 # Opponent occupancy check
-                
-                u = p_metrics["utility"][key]
-                bp = p_metrics["block_pressure"][key]
+                if block_pressure_map[fr][fc]: p_metrics["block_pressure"][key] = 1
+                u, bp = p_metrics["utility"][key], p_metrics["block_pressure"][key]
                 p_metrics["urgency"][key] = u * bp
             
             all_frontier_metrics[p.name] = p_metrics
             
-            # --- Frontier Redundancy Clusters ---
             p_top_frontiers = sorted(p_frontier_cells, key=lambda f: len(p_support_sets[f"{f[0]},{f[1]}"]), reverse=True)[:60]
-            
             p_adjacency = {f"{fr},{fc}": [] for fr, fc in p_top_frontiers}
             overlap_threshold = 0.35
             
             for i in range(len(p_top_frontiers)):
                 f1 = p_top_frontiers[i]
-                k1 = f"{f1[0]},{f1[1]}"
-                s1 = p_support_sets[k1]
+                k1, s1 = f"{f1[0]},{f1[1]}", p_support_sets[f"{f1[0]},{f1[1]}"]
                 if not s1: continue
                 for j in range(i + 1, len(p_top_frontiers)):
                     f2 = p_top_frontiers[j]
-                    k2 = f"{f2[0]},{f2[1]}"
-                    s2 = p_support_sets[k2]
+                    k2, s2 = f"{f2[0]},{f2[1]}", p_support_sets[f"{f2[0]},{f2[1]}"]
                     if not s2: continue
                     intersection = s1.intersection(s2)
                     if len(intersection) > 0:
@@ -235,12 +229,10 @@ class WebWorkerGameBridge:
             p_visited = set()
             p_clusters = {"cluster_id": {}, "cluster_sizes": [], "num_clusters": 0}
             p_cluster_id = 0
-            
             for f in p_top_frontiers:
                 k = f"{f[0]},{f[1]}"
                 if k not in p_visited and p_support_sets[k]:
-                    stack = [k]
-                    size = 0
+                    stack, size = [k], 0
                     while stack:
                         curr = stack.pop()
                         if curr not in p_visited:
@@ -267,10 +259,7 @@ class WebWorkerGameBridge:
             
             all_frontier_clusters[p.name] = p_clusters
 
-        # --- Milestone 3: SelfBlockRisk Heuristic ---
-        # (Keep for current player)
         self_block_risk_moves = []
-        # Re-using current_player_moves and current_player metrics
         curr_support = {f"{fr},{fc}": set() for fr, fc in game.board.get_frontier(current_player)}
         for move_idx, m in enumerate(current_player_moves):
             cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
@@ -278,8 +267,7 @@ class WebWorkerGameBridge:
                 pts = m.get_positions(cached_ops)
                 pts_set = set((pt.row, pt.col) for pt in pts)
                 for fr, fc in game.board.get_frontier(current_player):
-                    if (fr, fc) in pts_set: # Check if frontier cell is occupied by the move
-                        curr_support[f"{fr},{fc}"].add(move_idx)
+                    if (fr, fc) in pts_set: curr_support[f"{fr},{fc}"].add(move_idx)
         
         curr_clusters = all_frontier_clusters[current_player.name]
         for move_idx, m in enumerate(current_player_moves):
@@ -293,7 +281,6 @@ class WebWorkerGameBridge:
                     "anchor_row": m.anchor_row, "anchor_col": m.anchor_col, "risk": risk,
                     "clusters_touched": n_clusters, "frontier_points_used": n_frontiers
                 })
-        
         self_block_risk_moves.sort(key=lambda x: x["risk"], reverse=True)
         self_block_risk = {"top_moves": self_block_risk_moves[:10]}
 
@@ -316,26 +303,15 @@ class WebWorkerGameBridge:
                 "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
             }
         
-        # PERSISTENCE: Backfill frontier metrics and round indices into any history entry missing them.
-        # We loop all entries so that saveGame() captures complete data regardless of timing.
         seat_index_map = {"RED": 0, "BLUE": 1, "YELLOW": 2, "GREEN": 3}
         for idx, hist_entry in enumerate(game.game_history):
-            # 1. Backfill indices (move, round, seat)
             if "move_index" not in hist_entry:
-                hist_entry["move_index"] = idx
-                hist_entry["round_index"] = idx // 4
-                hist_entry["position_in_round"] = idx % 4
+                hist_entry["move_index"], hist_entry["round_index"], hist_entry["position_in_round"] = idx, idx // 4, idx % 4
                 player_name = hist_entry.get("player_to_move")
-                if player_name in seat_index_map:
-                    hist_entry["seat_index"] = seat_index_map[player_name]
-
-            # 2. Backfill frontier metrics
+                if player_name in seat_index_map: hist_entry["seat_index"] = seat_index_map[player_name]
             m = hist_entry.get("metrics", {})
             if "frontier_metrics" not in m:
-                m["frontier_metrics"] = all_frontier_metrics
-                m["frontier_clusters"] = all_frontier_clusters
-                m["piece_lock_risk"] = piece_lock_risk
-                m["self_block_risk"] = self_block_risk
+                m["frontier_metrics"], m["frontier_clusters"], m["piece_lock_risk"], m["self_block_risk"] = all_frontier_metrics, all_frontier_clusters, piece_lock_risk, self_block_risk
 
         history_out = []
         for entry in game.game_history:
@@ -352,93 +328,68 @@ class WebWorkerGameBridge:
             "board": board_list, "scores": scores, "pieces_used": pieces_used,
             "move_count": game.get_move_count(), "game_over": game.is_game_over(), "winner": winner_name,
             "legal_moves": legal_moves_out, "created_at": "", "updated_at": "", "players": self.players_config,
-            "heatmap": heatmap, "mobility_metrics": mobility_metrics, "mcts_top_moves": self.mcts_top_moves,
+            "heatmap": heatmap, "mobility_metrics": mobility_metrics, 
+            "mcts_top_moves": self.mcts_top_moves, "mcts_stats": self.mcts_stats,
             "influence_map": influence_map, "dead_zones": dead_zones, "advanced_metrics": advanced_metrics_out,
             "frontier_metrics": all_frontier_metrics, "frontier_clusters": all_frontier_clusters,
             "piece_lock_risk": piece_lock_risk, "self_block_risk": self_block_risk,
             "game_history": history_out
         }
 
-
     def load_game(self, history: List[Dict[str, Any]]):
         self.game = BlokusGame()
         self.mcts_top_moves = []
         self.game_id = "loaded-game"
-        
-        # Replay history — only 'action' and 'player_to_move' are needed.
-        # The frontend strips all other fields (board_state, metrics, etc.)
-        # before sending to keep the Pyodide payload small.
         for entry in history:
             action = entry.get("action")
             if action:
                 backend_ori = self._get_backend_ori(action["piece_id"], action["orientation"])
-                mv = EngineMove(
-                    action["piece_id"], 
-                    backend_ori, 
-                    action["anchor_row"], 
-                    action["anchor_col"]
-                )
+                mv = EngineMove(action["piece_id"], backend_ori, action["anchor_row"], action["anchor_col"])
                 player = EnginePlayer[entry["player_to_move"]]
                 self.game.make_move(mv, player)
-        
         return self.get_state()
 
     def make_move(self, piece_id: int, orientation: int, anchor_row: int, anchor_col: int):
         backend_ori = self._get_backend_ori(piece_id, orientation)
         engine_move = EngineMove(piece_id, backend_ori, anchor_row, anchor_col)
         player = self.game.get_current_player()
-        
         success = self.game.make_move(engine_move, player)
-        if not success:
-            return {"success": False, "message": "Invalid move", "game_state": self.get_state()}
-            
+        if not success: return {"success": False, "message": "Invalid move", "game_state": self.get_state()}
         return {"success": True, "message": "Move made", "game_state": self.get_state()}
         
     def pass_turn(self):
-        player = self.game.get_current_player()
-        # To skip, we just update the player turn and check over
         self.game.board._update_current_player()
         self.game._check_game_over()
         return {"success": True, "message": "Turn passed", "game_state": self.get_state()}
 
     def advance_turn(self) -> Dict[str, Any]:
-        if self.game.is_game_over():
-            return {"success": False, "message": "Game over", "game_state": self.get_state()}
-            
+        if self.game.is_game_over(): return {"success": False, "message": "Game over", "game_state": self.get_state()}
         current_player = self.game.get_current_player()
         agent = self.agents.get(current_player)
-        
-        if agent is None:
-            return {"success": False, "message": "No agent for current player", "game_state": self.get_state()}
-            
+        if agent is None: return {"success": False, "message": "No agent for current player", "game_state": self.get_state()}
         legal_moves = self.game.get_legal_moves(current_player)
         if not legal_moves:
             self.game.board._update_current_player()
             self.game._check_game_over()
             return {"success": True, "message": "Agent passed", "game_state": self.get_state()}
-            
-        # Get agent's time budget from config
         budget_ms = 1000
         for pc in self.players_config:
             if pc.get("player") == current_player.name:
                 ac = pc.get("agent_config", {})
                 budget_ms = int(ac.get("time_budget_ms", 1000))
                 break
-                
-        # Handle agent thinking
         result = agent.think(self.game.board, current_player, legal_moves, budget_ms)
         move = result.get("move")
-        if move is None:
-            move = agent.select_action(self.game.board, current_player, legal_moves)
-            
-        if "stats" in result and "topMoves" in result["stats"]:
-            translated_top_moves = []
-            for tm in result["stats"]["topMoves"]:
-                tm_copy = dict(tm)
-                tm_copy["orientation"] = self._get_frontend_ori(tm_copy["piece_id"], tm_copy["orientation"])
-                translated_top_moves.append(tm_copy)
-            self.mcts_top_moves = translated_top_moves
-            
+        if move is None: move = agent.select_action(self.game.board, current_player, legal_moves)
+        if "stats" in result:
+            self.mcts_stats = result["stats"]
+            if "topMoves" in result["stats"]:
+                translated_top_moves = []
+                for tm in result["stats"]["topMoves"]:
+                    tm_copy = dict(tm)
+                    tm_copy["orientation"] = self._get_frontend_ori(tm_copy["piece_id"], tm_copy["orientation"])
+                    translated_top_moves.append(tm_copy)
+                self.mcts_top_moves = translated_top_moves
         if move:
             success = self.game.make_move(move, current_player)
             return {"success": success, "message": "Agent moved", "game_state": self.get_state()}

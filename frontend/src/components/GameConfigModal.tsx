@@ -198,6 +198,19 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
         ],
         auto_start: true
       }
+    },
+    {
+      name: 'MCTS Arena',
+      description: '4-way AI Battle (Easy/Med/Hard/Pro)',
+      config: {
+        players: [
+          { player: 'RED', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: 100 } },
+          { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: 450 } },
+          { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: 1000 } },
+          { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'pro', time_budget_ms: 2500 } }
+        ],
+        auto_start: true
+      }
     }
   ];
 
@@ -284,6 +297,16 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
 
   // Deploy profile: minimal first-page UI — Human vs MCTS (easy/medium/hard) only, no config
   if (IS_DEPLOY_PROFILE) {
+    const arenaConfig = {
+      players: [
+        { player: 'RED', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: 100 } },
+        { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: 450 } },
+        { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: 1000 } },
+        { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'pro', time_budget_ms: 2500 } }
+      ],
+      auto_start: true
+    };
+
     return (
       <div className="fixed inset-0 bg-charcoal-900 flex items-center justify-center z-50 p-4">
         <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg max-w-md w-full p-8 text-center relative">
@@ -309,9 +332,6 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             </button>
           )}
           <h1 className="text-3xl font-bold text-gray-200 mb-2">Blokus</h1>
-          <p className="text-gray-400 mb-6">
-            You (Red) vs 3 AI opponents at Easy, Medium, and Hard
-          </p>
 
           {showSettings && (
             <div className="mb-6 bg-charcoal-900 p-4 rounded-lg border border-charcoal-700 text-left">
@@ -357,41 +377,62 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             </div>
           )}
 
-          <div className="flex space-x-3">
-            <button
-              onClick={handleCreateGame}
-              disabled={isCreating}
-              className={`
-                flex-1 py-4 px-6 rounded-lg font-medium text-white transition-colors duration-200
-                ${isCreating
-                  ? 'bg-gray-600 cursor-not-allowed'
-                  : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
-                }
-              `}
-            >
-              {isCreating ? 'Starting...' : 'Start Game'}
-            </button>
-            <input
-              type="file"
-              accept=".json"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isCreating}
-              className={`
-                py-4 px-6 rounded-lg font-medium border transition-colors duration-200
-                ${isCreating
-                  ? 'bg-charcoal-700 border-charcoal-600 text-gray-500 cursor-not-allowed'
-                  : 'bg-charcoal-800 border-charcoal-600 text-gray-300 hover:bg-charcoal-700 hover:text-white'
-                }
-              `}
-            >
-              Load
-            </button>
+          {/* Mode Selector */}
+          <div className="flex flex-col gap-3 mb-4">
+            {/* Human vs AI */}
+            <div className="text-left">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">Play vs AI</p>
+              <button
+                onClick={handleCreateGame}
+                disabled={isCreating}
+                className={`w-full py-3 px-6 rounded-lg font-medium transition-colors duration-200 text-left flex items-center justify-between ${isCreating ? 'bg-gray-600 cursor-not-allowed text-gray-400' : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
+                  }`}
+              >
+                <span>{isCreating ? 'Starting...' : 'Start Game'}</span>
+                <span className="text-xs opacity-70">You (Red) vs Easy · Med · Hard</span>
+              </button>
+            </div>
+
+            {/* MCTS Arena */}
+            <div className="text-left">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">Watch AI Battle</p>
+              <button
+                onClick={() => applyQuickStart({ name: 'MCTS Arena', description: '', config: arenaConfig })}
+                disabled={isCreating}
+                className={`w-full py-3 px-6 rounded-lg font-medium border transition-colors duration-200 text-left flex items-center justify-between ${isCreating
+                    ? 'border-charcoal-600 bg-charcoal-700 text-gray-500 cursor-not-allowed'
+                    : 'border-neon-blue bg-neon-blue/5 hover:bg-neon-blue/10 text-neon-blue'
+                  }`}
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  {isCreating ? 'Starting...' : 'MCTS Arena'}
+                </span>
+                <span className="text-xs opacity-70">Easy · Med · Hard · Pro (full auto)</span>
+              </button>
+            </div>
           </div>
+
+          {/* Load game */}
+          <input
+            type="file"
+            accept=".json"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isCreating}
+            className={`w-full py-2 px-6 rounded-lg font-medium border transition-colors duration-200 text-sm ${isCreating
+                ? 'bg-charcoal-700 border-charcoal-600 text-gray-500 cursor-not-allowed'
+                : 'bg-charcoal-800 border-charcoal-600 text-gray-400 hover:bg-charcoal-700 hover:text-white'
+              }`}
+          >
+            Load Saved Game
+          </button>
         </div>
       </div>
     );
@@ -420,21 +461,40 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             </div>
           )}
 
-          {/* Quick Start Section */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-200 mb-3">Quick Start</h3>
             <div className="grid grid-cols-2 gap-3">
-              {quickStartPresets.map((preset, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => applyQuickStart(preset)}
-                  disabled={isCreating}
-                  className="p-4 border border-charcoal-700 rounded-lg hover:border-neon-blue hover:bg-charcoal-700 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="text-sm font-medium text-gray-200">{preset.name}</div>
-                  <div className="text-xs text-gray-400 mt-1">{preset.description}</div>
-                </button>
-              ))}
+              {quickStartPresets.map((preset, idx) => {
+                const isArena = preset.name === 'MCTS Arena';
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => applyQuickStart(preset)}
+                    disabled={isCreating}
+                    className={`p-4 border rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed ${isArena
+                      ? 'border-neon-blue bg-neon-blue/5 hover:bg-neon-blue/10 col-span-2'
+                      : 'border-charcoal-700 hover:border-neon-blue hover:bg-charcoal-700'
+                      }`}
+                  >
+                    <div className={`text-sm font-medium flex items-center gap-2 ${isArena ? 'text-neon-blue' : 'text-gray-200'}`}>
+                      {isArena && (
+                        <svg className="w-4 h-4 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      )}
+                      {preset.name}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">{preset.description}</div>
+                    {isArena && (
+                      <div className="flex gap-2 mt-2">
+                        {['Easy·100ms', 'Med·450ms', 'Hard·1s', 'Pro·2.5s'].map((label, i) => (
+                          <span key={i} className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-charcoal-700 text-gray-400 tracking-wider">{label}</span>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

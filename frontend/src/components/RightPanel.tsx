@@ -95,11 +95,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
               </section>
 
               <section className="p-3 border-b border-charcoal-700 h-[220px]">
-                <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={liveTurn} />
+                <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={liveTurn} mode="move" />
               </section>
 
               <section className="p-3 border-b border-charcoal-700 h-[220px]">
-                <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={liveTurn} />
+                <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={liveTurn} mode="move" />
               </section>
 
               <section className="p-3 border-b border-charcoal-700">
@@ -136,11 +136,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
       </section>
 
       <section className="p-3 border-b border-charcoal-700 h-[220px]">
-        <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={liveTurn} />
+        <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={liveTurn} mode="move" />
       </section>
 
       <section className="p-3 border-b border-charcoal-700 h-[220px]">
-        <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={liveTurn} />
+        <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={liveTurn} mode="move" />
       </section>
 
       {/* Always-visible Policy & Value */}

@@ -52,6 +52,12 @@ export interface GameState {
   heatmap?: number[][];
   mobility_metrics?: PlayerMobilityMetrics;
   mcts_top_moves?: MctsTopMove[];
+  mcts_stats?: {
+    timeSpentMs: number;
+    timeBudgetMs: number;
+    nodesEvaluated: number;
+    maxDepthReached: number;
+  };
   influence_map?: number[][];
   dead_zones?: boolean[][];
   advanced_metrics?: {
@@ -164,12 +170,14 @@ interface GameStore {
   previewMove: MctsTopMove | null;
   pollIntervalId: ReturnType<typeof setInterval> | null;
   isAdvancingTurn: boolean;
+  isPaused: boolean;
   error: string | null;
   logs: LogEntry[];
   activeRightTab: 'main' | 'telemetry';
 
   connect: (gameId: string) => Promise<void>;
   disconnect: () => void;
+  togglePause: () => void;
   setCurrentSliderTurn: (turn: number | null) => void;
   selectPiece: (pieceId: number | null) => void;
   setPieceOrientation: (orientation: number) => void;
@@ -228,7 +236,7 @@ function setupWorker() {
 function triggerAgentTurnIfNeeded() {
   const state = useGameStore.getState();
   const gameState = state.gameState;
-  if (!gameState || gameState.game_over || gameState.status !== 'in_progress') return;
+  if (!gameState || gameState.game_over || gameState.status !== 'in_progress' || state.isPaused) return;
 
   const currentPlayer = gameState.current_player;
   const pConf = gameState.players?.find(p => p.player === currentPlayer);
@@ -249,6 +257,7 @@ export const useGameStore = create<GameStore>()(
     previewMove: null,
     pollIntervalId: null,
     isAdvancingTurn: false,
+    isPaused: false,
     error: null,
     logs: [],
     activeRightTab: 'main',
@@ -256,9 +265,17 @@ export const useGameStore = create<GameStore>()(
     connect: async (gameId: string): Promise<void> => {
       // With Pyodide, state is local. If we reload the page, state is gone.
       // So connect only works if we already just created the game locally in this session.
-      set({ connectionStatus: 'connected', error: null, isAdvancingTurn: false });
+      set({ connectionStatus: 'connected', error: null, isAdvancingTurn: false, isPaused: false });
       get().addLog(`Connected to local Pyodide game ${gameId}`, 'INFO');
       triggerAgentTurnIfNeeded();
+    },
+
+    togglePause: () => {
+      const nextPaused = !get().isPaused;
+      set({ isPaused: nextPaused });
+      if (!nextPaused) {
+        triggerAgentTurnIfNeeded();
+      }
     },
 
     disconnect: () => {
@@ -268,6 +285,7 @@ export const useGameStore = create<GameStore>()(
         gameState: null,
         currentSliderTurn: null,
         isAdvancingTurn: false,
+        isPaused: false,
       });
     },
 
