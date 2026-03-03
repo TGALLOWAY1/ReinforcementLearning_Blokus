@@ -1,0 +1,458 @@
+{
+  "completed_games": 200,
+  "error_games": 0,
+  "game_duration_sec": {
+    "count": 200,
+    "max": 7.0151169999999965,
+    "mean": 5.909618962715001,
+    "median": 5.897934374999995,
+    "min": 4.9296037090000056,
+    "p25": 5.690680937249999,
+    "p75": 6.150326499749999,
+    "std": 0.3484858690595831
+  },
+  "num_games": 200,
+  "pairwise_matchups": {
+    "base_no_eval__vs__eval_no_bias": {
+      "a_beats_b": 57,
+      "agent_a": "base_no_eval",
+      "agent_b": "eval_no_bias",
+      "b_beats_a": 61,
+      "tie": 2,
+      "total": 120
+    },
+    "base_no_eval__vs__eval_with_bias_0.1": {
+      "a_beats_b": 64,
+      "agent_a": "base_no_eval",
+      "agent_b": "eval_with_bias_0.1",
+      "b_beats_a": 54,
+      "tie": 2,
+      "total": 120
+    },
+    "base_no_eval__vs__eval_with_bias_0.25": {
+      "a_beats_b": 54,
+      "agent_a": "base_no_eval",
+      "agent_b": "eval_with_bias_0.25",
+      "b_beats_a": 63,
+      "tie": 3,
+      "total": 120
+    },
+    "base_no_eval__vs__eval_with_bias_0.5": {
+      "a_beats_b": 61,
+      "agent_a": "base_no_eval",
+      "agent_b": "eval_with_bias_0.5",
+      "b_beats_a": 57,
+      "tie": 2,
+      "total": 120
+    },
+    "eval_no_bias__vs__eval_with_bias_0.1": {
+      "a_beats_b": 54,
+      "agent_a": "eval_no_bias",
+      "agent_b": "eval_with_bias_0.1",
+      "b_beats_a": 64,
+      "tie": 2,
+      "total": 120
+    },
+    "eval_no_bias__vs__eval_with_bias_0.25": {
+      "a_beats_b": 53,
+      "agent_a": "eval_no_bias",
+      "agent_b": "eval_with_bias_0.25",
+      "b_beats_a": 63,
+      "tie": 4,
+      "total": 120
+    },
+    "eval_no_bias__vs__eval_with_bias_0.5": {
+      "a_beats_b": 54,
+      "agent_a": "eval_no_bias",
+      "agent_b": "eval_with_bias_0.5",
+      "b_beats_a": 65,
+      "tie": 1,
+      "total": 120
+    },
+    "eval_with_bias_0.1__vs__eval_with_bias_0.25": {
+      "a_beats_b": 63,
+      "agent_a": "eval_with_bias_0.1",
+      "agent_b": "eval_with_bias_0.25",
+      "b_beats_a": 55,
+      "tie": 2,
+      "total": 120
+    },
+    "eval_with_bias_0.1__vs__eval_with_bias_0.5": {
+      "a_beats_b": 58,
+      "agent_a": "eval_with_bias_0.1",
+      "agent_b": "eval_with_bias_0.5",
+      "b_beats_a": 59,
+      "tie": 3,
+      "total": 120
+    },
+    "eval_with_bias_0.25__vs__eval_with_bias_0.5": {
+      "a_beats_b": 56,
+      "agent_a": "eval_with_bias_0.25",
+      "agent_b": "eval_with_bias_0.5",
+      "b_beats_a": 56,
+      "tie": 8,
+      "total": 120
+    }
+  },
+  "pairwise_total_comparisons": 1200,
+  "run_config": {
+    "agents": [
+      {
+        "name": "base_no_eval",
+        "params": {
+          "deterministic_time_budget": false,
+          "exploration_constant": 1.414,
+          "use_transposition_table": true
+        },
+        "thinking_time_ms": 50,
+        "type": "fast_mcts"
+      },
+      {
+        "name": "eval_no_bias",
+        "params": {
+          "deterministic_time_budget": false,
+          "exploration_constant": 1.414,
+          "leaf_evaluation_enabled": true,
+          "learned_model_path": "models/dummy_model.json",
+          "potential_shaping_enabled": false,
+          "progressive_bias_enabled": false,
+          "progressive_bias_weight": 0.25,
+          "use_transposition_table": true
+        },
+        "thinking_time_ms": 50,
+        "type": "fast_mcts"
+      },
+      {
+        "name": "eval_with_bias_0.1",
+        "params": {
+          "deterministic_time_budget": false,
+          "exploration_constant": 1.414,
+          "leaf_evaluation_enabled": true,
+          "learned_model_path": "models/dummy_model.json",
+          "potential_shaping_enabled": false,
+          "progressive_bias_enabled": true,
+          "progressive_bias_weight": 0.1,
+          "use_transposition_table": true
+        },
+        "thinking_time_ms": 50,
+        "type": "fast_mcts"
+      },
+      {
+        "name": "eval_with_bias_0.25",
+        "params": {
+          "deterministic_time_budget": false,
+          "exploration_constant": 1.414,
+          "leaf_evaluation_enabled": true,
+          "learned_model_path": "models/dummy_model.json",
+          "potential_shaping_enabled": false,
+          "progressive_bias_enabled": true,
+          "progressive_bias_weight": 0.25,
+          "use_transposition_table": true
+        },
+        "thinking_time_ms": 50,
+        "type": "fast_mcts"
+      }
+    ],
+    "max_turns": 2500,
+    "notes": "Tuning Set: ablation_leaf_eval. Sensitivity Time = 50ms",
+    "num_games": 200,
+    "output_root": "arena_runs",
+    "seat_policy": "randomized",
+    "seed": 2026,
+    "snapshots": {
+      "checkpoints": [
+        8,
+        16,
+        24,
+        32,
+        40,
+        48,
+        56,
+        64
+      ],
+      "enabled": false,
+      "strategy": "fixed_ply"
+    }
+  },
+  "run_id": "20260302_191850_158563c1",
+  "score_stats": {
+    "base_no_eval": {
+      "count": 160,
+      "max": 98.0,
+      "mean": 76.0,
+      "median": 75.0,
+      "min": 48.0,
+      "p25": 68.0,
+      "p75": 85.0,
+      "std": 10.75987918147783
+    },
+    "eval_no_bias": {
+      "count": 160,
+      "max": 97.0,
+      "mean": 75.725,
+      "median": 76.5,
+      "min": 51.0,
+      "p25": 68.0,
+      "p75": 84.0,
+      "std": 10.561693756211646
+    },
+    "eval_with_bias_0.1": {
+      "count": 160,
+      "max": 101.0,
+      "mean": 76.0625,
+      "median": 76.0,
+      "min": 50.0,
+      "p25": 68.0,
+      "p75": 83.25,
+      "std": 10.900508875736032
+    },
+    "eval_with_bias_0.25": {
+      "count": 160,
+      "max": 97.0,
+      "mean": 76.34375,
+      "median": 76.0,
+      "min": 49.0,
+      "p25": 69.0,
+      "p75": 84.0,
+      "std": 9.893209081865196
+    },
+    "eval_with_bias_0.5": {
+      "count": 160,
+      "max": 105.0,
+      "mean": 76.925,
+      "median": 75.5,
+      "min": 52.0,
+      "p25": 69.0,
+      "p75": 85.0,
+      "std": 11.312907451225792
+    }
+  },
+  "seat_policy": "randomized",
+  "seed": 2026,
+  "time_sim_efficiency": {
+    "base_no_eval": {
+      "avg_budget_utilization": 0.9923871492476617,
+      "avg_simulations_per_move": 962.6067507116715,
+      "avg_time_ms_per_move": 49.619357462383086,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 150.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 56.0,
+      "moves": 2459.0,
+      "score_per_second": 1531.6603012769026,
+      "simulations_per_second": 19399.82297113446,
+      "total_simulations": 2367050.0,
+      "total_time_ms": 122014.0,
+      "win_rate_per_second": 5.290274066910355
+    },
+    "eval_no_bias": {
+      "avg_budget_utilization": 0.991980319803198,
+      "avg_simulations_per_move": 969.3489134891349,
+      "avg_time_ms_per_move": 49.5990159901599,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 187.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 56.0,
+      "moves": 2439.0,
+      "score_per_second": 1526.7439986112488,
+      "simulations_per_second": 19543.712594650002,
+      "total_simulations": 2364242.0,
+      "total_time_ms": 120972.0,
+      "win_rate_per_second": 4.410369754984624
+    },
+    "eval_with_bias_0.1": {
+      "avg_budget_utilization": 0.9933688088415882,
+      "avg_simulations_per_move": 945.7101923864102,
+      "avg_time_ms_per_move": 49.66844044207941,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 185.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 56.0,
+      "moves": 2443.0,
+      "score_per_second": 1531.405039558266,
+      "simulations_per_second": 19040.464809625842,
+      "total_simulations": 2310370.0,
+      "total_time_ms": 121340.0,
+      "win_rate_per_second": 4.718791206527114
+    },
+    "eval_with_bias_0.25": {
+      "avg_budget_utilization": 0.987609676096761,
+      "avg_simulations_per_move": 931.0315703157031,
+      "avg_time_ms_per_move": 49.38048380483805,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 161.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 56.0,
+      "moves": 2439.0,
+      "score_per_second": 1546.0308226571126,
+      "simulations_per_second": 18854.241566270062,
+      "total_simulations": 2270786.0,
+      "total_time_ms": 120439.0,
+      "win_rate_per_second": 5.126012960917975
+    },
+    "eval_with_bias_0.5": {
+      "avg_budget_utilization": 0.9827974276527331,
+      "avg_simulations_per_move": 964.326768488746,
+      "avg_time_ms_per_move": 49.139871382636656,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 138.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 55.0,
+      "moves": 2488.0,
+      "score_per_second": 1565.4294127269754,
+      "simulations_per_second": 19624.120726320954,
+      "total_simulations": 2399245.0,
+      "total_time_ms": 122260.0,
+      "win_rate_per_second": 5.723458203827908
+    }
+  },
+  "win_stats": {
+    "base_no_eval": {
+      "games_played": 160.0,
+      "outright_wins": 41.0,
+      "shared_wins": 2.0,
+      "win_points": 42.0,
+      "win_rate": 0.2625
+    },
+    "eval_no_bias": {
+      "games_played": 160.0,
+      "outright_wins": 32.0,
+      "shared_wins": 6.0,
+      "win_points": 35.0,
+      "win_rate": 0.21875
+    },
+    "eval_with_bias_0.1": {
+      "games_played": 160.0,
+      "outright_wins": 36.0,
+      "shared_wins": 3.0,
+      "win_points": 37.5,
+      "win_rate": 0.234375
+    },
+    "eval_with_bias_0.25": {
+      "games_played": 160.0,
+      "outright_wins": 36.0,
+      "shared_wins": 9.0,
+      "win_points": 40.5,
+      "win_rate": 0.253125
+    },
+    "eval_with_bias_0.5": {
+      "games_played": 160.0,
+      "outright_wins": 42.0,
+      "shared_wins": 6.0,
+      "win_points": 45.0,
+      "win_rate": 0.28125
+    }
+  },
+  "wins_by_seat": {
+    "base_no_eval": {
+      "0": {
+        "games": 39,
+        "win_points": 13.5,
+        "win_rate": 0.34615384615384615
+      },
+      "1": {
+        "games": 41,
+        "win_points": 10.5,
+        "win_rate": 0.25609756097560976
+      },
+      "2": {
+        "games": 39,
+        "win_points": 3.0,
+        "win_rate": 0.07692307692307693
+      },
+      "3": {
+        "games": 41,
+        "win_points": 15.0,
+        "win_rate": 0.36585365853658536
+      }
+    },
+    "eval_no_bias": {
+      "0": {
+        "games": 40,
+        "win_points": 16.0,
+        "win_rate": 0.4
+      },
+      "1": {
+        "games": 40,
+        "win_points": 5.0,
+        "win_rate": 0.125
+      },
+      "2": {
+        "games": 40,
+        "win_points": 5.5,
+        "win_rate": 0.1375
+      },
+      "3": {
+        "games": 40,
+        "win_points": 8.5,
+        "win_rate": 0.2125
+      }
+    },
+    "eval_with_bias_0.1": {
+      "0": {
+        "games": 41,
+        "win_points": 13.5,
+        "win_rate": 0.32926829268292684
+      },
+      "1": {
+        "games": 39,
+        "win_points": 7.0,
+        "win_rate": 0.1794871794871795
+      },
+      "2": {
+        "games": 40,
+        "win_points": 9.5,
+        "win_rate": 0.2375
+      },
+      "3": {
+        "games": 40,
+        "win_points": 7.5,
+        "win_rate": 0.1875
+      }
+    },
+    "eval_with_bias_0.25": {
+      "0": {
+        "games": 40,
+        "win_points": 21.5,
+        "win_rate": 0.5375
+      },
+      "1": {
+        "games": 40,
+        "win_points": 6.0,
+        "win_rate": 0.15
+      },
+      "2": {
+        "games": 40,
+        "win_points": 4.5,
+        "win_rate": 0.1125
+      },
+      "3": {
+        "games": 40,
+        "win_points": 8.5,
+        "win_rate": 0.2125
+      }
+    },
+    "eval_with_bias_0.5": {
+      "0": {
+        "games": 40,
+        "win_points": 13.0,
+        "win_rate": 0.325
+      },
+      "1": {
+        "games": 40,
+        "win_points": 17.5,
+        "win_rate": 0.4375
+      },
+      "2": {
+        "games": 41,
+        "win_points": 9.5,
+        "win_rate": 0.23170731707317074
+      },
+      "3": {
+        "games": 39,
+        "win_points": 5.0,
+        "win_rate": 0.1282051282051282
+      }
+    }
+  }
+}

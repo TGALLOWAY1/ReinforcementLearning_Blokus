@@ -1,0 +1,92 @@
+[
+  {
+    "game_index": 1,
+    "seats": {
+      "0": "expl_2.0",
+      "1": "expl_1.414",
+      "2": "expl_1.0",
+      "3": "expl_3.0"
+    }
+  },
+  {
+    "game_index": 2,
+    "seats": {
+      "0": "expl_3.0",
+      "1": "expl_2.0",
+      "2": "expl_1.414",
+      "3": "expl_1.0"
+    }
+  },
+  {
+    "game_index": 3,
+    "seats": {
+      "0": "expl_1.0",
+      "1": "expl_3.0",
+      "2": "expl_2.0",
+      "3": "expl_1.414"
+    }
+  },
+  {
+    "game_index": 4,
+    "seats": {
+      "0": "expl_1.414",
+      "1": "expl_1.0",
+      "2": "expl_3.0",
+      "3": "expl_2.0"
+    }
+  },
+  {
+    "game_index": 5,
+    "seats": {
+      "0": "expl_2.0",
+      "1": "expl_1.0",
+      "2": "expl_3.0",
+      "3": "expl_1.414"
+    }
+  },
+  {
+    "game_index": 6,
+    "seats": {
+      "0": "expl_1.414",
+      "1": "expl_2.0",
+      "2": "expl_1.0",
+      "3": "expl_3.0"
+    }
+  },
+  {
+    "game_index": 7,
+    "seats": {
+      "0": "expl_3.0",
+      "1": "expl_1.414",
+      "2": "expl_2.0",
+      "3": "expl_1.0"
+    }
+  },
+  {
+    "game_index": 8,
+    "seats": {
+      "0": "expl_1.0",
+      "1": "expl_3.0",
+      "2": "expl_1.414",
+      "3": "expl_2.0"
+    }
+  },
+  {
+    "game_index": 9,
+    "seats": {
+      "0": "expl_3.0",
+      "1": "expl_1.0",
+      "2": "expl_1.414",
+      "3": "expl_2.0"
+    }
+  },
+  {
+    "game_index": 10,
+    "seats": {
+      "0": "expl_2.0",
+      "1": "expl_1.414",
+      "2": "expl_1.0",
+      "3": "expl_3.0"
+    }
+  }
+]

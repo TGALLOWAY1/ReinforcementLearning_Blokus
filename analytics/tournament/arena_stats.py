@@ -9,6 +9,8 @@ from pathlib import Path
 from statistics import median
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Union
 
+import numpy as np
+
 
 def load_games_jsonl(path: Union[str, Path]) -> List[Dict[str, Any]]:
     """Load game records from JSONL."""
@@ -161,12 +163,13 @@ def _compute_efficiency(
     win_stats: Mapping[str, Mapping[str, float]],
     score_stats: Mapping[str, Mapping[str, Optional[float]]],
 ) -> Dict[str, Dict[str, Optional[float]]]:
-    accumulator: Dict[str, MutableMapping[str, float]] = {
+    accumulator: Dict[str, Dict[str, Any]] = {
         agent_name: {
             "moves": 0.0,
             "total_time_ms": 0.0,
             "total_simulations": 0.0,
             "moves_with_simulations": 0.0,
+            "all_move_times": [],
         }
         for agent_name in agent_names
     }
@@ -182,8 +185,10 @@ def _compute_efficiency(
             total_time_ms = _to_float(stats.get("total_time_ms")) or 0.0
             simulations = _to_float(stats.get("total_simulations"))
             sim_moves = float(stats.get("moves_with_simulations", 0))
+            move_times = stats.get("move_times_ms", [])
             accumulator[agent_name]["moves"] += moves
             accumulator[agent_name]["total_time_ms"] += total_time_ms
+            accumulator[agent_name]["all_move_times"].extend(move_times)
             if simulations is not None:
                 accumulator[agent_name]["total_simulations"] += simulations
                 accumulator[agent_name]["moves_with_simulations"] += sim_moves
@@ -207,11 +212,19 @@ def _compute_efficiency(
         win_rate = float(win_stats.get(agent_name, {}).get("win_rate", 0.0))
         mean_score = _to_float(score_stats.get(agent_name, {}).get("mean")) or 0.0
         avg_time_seconds = (avg_time_ms or 0.0) / 1000.0
+        
+        all_times = entry.get("all_move_times", [])
+        p50 = float(np.percentile(all_times, 50)) if all_times else None
+        p95 = float(np.percentile(all_times, 95)) if all_times else None
+        max_time = float(np.max(all_times)) if all_times else None
 
         efficiency[agent_name] = {
             "moves": moves,
             "total_time_ms": total_time_ms,
             "avg_time_ms_per_move": avg_time_ms,
+            "move_time_ms_p50": p50,
+            "move_time_ms_p95": p95,
+            "move_time_ms_max": max_time,
             "configured_thinking_time_ms": float(thinking_time_ms) if thinking_time_ms is not None else None,
             "avg_budget_utilization": budget_utilization,
             "total_simulations": total_simulations if sim_moves > 0 else None,
