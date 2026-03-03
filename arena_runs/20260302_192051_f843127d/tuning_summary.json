@@ -1,0 +1,145 @@
+{
+  "ablation_vs_baseline": {
+    "eval_no_bias": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 0.08124999999999716,
+      "delta_win_rate": 0.08124999999999999
+    },
+    "eval_with_bias_0.1": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 0.5250000000000057,
+      "delta_win_rate": 0.05000000000000002
+    },
+    "eval_with_bias_0.25": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": -0.5374999999999943,
+      "delta_win_rate": 0.09062500000000001
+    },
+    "eval_with_bias_0.5": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 0.59375,
+      "delta_win_rate": 0.07500000000000001
+    }
+  },
+  "budget_compliance": {
+    "base_no_eval": {
+      "actual_ms": 302.165491497304,
+      "configured_ms": 400,
+      "diff_ms": -97.834508502696,
+      "max_ms": 434.0,
+      "p50_ms": 400.0,
+      "p95_ms": 402.0,
+      "simulations_per_move": 3026.7880547490668
+    },
+    "eval_no_bias": {
+      "actual_ms": 302.4634453781513,
+      "configured_ms": 400,
+      "diff_ms": -97.53655462184872,
+      "max_ms": 423.0,
+      "p50_ms": 400.0,
+      "p95_ms": 402.0,
+      "simulations_per_move": 3020.777731092437
+    },
+    "eval_with_bias_0.1": {
+      "actual_ms": 301.6776069796427,
+      "configured_ms": 400,
+      "diff_ms": -98.32239302035731,
+      "max_ms": 449.0,
+      "p50_ms": 400.0,
+      "p95_ms": 402.0,
+      "simulations_per_move": 3020.395928541753
+    },
+    "eval_with_bias_0.25": {
+      "actual_ms": 301.59949409780774,
+      "configured_ms": 400,
+      "diff_ms": -98.40050590219226,
+      "max_ms": 442.0,
+      "p50_ms": 400.0,
+      "p95_ms": 402.0,
+      "simulations_per_move": 3007.2698145025297
+    },
+    "eval_with_bias_0.5": {
+      "actual_ms": 299.318407960199,
+      "configured_ms": 400,
+      "diff_ms": -100.68159203980099,
+      "max_ms": 459.0,
+      "p50_ms": 400.0,
+      "p95_ms": 402.0,
+      "simulations_per_move": 3009.291044776119
+    }
+  },
+  "configured_time_ms": 400,
+  "rankings": [
+    {
+      "avg_sims": 3007.2698145025297,
+      "avg_time_ms": 301.59949409780774,
+      "games_played": 160.0,
+      "max_time_ms": 442.0,
+      "mean_score": 73.41875,
+      "name": "eval_with_bias_0.25",
+      "p50_time_ms": 400.0,
+      "p95_time_ms": 402.0,
+      "rank_score": 64.834375,
+      "win_rate": 0.28125,
+      "win_rate_ci_lower": 0.2173421732707303,
+      "win_rate_ci_upper": 0.3554159052636589
+    },
+    {
+      "avg_sims": 3020.777731092437,
+      "avg_time_ms": 302.4634453781513,
+      "games_played": 160.0,
+      "max_time_ms": 423.0,
+      "mean_score": 74.0375,
+      "name": "eval_no_bias",
+      "p50_time_ms": 400.0,
+      "p95_time_ms": 402.0,
+      "rank_score": 64.20625,
+      "win_rate": 0.271875,
+      "win_rate_ci_lower": 0.20888527305721763,
+      "win_rate_ci_upper": 0.34556243741435966
+    },
+    {
+      "avg_sims": 3009.291044776119,
+      "avg_time_ms": 299.318407960199,
+      "games_played": 160.0,
+      "max_time_ms": 459.0,
+      "mean_score": 74.55,
+      "name": "eval_with_bias_0.5",
+      "p50_time_ms": 400.0,
+      "p95_time_ms": 402.0,
+      "rank_score": 63.8375,
+      "win_rate": 0.265625,
+      "win_rate_ci_lower": 0.2032678061615423,
+      "win_rate_ci_upper": 0.33897299226816047
+    },
+    {
+      "avg_sims": 3020.395928541753,
+      "avg_time_ms": 301.6776069796427,
+      "games_played": 160.0,
+      "max_time_ms": 449.0,
+      "mean_score": 74.48125,
+      "name": "eval_with_bias_0.1",
+      "p50_time_ms": 400.0,
+      "p95_time_ms": 402.0,
+      "rank_score": 61.303125,
+      "win_rate": 0.240625,
+      "win_rate_ci_lower": 0.18096970443471316,
+      "win_rate_ci_upper": 0.3124434458274913
+    },
+    {
+      "avg_sims": 3026.7880547490668,
+      "avg_time_ms": 302.165491497304,
+      "games_played": 160.0,
+      "max_time_ms": 434.0,
+      "mean_score": 73.95625,
+      "name": "base_no_eval",
+      "p50_time_ms": 400.0,
+      "p95_time_ms": 402.0,
+      "rank_score": 56.040625,
+      "win_rate": 0.190625,
+      "win_rate_ci_lower": 0.1372967929261128,
+      "win_rate_ci_upper": 0.25846106100109484
+    }
+  ],
+  "tunings_set": "ablation_leaf_eval"
+}

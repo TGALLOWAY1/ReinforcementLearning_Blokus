@@ -1,0 +1,15 @@
+INFO:     Will watch for changes in these directories: ['/Users/tjgalloway/Programming Projects 2025/blokus_rl/webapi']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [21805] using WatchFiles
+INFO:     Started server process [21807]
+INFO:     Waiting for application startup.
+[18:44:42] INFO: Starting Blokus RL Web API...
+[18:44:42] INFO: Connecting to MongoDB: mongodb://localhost:27017
+[18:44:42] INFO: Using database: blokusdb
+[18:44:42] INFO: ✅ MongoDB connection successful
+[18:44:42] INFO: Successfully connected to MongoDB database: blokusdb
+[18:44:42] INFO: MongoDB connection established
+[18:44:42] ERROR: ❌ MongoDB connection validation failed: 'coroutine' object has no attribute 'command'
+[18:44:42] ERROR: Failed to connect to MongoDB during startup: 'coroutine' object has no attribute 'command'
+[18:44:42] WARNING: Server will start without MongoDB connection. Some features may be unavailable.
+INFO:     Application startup complete.

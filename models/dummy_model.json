@@ -1,0 +1,33 @@
+{
+    "version": [
+        1,
+        7,
+        6
+    ],
+    "learner": {
+        "feature_names": [],
+        "feature_types": [],
+        "gradient_booster": {
+            "model": {
+                "gbtree_model_param": {
+                    "num_trees": "0",
+                    "size_leaf_vector": "0"
+                },
+                "trees": [],
+                "tree_info": []
+            },
+            "name": "gbtree"
+        },
+        "learner_model_param": {
+            "base_score": "0.5",
+            "num_class": "0",
+            "num_feature": "0"
+        },
+        "objective": {
+            "name": "binary:logistic",
+            "reg_loss_param": {
+                "scale_pos_weight": "1"
+            }
+        }
+    }
+}

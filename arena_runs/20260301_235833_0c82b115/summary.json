@@ -1,0 +1,950 @@
+{
+  "completed_games": 100,
+  "error_games": 0,
+  "game_duration_sec": {
+    "count": 100,
+    "max": 4.798306874999998,
+    "mean": 4.14180952581,
+    "median": 4.133482999999998,
+    "min": 3.3255319160000028,
+    "p25": 3.9084324585000036,
+    "p75": 4.372204583500007,
+    "std": 0.35198503873179987
+  },
+  "num_games": 100,
+  "pairwise_matchups": {
+    "r1__vs__r2": {
+      "a_beats_b": 48,
+      "agent_a": "r1",
+      "agent_b": "r2",
+      "b_beats_a": 47,
+      "tie": 5,
+      "total": 100
+    },
+    "r1__vs__r3": {
+      "a_beats_b": 58,
+      "agent_a": "r1",
+      "agent_b": "r3",
+      "b_beats_a": 41,
+      "tie": 1,
+      "total": 100
+    },
+    "r1__vs__r4": {
+      "a_beats_b": 48,
+      "agent_a": "r1",
+      "agent_b": "r4",
+      "b_beats_a": 49,
+      "tie": 3,
+      "total": 100
+    },
+    "r2__vs__r3": {
+      "a_beats_b": 54,
+      "agent_a": "r2",
+      "agent_b": "r3",
+      "b_beats_a": 43,
+      "tie": 3,
+      "total": 100
+    },
+    "r2__vs__r4": {
+      "a_beats_b": 44,
+      "agent_a": "r2",
+      "agent_b": "r4",
+      "b_beats_a": 52,
+      "tie": 4,
+      "total": 100
+    },
+    "r3__vs__r4": {
+      "a_beats_b": 44,
+      "agent_a": "r3",
+      "agent_b": "r4",
+      "b_beats_a": 52,
+      "tie": 4,
+      "total": 100
+    }
+  },
+  "pairwise_total_comparisons": 600,
+  "run_config": {
+    "agents": [
+      {
+        "name": "r1",
+        "params": {},
+        "thinking_time_ms": null,
+        "type": "random"
+      },
+      {
+        "name": "r2",
+        "params": {},
+        "thinking_time_ms": null,
+        "type": "random"
+      },
+      {
+        "name": "r3",
+        "params": {},
+        "thinking_time_ms": null,
+        "type": "random"
+      },
+      {
+        "name": "r4",
+        "params": {},
+        "thinking_time_ms": null,
+        "type": "random"
+      }
+    ],
+    "created_at": "2026-03-01T23:58:33",
+    "max_turns": 64,
+    "notes": "milestone_3_4_verification_random_100",
+    "num_games": 100,
+    "output_root": "arena_runs",
+    "run_id": "20260301_235833_0c82b115",
+    "seat_policy": "randomized",
+    "seed": 20260302,
+    "snapshots": {
+      "checkpoints": [
+        8,
+        16,
+        24,
+        32,
+        40,
+        48,
+        56,
+        64
+      ],
+      "enabled": true,
+      "strategy": "fixed_ply"
+    }
+  },
+  "run_id": "20260301_235833_0c82b115",
+  "score_stats": {
+    "r1": {
+      "count": 100,
+      "max": 87.0,
+      "mean": 69.72,
+      "median": 70.0,
+      "min": 47.0,
+      "p25": 64.0,
+      "p75": 77.0,
+      "std": 8.610551666414874
+    },
+    "r2": {
+      "count": 100,
+      "max": 85.0,
+      "mean": 68.63,
+      "median": 70.0,
+      "min": 49.0,
+      "p25": 63.75,
+      "p75": 74.25,
+      "std": 8.469539538841532
+    },
+    "r3": {
+      "count": 100,
+      "max": 86.0,
+      "mean": 67.6,
+      "median": 69.0,
+      "min": 46.0,
+      "p25": 61.0,
+      "p75": 73.0,
+      "std": 8.497058314499201
+    },
+    "r4": {
+      "count": 100,
+      "max": 89.0,
+      "mean": 69.14,
+      "median": 70.0,
+      "min": 45.0,
+      "p25": 63.0,
+      "p75": 76.0,
+      "std": 9.426579443255122
+    }
+  },
+  "seat_policy": "randomized",
+  "seed": 20260302,
+  "snapshot_diagnostics": {
+    "feature_distributions": {
+      "blocking_exposure_legal_moves_opp_sum": {
+        "max": 2036.0,
+        "mean": 630.1277292576419,
+        "min": 0.0,
+        "p25": 78.0,
+        "p75": 1069.25,
+        "std": 517.7531341489346
+      },
+      "center_proximity": {
+        "max": 9.0,
+        "mean": 3.824235807860262,
+        "min": 0.0,
+        "p25": 1.0,
+        "p75": 6.0,
+        "std": 3.1093666245896876
+      },
+      "corner_differential": {
+        "max": -3.0,
+        "mean": -22.50291120815138,
+        "min": -51.0,
+        "p25": -28.0,
+        "p75": -16.0,
+        "std": 8.61190099144429
+      },
+      "deadzone_count": {
+        "max": 107.0,
+        "mean": 24.70160116448326,
+        "min": 0.0,
+        "p25": 6.0,
+        "p75": 40.0,
+        "std": 21.63962577194461
+      },
+      "deadzone_fraction": {
+        "max": 0.2675,
+        "mean": 0.061754002911208146,
+        "min": 0.0,
+        "p25": 0.015,
+        "p75": 0.1,
+        "std": 0.054099064429861524
+      },
+      "frontier_size": {
+        "max": 26.0,
+        "mean": 11.25145560407569,
+        "min": 2.0,
+        "p25": 8.0,
+        "p75": 14.0,
+        "std": 4.305950495722145
+      },
+      "mobility_bucket_1": {
+        "max": 23.0,
+        "mean": 6.481804949053857,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 11.0,
+        "std": 5.536963597799114
+      },
+      "mobility_bucket_2": {
+        "max": 34.0,
+        "mean": 8.054585152838428,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 14.0,
+        "std": 7.626225823795751
+      },
+      "mobility_bucket_3": {
+        "max": 84.75,
+        "mean": 18.426855895196507,
+        "min": 0.0,
+        "p25": 1.5,
+        "p75": 29.25,
+        "std": 17.327088661062387
+      },
+      "mobility_bucket_4": {
+        "max": 326.0,
+        "mean": 65.4990902474527,
+        "min": 0.0,
+        "p25": 8.0,
+        "p75": 107.0,
+        "std": 59.243520050908714
+      },
+      "mobility_bucket_5": {
+        "max": 590.625,
+        "mean": 122.52046943231441,
+        "min": 0.0,
+        "p25": 6.875,
+        "p75": 210.625,
+        "std": 115.92081799178453
+      },
+      "mobility_total_cell_weighted": {
+        "max": 903.125,
+        "mean": 220.9828056768559,
+        "min": 0.0,
+        "p25": 27.375,
+        "p75": 369.15625,
+        "std": 191.74178773586158
+      },
+      "mobility_total_orientation_normalized": {
+        "max": 225.625,
+        "mean": 57.53024927219796,
+        "min": 0.0,
+        "p25": 10.46875,
+        "p75": 93.625,
+        "std": 46.9230677898733
+      },
+      "mobility_total_placements": {
+        "max": 863.0,
+        "mean": 210.042576419214,
+        "min": 0.0,
+        "p25": 23.0,
+        "p75": 352.0,
+        "std": 186.23931250029318
+      },
+      "opponent_adjacency": {
+        "max": 49.0,
+        "mean": 6.415574963609898,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 10.0,
+        "std": 8.70755275799796
+      },
+      "phase_board_occupancy": {
+        "max": 0.655,
+        "mean": 0.33415211062590977,
+        "min": 0.07,
+        "p25": 0.185,
+        "p75": 0.4825,
+        "std": 0.15767950817731108
+      },
+      "phase_piece_usage_ratio": {
+        "max": 0.7619047619047619,
+        "mean": 0.37596173840715325,
+        "min": 0.09523809523809523,
+        "p25": 0.19047619047619047,
+        "p75": 0.5714285714285714,
+        "std": 0.18945935480603862
+      },
+      "phase_ply": {
+        "max": 64.0,
+        "mean": 31.580786026200872,
+        "min": 8.0,
+        "p25": 16.0,
+        "p75": 48.0,
+        "std": 15.865852595023835
+      },
+      "phase_progress_placement_ratio": {
+        "max": 1.0,
+        "mean": 0.49344978165938863,
+        "min": 0.125,
+        "p25": 0.25,
+        "p75": 0.75,
+        "std": 0.24790394679724742
+      },
+      "phase_progress_turn_ratio": {
+        "max": 1.0,
+        "mean": 0.4970660480349345,
+        "min": 0.125,
+        "p25": 0.25,
+        "p75": 0.75,
+        "std": 0.2536694918388967
+      },
+      "phase_turn_index": {
+        "max": 64.0,
+        "mean": 31.812227074235807,
+        "min": 8.0,
+        "p25": 16.0,
+        "p75": 48.0,
+        "std": 16.23484747768939
+      },
+      "pieces_remaining_count": {
+        "max": 19.0,
+        "mean": 13.104803493449781,
+        "min": 5.0,
+        "p25": 9.0,
+        "p75": 17.0,
+        "std": 3.9786464509268114
+      },
+      "pieces_used_count": {
+        "max": 16.0,
+        "mean": 7.895196506550218,
+        "min": 2.0,
+        "p25": 4.0,
+        "p75": 12.0,
+        "std": 3.9786464509268114
+      },
+      "player_board_occupancy": {
+        "max": 0.1775,
+        "mean": 0.08353802765647744,
+        "min": 0.0125,
+        "p25": 0.0475,
+        "p75": 0.1175,
+        "std": 0.039819782686482015
+      },
+      "remaining_key_piece_17": {
+        "max": 1.0,
+        "mean": 0.6754002911208151,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 1.0,
+        "std": 0.46822509317072414
+      },
+      "remaining_key_piece_19": {
+        "max": 1.0,
+        "mean": 0.6295487627365357,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 1.0,
+        "std": 0.482925582334828
+      },
+      "remaining_key_piece_20": {
+        "max": 1.0,
+        "mean": 0.8442503639010189,
+        "min": 0.0,
+        "p25": 1.0,
+        "p75": 1.0,
+        "std": 0.362617824925935
+      },
+      "remaining_size_1_count": {
+        "max": 1.0,
+        "mean": 0.6670305676855895,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 1.0,
+        "std": 0.4712757042948742
+      },
+      "remaining_size_2_count": {
+        "max": 1.0,
+        "mean": 0.62627365356623,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 1.0,
+        "std": 0.4837922740340484
+      },
+      "remaining_size_3_count": {
+        "max": 2.0,
+        "mean": 1.247088791848617,
+        "min": 0.0,
+        "p25": 1.0,
+        "p75": 2.0,
+        "std": 0.745980668687113
+      },
+      "remaining_size_4_count": {
+        "max": 6.0,
+        "mean": 3.898107714701601,
+        "min": 0.0,
+        "p25": 3.0,
+        "p75": 5.0,
+        "std": 1.4436870253336116
+      },
+      "remaining_size_5_count": {
+        "max": 11.0,
+        "mean": 6.666302765647743,
+        "min": 1.0,
+        "p25": 5.0,
+        "p75": 8.0,
+        "std": 2.0939539738441013
+      },
+      "remaining_squares": {
+        "max": 83.0,
+        "mean": 54.58478893740902,
+        "min": 17.0,
+        "p25": 41.0,
+        "p75": 69.0,
+        "std": 15.927913074592805
+      },
+      "utility_frontier_plus_mobility": {
+        "max": 916.125,
+        "mean": 232.23426128093158,
+        "min": 4.0,
+        "p25": 40.71875,
+        "p75": 379.875,
+        "std": 190.76805815709244
+      }
+    },
+    "high_correlation_pairs": [
+      {
+        "correlation": -1.0000000000000018,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 1.000000000000001,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": -1.0000000000000009,
+        "feature_a": "remaining_squares",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": -1.0000000000000002,
+        "feature_a": "pieces_used_count",
+        "feature_b": "pieces_remaining_count"
+      },
+      {
+        "correlation": 1.0,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 1.0,
+        "feature_a": "phase_turn_index",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.999999999999997,
+        "feature_a": "deadzone_count",
+        "feature_b": "deadzone_fraction"
+      },
+      {
+        "correlation": 0.9997595144610147,
+        "feature_a": "mobility_total_cell_weighted",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": 0.9985345023854415,
+        "feature_a": "phase_turn_index",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9985345023854415,
+        "feature_a": "phase_progress_turn_ratio",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9985345023854414,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": 0.9985345023854414,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.996937827394034,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.996937827394034,
+        "feature_a": "phase_piece_usage_ratio",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": -0.9969378273940339,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_ply"
+      },
+      {
+        "correlation": -0.9969378273940339,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9969378273940336,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_ply"
+      },
+      {
+        "correlation": 0.9969378273940336,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9964707143213464,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9964707143213463,
+        "feature_a": "phase_board_occupancy",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9954768173861259,
+        "feature_a": "phase_turn_index",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.9954768173861259,
+        "feature_a": "phase_piece_usage_ratio",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": -0.9954768173861256,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": -0.9954768173861256,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.9954768173861253,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": 0.9954768173861253,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.9948270133450379,
+        "feature_a": "mobility_total_orientation_normalized",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": 0.993874529834876,
+        "feature_a": "phase_turn_index",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.993874529834876,
+        "feature_a": "phase_board_occupancy",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.9938258280363316,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "mobility_total_cell_weighted"
+      },
+      {
+        "correlation": 0.9937843145614179,
+        "feature_a": "mobility_total_orientation_normalized",
+        "feature_b": "mobility_total_cell_weighted"
+      },
+      {
+        "correlation": -0.9934193489973051,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9934193489973048,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9934193489973029,
+        "feature_a": "phase_board_occupancy",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.9927810364843833,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": -0.9905515683854955,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9905515683854945,
+        "feature_a": "pieces_used_count",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9905515683854935,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "remaining_squares"
+      },
+      {
+        "correlation": -0.9905515683854923,
+        "feature_a": "pieces_used_count",
+        "feature_b": "remaining_squares"
+      },
+      {
+        "correlation": -0.9905515683854921,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.9905515683854911,
+        "feature_a": "phase_piece_usage_ratio",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9899571113859955,
+        "feature_a": "phase_board_occupancy",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": -0.9899571113859948,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9864632699302988,
+        "feature_a": "phase_ply",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9864632699302988,
+        "feature_a": "phase_progress_placement_ratio",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": -0.9864632699302963,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_ply"
+      },
+      {
+        "correlation": -0.9864632699302963,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9842426370393739,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "mobility_total_orientation_normalized"
+      },
+      {
+        "correlation": 0.9838931586354491,
+        "feature_a": "phase_turn_index",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9838931586354491,
+        "feature_a": "phase_progress_turn_ratio",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": -0.983893158635448,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": -0.983893158635448,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.9798064343440837,
+        "feature_a": "mobility_total_cell_weighted",
+        "feature_b": "mobility_bucket_5"
+      },
+      {
+        "correlation": 0.9790811388026571,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "mobility_bucket_5"
+      },
+      {
+        "correlation": 0.977842340515763,
+        "feature_a": "mobility_bucket_5",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": 0.9587190218814389,
+        "feature_a": "mobility_total_orientation_normalized",
+        "feature_b": "mobility_bucket_5"
+      },
+      {
+        "correlation": 0.9510241807738525,
+        "feature_a": "mobility_total_orientation_normalized",
+        "feature_b": "mobility_bucket_4"
+      },
+      {
+        "correlation": 0.950163218190349,
+        "feature_a": "mobility_bucket_4",
+        "feature_b": "utility_frontier_plus_mobility"
+      }
+    ],
+    "winner_lead_by_checkpoint": {
+      "0": {
+        "gap": -1.7931924021562509,
+        "non_winner_mean": 318.5174914675768,
+        "winner_mean": 316.72429906542055
+      },
+      "1": {
+        "gap": 35.92748237695764,
+        "non_winner_mean": 460.04564846416383,
+        "winner_mean": 495.9731308411215
+      },
+      "2": {
+        "gap": 36.17866256259771,
+        "non_winner_mean": 407.8178327645051,
+        "winner_mean": 443.9964953271028
+      },
+      "3": {
+        "gap": 33.63299814997927,
+        "non_winner_mean": 235.41723549488054,
+        "winner_mean": 269.0502336448598
+      },
+      "4": {
+        "gap": 23.698482504545296,
+        "non_winner_mean": 90.57721843003414,
+        "winner_mean": 114.27570093457943
+      },
+      "5": {
+        "gap": 14.653049344518518,
+        "non_winner_mean": 30.897184300341298,
+        "winner_mean": 45.550233644859816
+      },
+      "6": {
+        "gap": 7.550988372093023,
+        "non_winner_mean": 14.34,
+        "winner_mean": 21.890988372093023
+      },
+      "7": {
+        "gap": 1.1944444444444446,
+        "non_winner_mean": 14.472222222222221,
+        "winner_mean": 15.666666666666666
+      }
+    }
+  },
+  "snapshots": {
+    "enabled": true,
+    "expected_rows_max": 3200,
+    "parquet_error": "Unable to find a usable engine; tried using: 'pyarrow', 'fastparquet'.\nA suitable version of pyarrow or fastparquet is required for parquet support.\nTrying to import the above resulted in these errors:\n - Missing optional dependency 'pyarrow'. pyarrow is required for parquet support. Use pip or conda to install pyarrow.\n - Missing optional dependency 'fastparquet'. fastparquet is required for parquet support. Use pip or conda to install fastparquet.",
+    "parquet_written": false,
+    "path_csv": "arena_runs/20260301_235833_0c82b115/snapshots.csv",
+    "path_parquet": null,
+    "rows": 2748
+  },
+  "time_sim_efficiency": {
+    "r1": {
+      "avg_budget_utilization": null,
+      "avg_simulations_per_move": null,
+      "avg_time_ms_per_move": 0.032913443762105955,
+      "configured_thinking_time_ms": null,
+      "moves": 1467.0,
+      "score_per_second": 2118283.3526606024,
+      "simulations_per_second": null,
+      "total_simulations": null,
+      "total_time_ms": 48.28402199900944,
+      "win_rate_per_second": 8203.334842489425
+    },
+    "r2": {
+      "avg_budget_utilization": null,
+      "avg_simulations_per_move": null,
+      "avg_time_ms_per_move": 0.03146897747445889,
+      "configured_thinking_time_ms": null,
+      "moves": 1465.0,
+      "score_per_second": 2180877.9791368195,
+      "simulations_per_second": null,
+      "total_simulations": null,
+      "total_time_ms": 46.102052000082274,
+      "win_rate_per_second": 7096.936451608477
+    },
+    "r3": {
+      "avg_budget_utilization": null,
+      "avg_simulations_per_move": null,
+      "avg_time_ms_per_move": 0.03226834502075372,
+      "configured_thinking_time_ms": null,
+      "moves": 1426.0,
+      "score_per_second": 2094932.3541855756,
+      "simulations_per_second": null,
+      "total_simulations": null,
+      "total_time_ms": 46.01465999959481,
+      "win_rate_per_second": 5061.720185162388
+    },
+    "r4": {
+      "avg_budget_utilization": null,
+      "avg_simulations_per_move": null,
+      "avg_time_ms_per_move": 0.03174020861912912,
+      "configured_thinking_time_ms": null,
+      "moves": 1462.0,
+      "score_per_second": 2178309.5640502768,
+      "simulations_per_second": null,
+      "total_simulations": null,
+      "total_time_ms": 46.40418500116677,
+      "win_rate_per_second": 10816.984143148127
+    }
+  },
+  "win_stats": {
+    "r1": {
+      "games_played": 100.0,
+      "outright_wins": 26.0,
+      "shared_wins": 2.0,
+      "win_points": 27.0,
+      "win_rate": 0.27
+    },
+    "r2": {
+      "games_played": 100.0,
+      "outright_wins": 21.0,
+      "shared_wins": 3.0,
+      "win_points": 22.333333333333336,
+      "win_rate": 0.22333333333333336
+    },
+    "r3": {
+      "games_played": 100.0,
+      "outright_wins": 15.0,
+      "shared_wins": 3.0,
+      "win_points": 16.333333333333336,
+      "win_rate": 0.16333333333333336
+    },
+    "r4": {
+      "games_played": 100.0,
+      "outright_wins": 32.0,
+      "shared_wins": 5.0,
+      "win_points": 34.33333333333333,
+      "win_rate": 0.34333333333333327
+    }
+  },
+  "wins_by_seat": {
+    "r1": {
+      "0": {
+        "games": 27,
+        "win_points": 6.5,
+        "win_rate": 0.24074074074074073
+      },
+      "1": {
+        "games": 30,
+        "win_points": 9.0,
+        "win_rate": 0.3
+      },
+      "2": {
+        "games": 22,
+        "win_points": 7.0,
+        "win_rate": 0.3181818181818182
+      },
+      "3": {
+        "games": 21,
+        "win_points": 4.5,
+        "win_rate": 0.21428571428571427
+      }
+    },
+    "r2": {
+      "0": {
+        "games": 27,
+        "win_points": 6.333333333333333,
+        "win_rate": 0.2345679012345679
+      },
+      "1": {
+        "games": 27,
+        "win_points": 7.0,
+        "win_rate": 0.25925925925925924
+      },
+      "2": {
+        "games": 24,
+        "win_points": 5.5,
+        "win_rate": 0.22916666666666666
+      },
+      "3": {
+        "games": 22,
+        "win_points": 3.5,
+        "win_rate": 0.1590909090909091
+      }
+    },
+    "r3": {
+      "0": {
+        "games": 20,
+        "win_points": 3.0,
+        "win_rate": 0.15
+      },
+      "1": {
+        "games": 25,
+        "win_points": 4.0,
+        "win_rate": 0.16
+      },
+      "2": {
+        "games": 25,
+        "win_points": 4.0,
+        "win_rate": 0.16
+      },
+      "3": {
+        "games": 30,
+        "win_points": 5.333333333333334,
+        "win_rate": 0.17777777777777778
+      }
+    },
+    "r4": {
+      "0": {
+        "games": 26,
+        "win_points": 9.5,
+        "win_rate": 0.36538461538461536
+      },
+      "1": {
+        "games": 18,
+        "win_points": 7.333333333333334,
+        "win_rate": 0.40740740740740744
+      },
+      "2": {
+        "games": 29,
+        "win_points": 10.5,
+        "win_rate": 0.3620689655172414
+      },
+      "3": {
+        "games": 27,
+        "win_points": 7.0,
+        "win_rate": 0.25925925925925924
+      }
+    }
+  }
+}

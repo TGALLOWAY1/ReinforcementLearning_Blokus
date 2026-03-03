@@ -1,0 +1,46 @@
+{
+  "agents": [
+    {
+      "name": "r1",
+      "params": {},
+      "thinking_time_ms": null,
+      "type": "random"
+    },
+    {
+      "name": "r2",
+      "params": {},
+      "thinking_time_ms": null,
+      "type": "random"
+    },
+    {
+      "name": "r3",
+      "params": {},
+      "thinking_time_ms": null,
+      "type": "random"
+    },
+    {
+      "name": "r4",
+      "params": {},
+      "thinking_time_ms": null,
+      "type": "random"
+    }
+  ],
+  "created_at": "2026-03-01T23:47:48",
+  "max_turns": 80,
+  "notes": "snapshot verification run",
+  "num_games": 3,
+  "output_root": "arena_runs",
+  "run_id": "20260301_234748_59a3986a",
+  "seat_policy": "round_robin",
+  "seed": 901,
+  "snapshots": {
+    "checkpoints": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "enabled": true,
+    "strategy": "fixed_ply"
+  }
+}

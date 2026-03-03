@@ -313,6 +313,19 @@ export const Play: React.FC = () => {
                   </span>
                 )}
               </div>
+              {gameState?.scores && (
+                <span className="text-sm text-gray-400">
+                  Score:{' '}
+                  {(['RED', 'BLUE', 'YELLOW', 'GREEN'] as const).map((p, i) => (
+                    <span key={p}>
+                      {i > 0 && <span className="text-gray-600 mx-0.5">|</span>}
+                      <span className={p === currentPlayer ? 'text-gray-200 font-medium' : ''}>
+                        {p.slice(0, 1)} {gameState.scores[p] ?? 0}
+                      </span>
+                    </span>
+                  ))}
+                </span>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <button

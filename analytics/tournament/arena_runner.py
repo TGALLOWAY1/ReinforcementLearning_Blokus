@@ -7,6 +7,7 @@ import hashlib
 import json
 import random
 import time
+import traceback
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -594,14 +595,15 @@ def run_single_game(
         seed = _agent_seed(run_config.seed, game_index, agent_name)
         agent_instances[agent_name] = build_agent(config, seed=seed)
 
-    per_agent_stats: Dict[str, Dict[str, float]] = {
-        agent.name: {
+    per_agent_stats: Dict[str, Dict[str, Any]] = {
+        agent_name: {
             "moves": 0.0,
             "total_time_ms": 0.0,
             "total_simulations": 0.0,
             "moves_with_simulations": 0.0,
+            "move_times_ms": [],
         }
-        for agent in run_config.agents
+        for agent_name in set(seat_assignment.values())
     }
 
     game = BlokusGame()
@@ -674,6 +676,7 @@ def run_single_game(
             stats_entry = per_agent_stats[agent_name]
             stats_entry["moves"] += 1
             stats_entry["total_time_ms"] += elapsed_ms
+            stats_entry["move_times_ms"].append(elapsed_ms)
             if simulations is not None:
                 stats_entry["total_simulations"] += simulations
                 stats_entry["moves_with_simulations"] += 1
@@ -693,7 +696,7 @@ def run_single_game(
 
             maybe_capture_snapshot()
     except Exception as exc:
-        error = str(exc)
+        error = traceback.format_exc()
 
     if turn_count >= run_config.max_turns and not game.is_game_over():
         truncated = True

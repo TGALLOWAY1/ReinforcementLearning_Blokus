@@ -1,0 +1,337 @@
+{
+  "completed_games": 5,
+  "error_games": 0,
+  "game_duration_sec": {
+    "count": 5,
+    "max": 22.288167374999993,
+    "mean": 20.215913958199998,
+    "median": 20.202515833999996,
+    "min": 17.739708416,
+    "p25": 19.701520000000002,
+    "p75": 21.147658166,
+    "std": 1.5204444109137851
+  },
+  "num_games": 5,
+  "pairwise_matchups": {
+    "mcts_100ms__vs__mcts_200ms": {
+      "a_beats_b": 2,
+      "agent_a": "mcts_100ms",
+      "agent_b": "mcts_200ms",
+      "b_beats_a": 3,
+      "tie": 0,
+      "total": 5
+    },
+    "mcts_100ms__vs__mcts_25ms": {
+      "a_beats_b": 1,
+      "agent_a": "mcts_100ms",
+      "agent_b": "mcts_25ms",
+      "b_beats_a": 4,
+      "tie": 0,
+      "total": 5
+    },
+    "mcts_100ms__vs__mcts_50ms": {
+      "a_beats_b": 2,
+      "agent_a": "mcts_100ms",
+      "agent_b": "mcts_50ms",
+      "b_beats_a": 3,
+      "tie": 0,
+      "total": 5
+    },
+    "mcts_200ms__vs__mcts_25ms": {
+      "a_beats_b": 0,
+      "agent_a": "mcts_200ms",
+      "agent_b": "mcts_25ms",
+      "b_beats_a": 5,
+      "tie": 0,
+      "total": 5
+    },
+    "mcts_200ms__vs__mcts_50ms": {
+      "a_beats_b": 2,
+      "agent_a": "mcts_200ms",
+      "agent_b": "mcts_50ms",
+      "b_beats_a": 3,
+      "tie": 0,
+      "total": 5
+    },
+    "mcts_25ms__vs__mcts_50ms": {
+      "a_beats_b": 4,
+      "agent_a": "mcts_25ms",
+      "agent_b": "mcts_50ms",
+      "b_beats_a": 1,
+      "tie": 0,
+      "total": 5
+    }
+  },
+  "pairwise_total_comparisons": 30,
+  "run_config": {
+    "agents": [
+      {
+        "name": "mcts_25ms",
+        "params": {
+          "deterministic_time_budget": true,
+          "exploration_constant": 1.414,
+          "iterations": 5000,
+          "iterations_per_ms": 20.0
+        },
+        "thinking_time_ms": 25,
+        "type": "gameplay_fast_mcts"
+      },
+      {
+        "name": "mcts_50ms",
+        "params": {
+          "deterministic_time_budget": true,
+          "exploration_constant": 1.414,
+          "iterations": 5000,
+          "iterations_per_ms": 20.0
+        },
+        "thinking_time_ms": 50,
+        "type": "gameplay_fast_mcts"
+      },
+      {
+        "name": "mcts_100ms",
+        "params": {
+          "deterministic_time_budget": true,
+          "exploration_constant": 1.414,
+          "iterations": 5000,
+          "iterations_per_ms": 20.0
+        },
+        "thinking_time_ms": 100,
+        "type": "gameplay_fast_mcts"
+      },
+      {
+        "name": "mcts_200ms",
+        "params": {
+          "deterministic_time_budget": true,
+          "exploration_constant": 1.414,
+          "iterations": 5000,
+          "iterations_per_ms": 20.0
+        },
+        "thinking_time_ms": 200,
+        "type": "gameplay_fast_mcts"
+      }
+    ],
+    "created_at": "2026-03-01T23:02:51",
+    "max_turns": 60,
+    "notes": "as-is benchmark with different thinking times",
+    "num_games": 5,
+    "output_root": "arena_runs",
+    "run_id": "20260301_230251_2b489b51",
+    "seat_policy": "round_robin",
+    "seed": 2027
+  },
+  "run_id": "20260301_230251_2b489b51",
+  "score_stats": {
+    "mcts_100ms": {
+      "count": 5,
+      "max": 85.0,
+      "mean": 70.0,
+      "median": 69.0,
+      "min": 57.0,
+      "p25": 69.0,
+      "p75": 70.0,
+      "std": 8.899438184514796
+    },
+    "mcts_200ms": {
+      "count": 5,
+      "max": 79.0,
+      "mean": 70.0,
+      "median": 75.0,
+      "min": 51.0,
+      "p25": 66.0,
+      "p75": 79.0,
+      "std": 10.620734437881403
+    },
+    "mcts_25ms": {
+      "count": 5,
+      "max": 84.0,
+      "mean": 81.2,
+      "median": 81.0,
+      "min": 78.0,
+      "p25": 81.0,
+      "p75": 82.0,
+      "std": 1.9390719429665317
+    },
+    "mcts_50ms": {
+      "count": 5,
+      "max": 82.0,
+      "mean": 72.6,
+      "median": 73.0,
+      "min": 66.0,
+      "p25": 66.0,
+      "p75": 76.0,
+      "std": 6.118823416311342
+    }
+  },
+  "seat_policy": "round_robin",
+  "seed": 2027,
+  "time_sim_efficiency": {
+    "mcts_100ms": {
+      "avg_budget_utilization": 3.603380281690141,
+      "avg_simulations_per_move": 1971.8450704225352,
+      "avg_time_ms_per_move": 360.3380281690141,
+      "configured_thinking_time_ms": 100.0,
+      "moves": 71.0,
+      "score_per_second": 194.2620387742339,
+      "simulations_per_second": 5472.209193245779,
+      "total_simulations": 140001.0,
+      "total_time_ms": 25584.0,
+      "win_rate_per_second": 0.5550343964978112
+    },
+    "mcts_200ms": {
+      "avg_budget_utilization": 3.567428571428571,
+      "avg_simulations_per_move": 4000.0,
+      "avg_time_ms_per_move": 713.4857142857143,
+      "configured_thinking_time_ms": 200.0,
+      "moves": 70.0,
+      "score_per_second": 98.10988306903732,
+      "simulations_per_second": 5606.279032516418,
+      "total_simulations": 280000.0,
+      "total_time_ms": 49944.0,
+      "win_rate_per_second": 0.0
+    },
+    "mcts_25ms": {
+      "avg_budget_utilization": 2.1413333333333333,
+      "avg_simulations_per_move": 500.0,
+      "avg_time_ms_per_move": 53.53333333333333,
+      "configured_thinking_time_ms": 25.0,
+      "moves": 75.0,
+      "score_per_second": 1516.8119551681198,
+      "simulations_per_second": 9339.975093399751,
+      "total_simulations": 37500.0,
+      "total_time_ms": 4015.0,
+      "win_rate_per_second": 11.207970112079702
+    },
+    "mcts_50ms": {
+      "avg_budget_utilization": 2.937777777777778,
+      "avg_simulations_per_move": 1000.0,
+      "avg_time_ms_per_move": 146.88888888888889,
+      "configured_thinking_time_ms": 50.0,
+      "moves": 72.0,
+      "score_per_second": 494.2511346444781,
+      "simulations_per_second": 6807.86686838124,
+      "total_simulations": 72000.0,
+      "total_time_ms": 10576.0,
+      "win_rate_per_second": 1.3615733736762483
+    }
+  },
+  "win_stats": {
+    "mcts_100ms": {
+      "games_played": 5.0,
+      "outright_wins": 1.0,
+      "shared_wins": 0.0,
+      "win_points": 1.0,
+      "win_rate": 0.2
+    },
+    "mcts_200ms": {
+      "games_played": 5.0,
+      "outright_wins": 0.0,
+      "shared_wins": 0.0,
+      "win_points": 0.0,
+      "win_rate": 0.0
+    },
+    "mcts_25ms": {
+      "games_played": 5.0,
+      "outright_wins": 3.0,
+      "shared_wins": 0.0,
+      "win_points": 3.0,
+      "win_rate": 0.6
+    },
+    "mcts_50ms": {
+      "games_played": 5.0,
+      "outright_wins": 1.0,
+      "shared_wins": 0.0,
+      "win_points": 1.0,
+      "win_rate": 0.2
+    }
+  },
+  "wins_by_seat": {
+    "mcts_100ms": {
+      "0": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "1": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "2": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      },
+      "3": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    },
+    "mcts_200ms": {
+      "0": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "1": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "2": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "3": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    },
+    "mcts_25ms": {
+      "0": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "1": {
+        "games": 1,
+        "win_points": 1.0,
+        "win_rate": 1.0
+      },
+      "2": {
+        "games": 1,
+        "win_points": 1.0,
+        "win_rate": 1.0
+      },
+      "3": {
+        "games": 1,
+        "win_points": 1.0,
+        "win_rate": 1.0
+      }
+    },
+    "mcts_50ms": {
+      "0": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "1": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      },
+      "2": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "3": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    }
+  }
+}
