@@ -226,10 +226,10 @@ export const MergedAnalysisPanel: React.FC = () => {
         : `Move ${currentSliderTurn || totalTurns}/${totalTurns}`;
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar flex flex-col gap-4 p-4 bg-charcoal-900">
+        <div className="h-full overflow-y-auto custom-scrollbar p-4 space-y-4 bg-charcoal-900">
 
             {/* ─── GLOBAL MOVE SLIDER ─── */}
-            <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-3 shrink-0">
+            <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
                     <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">Timeline</span>
                     <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export const MergedAnalysisPanel: React.FC = () => {
                             </div>
 
                             {/* Radar + Timeline */}
-                            <div className="flex gap-3 h-[240px]">
+                            <div className="flex gap-3" style={{ height: 240 }}>
                                 <div className="flex-1 bg-charcoal-800 border border-charcoal-700 rounded-lg p-3">
                                     <RadarDeltaChart telemetry={selectedMove.telemetry} showOpponents={!perOpponent} />
                                 </div>
