@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
-    PieChart, Pie, Cell
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { calculateDashboardMetrics, calculateWinProbability, DashboardMetrics } from '../utils/dashboardMetrics';
 
@@ -115,46 +114,31 @@ export const AnalysisDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* 3-Column Layout */}
-            <div className="flex-1 p-3 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 overflow-y-auto">
+            {/* Overhauled Layout */}
+            <div className="flex-1 p-3 flex flex-col gap-3 min-h-0 overflow-y-auto">
 
-                {/* LEFT COLUMN: Predictive Line Charts */}
-                <div className="lg:col-span-6 flex flex-col gap-3 min-h-0">
-                    <SectionTitle title="Predictive Line Charts" />
+                {/* TOP ROW: Grids, Impact, Leaderboard */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 shrink-0">
 
-                    <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
-                        <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
-                    </div>
-
-                    <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
-                        <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
-                    </div>
-
-                    <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
-                        <ModuleF_UrgencyChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
-                    </div>
-                </div>
-
-                {/* CENTER COLUMN: Spatial Visualizations */}
-                <div className="lg:col-span-3 flex flex-col gap-3 min-h-0">
-                    <div className="flex justify-between items-center bg-charcoal-800 border-l-[3px] border-neon-blue rounded-r px-3 py-1.5 shrink-0 shadow-sm">
-                        <h3 className="text-xs font-bold text-gray-300 uppercase tracking-widest">Spatial Analysis</h3>
-                        <div className="flex gap-1">
-                            {[1, 2, 3, 4].map(p => (
-                                <button
-                                    key={p}
-                                    onClick={() => setSelectedPlayer(p)}
-                                    className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-all ${selectedPlayer === p ? 'ring-2 ring-white scale-110' : 'opacity-50 hover:opacity-100'}`}
-                                    style={{ backgroundColor: PLAYER_COLORS[p] }}
-                                >
-                                    {PLAYER_NAMES[p][0]}
-                                </button>
-                            ))}
+                    {/* LEFT COLUMN: Spatial Visualizations (4) */}
+                    <div className="lg:col-span-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-center bg-charcoal-800 border-l-[3px] border-neon-blue rounded-r px-3 py-1.5 shrink-0 shadow-sm">
+                            <h3 className="text-xs font-bold text-gray-300 uppercase tracking-widest">Spatial Analysis</h3>
+                            <div className="flex gap-1">
+                                {[1, 2, 3, 4].map(p => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setSelectedPlayer(p)}
+                                        className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-all ${selectedPlayer === p ? 'ring-2 ring-white scale-110' : 'opacity-50 hover:opacity-100'}`}
+                                        style={{ backgroundColor: PLAYER_COLORS[p] }}
+                                    >
+                                        {PLAYER_NAMES[p][0]}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto custom-scrollbar pr-1">
-                        <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col min-h-[220px] hover:border-gray-600 transition-colors">
+                        <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col h-[260px] hover:border-gray-600 transition-colors">
                             <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Frontier (Usable Corners)</h3>
                             <FrontierMap
                                 frontiers={metrics.frontiers}
@@ -167,73 +151,32 @@ export const AnalysisDashboard: React.FC = () => {
                             />
                         </div>
 
-                        <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col min-h-[220px] hover:border-gray-600 transition-colors">
+                        <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col h-[260px] hover:border-gray-600 transition-colors">
                             <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Endgame Dead-Zones</h3>
                             <DeadZoneMap deadZones={metrics.deadZones} boardState={currentBoard} selectedPlayer={selectedPlayer} />
                         </div>
                     </div>
-                </div>
 
-                {/* RIGHT COLUMN: Game State & Player Status */}
-                <div className="lg:col-span-3 flex flex-col gap-3 min-h-0">
-                    <SectionTitle title="Game State & Player Status" />
-
-                    <div className="shrink-0 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 hover:border-gray-600 transition-colors">
-                        <PiecesRemainingTable remainingPieces={activeTurnData?.metrics?.remaining_pieces} />
+                    {/* CENTER COLUMN: Move Impact Analysis (4) */}
+                    <div className="lg:col-span-4 flex flex-col gap-3">
+                        <MoveImpactAnalysis gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} />
                     </div>
 
-                    <div className="flex-1 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 min-h-[150px] hover:border-gray-600 transition-colors">
-                        <TerritoryControlChart influenceMap={metrics.influenceMap} />
-                    </div>
-
-                    <div className="shrink-0 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 hover:border-gray-600 transition-colors">
-                        <PlayerStatusSummary
-                            gameState={gameState}
-                            metrics={metrics}
-                            remainingPieces={activeTurnData?.metrics?.remaining_pieces}
-                            pieceLockRisk={activeTurnData?.metrics?.piece_lock_risk || gameState?.piece_lock_risk}
-                        />
-                    </div>
-
-                    <div className="shrink-0 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 hover:border-gray-600 transition-colors">
-                        <SelfBlockRiskCard selfBlockRisk={gameState?.self_block_risk} />
+                    {/* RIGHT COLUMN: Player Leaderboard (4) */}
+                    <div className="lg:col-span-4 flex flex-col gap-3">
+                        <PlayerLeaderboard gameState={gameState} metrics={metrics} winProbs={winProbs} remainingPieces={activeTurnData?.metrics?.remaining_pieces} />
                     </div>
                 </div>
 
+                {/* BOTTOM ROW: Tabbed Charts */}
+                <div className="shrink-0 h-[300px] mb-4">
+                    <TabbedCharts gameHistory={gameHistory} currentSliderTurn={currentSliderTurn || totalTurns} xAxisMode={xAxisMode} />
+                </div>
             </div>
-
-            {/* BOTTOM ROW: Win Probability */}
-            {winProbs && (
-                <div className="shrink-0 p-3 mt-auto mb-2 mx-3 bg-charcoal-800 border border-charcoal-700 rounded-lg flex items-center gap-4 hover:border-gray-600 transition-colors">
-                    <div className="w-48 shrink-0">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Win Probability</span>
-                    </div>
-                    <div className="flex-1 h-6 flex rounded-full overflow-hidden bg-slate-800">
-                        {[1, 2, 3, 4].map(p => {
-                            const width = `${(winProbs[p] * 100).toFixed(1)}%`;
-                            return winProbs[p] > 0 ? (
-                                <div
-                                    key={p}
-                                    style={{ width, backgroundColor: PLAYER_COLORS[p] }}
-                                    className="h-full flex items-center justify-center text-[10px] font-bold shadow-[inset_0_2px_4px_rgba(255,255,255,0.2)] transition-all duration-500"
-                                    title={`${PLAYER_NAMES[p]}: ${width}`}
-                                >
-                                    {winProbs[p] > 0.1 ? width : ''}
-                                </div>
-                            ) : null;
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
 
-const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
-    <div className="bg-charcoal-800 border-l-[3px] border-neon-blue rounded-r px-3 py-1.5 shrink-0 shadow-sm">
-        <h3 className="text-xs font-bold text-gray-300 uppercase tracking-widest">{title}</h3>
-    </div>
-);
 
 // --- Subcomponents for the dashboard ---
 
@@ -391,165 +334,230 @@ const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState
     );
 };
 
-const TerritoryControlChart: React.FC<{ influenceMap: number[][] }> = ({ influenceMap }) => {
-    const data = useMemo(() => {
-        const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 0: 0 };
-        influenceMap.forEach(row => row.forEach(val => {
-            if (val >= 0 && counts[val as keyof typeof counts] !== undefined) {
-                counts[val as keyof typeof counts]++;
-            }
-        }));
+const getPieceSize = (id: number) => {
+    if (!id) return 0;
+    if (id === 1) return 1;
+    if (id === 2) return 2;
+    if (id <= 4) return 3;
+    if (id <= 9) return 4;
+    return 5;
+};
 
-        return [1, 2, 3, 4].map(p => ({
-            name: PLAYER_NAMES[p],
-            value: counts[p as keyof typeof counts],
-            fill: PLAYER_COLORS[p]
-        })).filter(d => d.value > 0);
-    }, [influenceMap]);
+const MoveImpactAnalysis: React.FC<{
+    gameHistory: any[],
+    currentTurn: number
+}> = ({ gameHistory, currentTurn }) => {
+    const idx = Math.max(0, currentTurn - 1);
+    const currEntry = gameHistory[idx];
+    const prevEntry = idx > 0 ? gameHistory[idx - 1] : null;
+
+    if (!currEntry) {
+        return (
+            <div className="flex flex-col h-full bg-charcoal-800 border border-charcoal-700 rounded-lg p-4 justify-center items-center text-slate-500 text-xs hover:border-gray-600 transition-colors">
+                Waiting for moves...
+            </div>
+        );
+    }
+
+    const player = currEntry.player_to_move;
+    const pieceId = currEntry.action?.piece_id;
+    const pieceSize = getPieceSize(pieceId);
+
+    // Compute Deltas
+    let mobilityDeltaStr = '-';
+    let blockStr = '-';
+    let isPositiveMobility = false;
+    let isNegativeMobility = false;
+
+    if (prevEntry) {
+        const currMobility = currEntry.metrics?.frontier_size?.[player] || 0;
+        const prevMobility = prevEntry.metrics?.frontier_size?.[player] || 0;
+        const diff = currMobility - prevMobility;
+        if (diff > 0) {
+            mobilityDeltaStr = `+${diff} Corners`;
+            isPositiveMobility = true;
+        } else if (diff < 0) {
+            mobilityDeltaStr = `${diff} Corners`;
+            isNegativeMobility = true;
+        } else {
+            mobilityDeltaStr = `No Change`;
+        }
+
+        let totalBlocked = 0;
+        for (const p of ['RED', 'BLUE', 'YELLOW', 'GREEN']) {
+            if (p !== player) {
+                const c = currEntry.metrics?.frontier_size?.[p] || 0;
+                const pr = prevEntry.metrics?.frontier_size?.[p] || 0;
+                if (pr - c > 0) {
+                    totalBlocked += (pr - c);
+                }
+            }
+        }
+        if (totalBlocked > 0) {
+            blockStr = `Blocked ${totalBlocked} Opponent Corners`;
+        } else {
+            blockStr = `No Opponents Blocked`;
+        }
+    }
 
     return (
-        <div className="flex flex-col h-full items-center">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase text-center shrink-0 mb-1">Territory Control (Influence)</h3>
-            <div className="flex-1 w-full min-h-[100px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Pie
-                            data={data}
-                            innerRadius="60%"
-                            outerRadius="90%"
-                            paddingAngle={2}
-                            dataKey="value"
-                            stroke="none"
-                        >
-                            {data.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                        </Pie>
-                        <Tooltip
-                            contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px', padding: '4px 8px' }}
-                            itemStyle={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 'bold' }}
-                            formatter={(value: any) => [`${value} cells`, '']}
-                        />
-                    </PieChart>
-                </ResponsiveContainer>
+        <div className="flex flex-col h-full bg-charcoal-800 border border-charcoal-700 rounded-lg overflow-hidden hover:border-gray-600 transition-colors">
+            <h3 className="text-[10px] font-bold text-gray-300 uppercase tracking-widest bg-charcoal-800 border-b border-charcoal-700 px-3 py-2 shrink-0 flex items-center gap-2">
+                <svg className="w-3 h-3 text-neon-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Move Impact (Turn {currentTurn})
+            </h3>
+
+            <div className="p-4 flex flex-col gap-5 flex-1 overflow-y-auto custom-scrollbar">
+                <div>
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1 font-bold">Action Taken</span>
+                    <div className="text-[15px] font-bold text-gray-200 bg-charcoal-900 border border-charcoal-700 rounded p-3 flex items-center justify-between shadow-inner">
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: PLAYER_COLORS[PLAYER_KEYS[player]] }}></div>
+                            <span style={{ color: PLAYER_COLORS[PLAYER_KEYS[player]] }}>{player}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span>Placed Piece {pieceId}</span>
+                            <span className="text-[11px] font-normal text-gray-500 uppercase tracking-wider bg-charcoal-800 px-1.5 py-0.5 rounded">+{pieceSize} Score</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-charcoal-900 border border-charcoal-700 rounded p-3 shadow-sm flex flex-col justify-center">
+                        <span className="text-[9px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">Mobility Delta</span>
+                        <div className={`text-[13px] font-bold ${isPositiveMobility ? 'text-green-400' : isNegativeMobility ? 'text-red-400' : 'text-gray-300'}`}>
+                            {prevEntry ? (isPositiveMobility ? '▲ ' : isNegativeMobility ? '▼ ' : '') + mobilityDeltaStr : 'Baseline Set'}
+                        </div>
+                    </div>
+
+                    <div className="bg-charcoal-900 border border-charcoal-700 rounded p-3 shadow-sm flex flex-col justify-center">
+                        <span className="text-[9px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">Defensive Impact</span>
+                        <div className={`text-[12px] font-bold leading-tight ${blockStr.includes('Blocked ') ? 'text-blue-400' : 'text-gray-400'}`}>
+                            {prevEntry ? blockStr : '-'}
+                        </div>
+                    </div>
+                </div>
+
+                {prevEntry && (
+                    <div className="mt-auto text-[12px] text-gray-300 leading-relaxed bg-blue-900/10 border border-blue-900/40 p-3 rounded">
+                        <strong className="text-neon-blue uppercase text-[10px] tracking-widest mb-1 block">Analysis</strong>
+                        This move {isPositiveMobility ? 'successfully expanded' : 'reduced'} {player}'s future placement options{blockStr.includes('Blocked ') ? <><span className="text-blue-400 font-bold"> and successfully restricted opponent mobility</span> by eliminating {blockStr.replace(/\D/g, '')} legal corners.</> : ", but failed to exert defensive pressure on opponents."}
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
-const PiecesRemainingTable: React.FC<{ remainingPieces?: Record<string, number[]> }> = ({ remainingPieces }) => {
-    // Blokus tile sizes from standard 21 pieces:
-    // 1 square: piece 1
-    // 2 squares: piece 2
-    // 3 squares: pieces 3,4
-    // 4 squares: pieces 5-9
-    // 5 squares: pieces 10-21
-    const getPieceSize = (id: number) => {
-        if (id === 1) return 1;
-        if (id === 2) return 2;
-        if (id <= 4) return 3;
-        if (id <= 9) return 4;
-        return 5;
+const PlayerLeaderboard: React.FC<{
+    gameState: any,
+    metrics: DashboardMetrics,
+    winProbs: Record<number, number> | null,
+    remainingPieces?: Record<string, number[]>,
+}> = ({ gameState, metrics, winProbs, remainingPieces }) => {
+    const players = [1, 2, 3, 4]; // RED, BLUE, YELLOW, GREEN
+
+    const getScore = (pName: string) => {
+        const used = gameState?.pieces_used?.[pName] || [];
+        return used.reduce((sum: number, id: number) => sum + getPieceSize(id), 0);
     };
 
-    if (!remainingPieces) return <div className="text-[10px] text-slate-500 text-center">No data</div>;
-
-    const players = ['BLUE', 'GREEN', 'YELLOW', 'RED'];
-    const pKeys = players.map(p => PLAYER_KEYS[p]); // 2, 4, 3, 1
-
-    const matrix = [1, 2, 3, 4, 5].map(size => {
-        const rowData: Record<string, any> = { size };
-        players.forEach(p => {
-            const hand = remainingPieces[p] || [];
-            const count = hand.filter(id => getPieceSize(id) === size).length;
-            rowData[p] = count;
-        });
-        return rowData;
-    });
-
-    const totals = players.map(p => {
-        const hand = remainingPieces[p] || [];
-        return hand.reduce((sum, id) => sum + getPieceSize(id), 0);
-    });
+    const getTerritory = (p: number) => {
+        let count = 0;
+        metrics.influenceMap.forEach(row => row.forEach(val => { if (val === p) count++; }));
+        return count;
+    };
 
     return (
-        <div>
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase text-center mb-2">Pieces Remaining (By Size)</h3>
-            <div className="overflow-x-auto text-[10px] font-mono">
-                <table className="w-full text-center border-collapse">
-                    <thead>
-                        <tr className="border-b border-charcoal-700">
-                            <th className="py-1 text-gray-500 font-normal">SIZE</th>
-                            {players.map((p, i) => (
-                                <th key={p} className="py-1 tracking-widest" style={{ color: PLAYER_COLORS[pKeys[i]] }}>{p}</th>
-                            ))}
+        <div className="flex flex-col h-full bg-charcoal-800 border border-charcoal-700 rounded-lg overflow-hidden hover:border-gray-600 transition-colors shadow-sm">
+            <h3 className="text-[10px] font-bold text-gray-300 uppercase tracking-widest bg-charcoal-800 border-b border-charcoal-700 px-3 py-2 shrink-0 flex justify-between items-center">
+                <span>Player Leaderboard</span>
+                {winProbs && <span className="text-[9px] text-neon-blue font-normal lowercase tracking-normal bg-charcoal-900 px-1.5 py-0.5 rounded border border-charcoal-600">heuristic</span>}
+            </h3>
+            <div className="flex-1 overflow-x-auto overflow-y-auto">
+                <table className="w-full text-center border-collapse text-[11px] font-mono h-full">
+                    <thead className="sticky top-0 bg-charcoal-900 z-10 shadow-sm border-b border-charcoal-700">
+                        <tr className="text-gray-400 uppercase tracking-wider text-[9px]">
+                            <th className="py-2.5 px-3 text-left font-bold">Player</th>
+                            <th className="py-2.5 px-2 font-bold" title="Score (Squares Placed)">Score</th>
+                            <th className="py-2.5 px-2 font-bold" title="Pieces Remaining in Hand">Pieces</th>
+                            <th className="py-2.5 px-2 font-bold" title="Usable Frontier Corners (Mobility)">Frontier</th>
+                            <th className="py-2.5 px-2 font-bold" title="Controlled Voronoi Territory">Territory</th>
+                            <th className="py-2.5 px-3 font-bold text-right" title="Heuristic Win Probability">Win Prob</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {matrix.map(row => (
-                            <tr key={row.size} className="border-b border-charcoal-700/50 hover:bg-white/5 transition-colors">
-                                <td className="py-1 text-gray-400">{row.size}</td>
-                                {players.map(p => (
-                                    <td key={p} className="py-1 text-slate-300">{row[p]}</td>
-                                ))}
-                            </tr>
-                        ))}
+                    <tbody className="bg-charcoal-800">
+                        {players.map((p, i) => {
+                            const pName = PLAYER_NAMES[p];
+                            const score = getScore(pName);
+                            const handSize = remainingPieces && Array.isArray(remainingPieces[pName]) ? remainingPieces[pName].length : 21;
+                            const fSize = metrics.frontiers[p].length;
+                            const territory = getTerritory(p);
+                            const winProb = winProbs ? (winProbs[p] * 100).toFixed(1) + '%' : '-';
+
+                            // Leader highlighting check
+                            const isLeader = winProbs ? winProbs[p] === Math.max(...Object.values(winProbs)) : false;
+
+                            return (
+                                <tr key={p} className={`border-b ${i === 3 ? 'border-transparent' : 'border-charcoal-700/50'} hover:bg-white/5 transition-colors ${isLeader ? 'bg-blue-900/10' : ''}`}>
+                                    <td className="py-3 px-3 text-left font-bold" style={{ color: PLAYER_COLORS[p] }}>
+                                        <div className="flex items-center gap-1.5">
+                                            {isLeader && <span className="text-yellow-400">★</span>}
+                                            {pName}
+                                        </div>
+                                    </td>
+                                    <td className="py-3 px-2 text-white font-bold">{score}</td>
+                                    <td className="py-3 px-2 text-slate-400">{handSize}</td>
+                                    <td className="py-3 px-2 text-blue-300">{fSize}</td>
+                                    <td className="py-3 px-2 text-purple-300">{territory}</td>
+                                    <td className={`py-3 px-3 text-right font-bold ${isLeader ? 'text-green-400' : 'text-slate-500'}`}>{winProb}</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
-                    <tfoot>
-                        <tr className="bg-slate-800/50">
-                            <td className="py-1.5 text-slate-400 text-[9px] uppercase tracking-wider">Total Sq.</td>
-                            {totals.map((t, i) => (
-                                <td key={i} className="py-1.5 font-bold text-white">{t}</td>
-                            ))}
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
         </div>
     );
 };
 
-const PlayerStatusSummary: React.FC<{ gameState: any, metrics: DashboardMetrics, remainingPieces?: Record<string, number[]>, pieceLockRisk?: Record<string, number> }> = ({ gameState, metrics, remainingPieces, pieceLockRisk }) => {
-    const players = [2, 4, 1, 3]; // BLUE, GREEN, RED, YELLOW
+const TabbedCharts: React.FC<{
+    gameHistory: any[],
+    currentSliderTurn: number,
+    xAxisMode: 'move' | 'round'
+}> = ({ gameHistory, currentSliderTurn, xAxisMode }) => {
+    const [activeChart, setActiveChart] = useState<'mobility' | 'deadzone' | 'urgency'>('mobility');
 
     return (
-        <div>
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Player Status</h3>
-            <div className="grid grid-cols-5 text-[9px] uppercase tracking-wider text-gray-500 mb-1 px-2 text-center">
-                <div className="text-left py-1 col-span-2">Player / Agent</div>
-                <div className="py-1">Frontier</div>
-                <div className="py-1">Pieces</div>
-                <div className="py-1">Lock Risk</div>
+        <div className="flex flex-col h-full bg-charcoal-800 border border-charcoal-700 rounded-lg overflow-hidden hover:border-gray-600 transition-colors shadow-sm">
+            <div className="flex bg-charcoal-900 border-b border-charcoal-700 shrink-0">
+                <button
+                    onClick={() => setActiveChart('mobility')}
+                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeChart === 'mobility' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
+                >
+                    Corner Differential (Mobility)
+                </button>
+                <button
+                    onClick={() => setActiveChart('deadzone')}
+                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeChart === 'deadzone' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
+                >
+                    Mobility (Frontier)
+                </button>
+                <button
+                    onClick={() => setActiveChart('urgency')}
+                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeChart === 'urgency' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
+                >
+                    Frontier Urgency & Threat
+                </button>
             </div>
-            <div className="flex flex-col gap-1">
-                {players.map(p => {
-                    const pName = PLAYER_NAMES[p];
-                    const fSize = metrics.frontiers[p].length;
-                    const handSize = remainingPieces && Array.isArray(remainingPieces[pName]) ? remainingPieces[pName].length : 0;
-                    const lockRisk = pieceLockRisk?.[pName] ?? 0;
-                    const config = gameState?.players?.find((pc: any) => pc.player === pName);
-                    const agentType = config?.agent_type || 'human';
-                    const diff = config?.agent_config?.difficulty;
-
-                    return (
-                        <div key={p} className="grid grid-cols-5 text-[11px] font-mono bg-charcoal-900 rounded border border-charcoal-700 px-2 py-1.5 text-center items-center h-[32px]">
-                            <div className="text-left flex flex-col justify-center leading-tight col-span-2">
-                                <div className="font-bold tracking-widest text-[10px]" style={{ color: PLAYER_COLORS[p], textShadow: `0 0 10px ${PLAYER_COLORS[p]}40` }}>{pName}</div>
-                                <div className="flex gap-1 mt-0.5">
-                                    <span className={`text-[8px] px-1 rounded-sm font-bold uppercase ${agentType === 'human' ? 'bg-slate-700 text-slate-400' : 'bg-blue-900 text-blue-400'}`}>
-                                        {agentType === 'mcts' ? (diff || 'MCTS') : agentType}
-                                    </span>
-                                    {config?.agent_config?.time_budget_ms && (
-                                        <span className="text-[8px] text-slate-500">{config.agent_config.time_budget_ms}ms</span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="text-slate-300">{fSize}</div>
-                            <div className="text-slate-300">{handSize}</div>
-                            <div className={lockRisk > 0 ? 'text-red-400 font-bold' : 'text-slate-500'}>{lockRisk}</div>
-                        </div>
-                    );
-                })}
+            <div className="flex-1 p-3 min-h-0 relative">
+                <div className="absolute inset-0 p-3 pt-5">
+                    {activeChart === 'mobility' && <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={currentSliderTurn} mode={xAxisMode} />}
+                    {activeChart === 'deadzone' && <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={currentSliderTurn} mode={xAxisMode} />}
+                    {activeChart === 'urgency' && <ModuleF_UrgencyChart gameHistory={gameHistory} currentTurn={currentSliderTurn} mode={xAxisMode} />}
+                </div>
             </div>
         </div>
     );
@@ -753,38 +761,3 @@ export const ModuleF_UrgencyChart: React.FC<{ gameHistory: any[]; currentTurn: n
     );
 });
 
-const SelfBlockRiskCard: React.FC<{ selfBlockRisk?: { top_moves: Array<{ piece_id: number; risk: number; clusters_touched: number; frontier_points_used: number }> } }> = ({ selfBlockRisk }) => {
-    const moves = selfBlockRisk?.top_moves?.slice(0, 5) || [];
-
-    return (
-        <div>
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Self-Block Risk (Current Player)</h3>
-            {moves.length === 0 ? (
-                <div className="text-[10px] text-slate-500 text-center py-2">No risky moves detected</div>
-            ) : (
-                <div className="overflow-x-auto text-[10px] font-mono">
-                    <table className="w-full text-center border-collapse">
-                        <thead>
-                            <tr className="border-b border-charcoal-700">
-                                <th className="py-1 text-gray-500 font-normal">Piece</th>
-                                <th className="py-1 text-gray-500 font-normal">Risk</th>
-                                <th className="py-1 text-gray-500 font-normal">Clusters</th>
-                                <th className="py-1 text-gray-500 font-normal">Frontiers</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {moves.map((m, i) => (
-                                <tr key={i} className="border-b border-charcoal-700/50 hover:bg-white/5 transition-colors">
-                                    <td className="py-1 text-slate-300">P{m.piece_id}</td>
-                                    <td className={`py-1 font-bold ${m.risk >= 6 ? 'text-red-400' : m.risk >= 3 ? 'text-orange-400' : 'text-yellow-400'}`}>{m.risk}</td>
-                                    <td className="py-1 text-slate-400">{m.clusters_touched}</td>
-                                    <td className="py-1 text-slate-400">{m.frontier_points_used}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-        </div>
-    );
-};
