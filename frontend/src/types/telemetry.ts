@@ -26,6 +26,9 @@ export interface MoveTelemetryDelta {
     deltaOppTotal: Record<MetricKey, number>;
     deltaOppByPlayer: Record<string, Record<MetricKey, number>>;
     impactScore?: number;
+    // Raw snapshots, stored alongside deltas by the engine for radar-chart use
+    before?: PlayerMetricSnapshot[];
+    after?: PlayerMetricSnapshot[];
 }
 
 export interface GameTelemetry {

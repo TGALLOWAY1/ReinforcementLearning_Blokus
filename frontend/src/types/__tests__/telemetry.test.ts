@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     isMoveTelemetryDelta,
-    isGameTelemetry,
-    MoveTelemetryDelta,
-    GameTelemetry
+    isGameTelemetry
 } from '../telemetry';
 
 describe('Telemetry Type Guards', () => {

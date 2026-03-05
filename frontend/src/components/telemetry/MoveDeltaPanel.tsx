@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { DivergingBarChart } from './charts/DivergingBarChart';
+import { RadarDeltaChart } from './charts/RadarDeltaChart';
+import { CumulativeTimelineChart } from './charts/CumulativeTimelineChart';
 
 export const MoveDeltaPanel: React.FC = () => {
     const gameState = useGameStore((s) => s.gameState);
@@ -7,6 +10,7 @@ export const MoveDeltaPanel: React.FC = () => {
     // UI State for selected move 
     const [selectedPly, setSelectedPly] = useState<number>(0);
     const [showRaw, setShowRaw] = useState<boolean>(false);
+    const [perOpponent, setPerOpponent] = useState<boolean>(false);
 
     // Check if we are connected
     if (!gameState) {
@@ -71,6 +75,12 @@ export const MoveDeltaPanel: React.FC = () => {
                     >
                         {showRaw ? 'Raw' : 'Normalized'}
                     </button>
+                    <button
+                        onClick={() => setPerOpponent(!perOpponent)}
+                        className={`px-3 py-1 text-xs rounded-full transition-colors ${perOpponent ? 'bg-neon-yellow text-charcoal-900 font-bold' : 'bg-charcoal-700 text-gray-300 hover:bg-charcoal-600'}`}
+                    >
+                        {perOpponent ? 'Per Opponent' : 'Aggregate Opp'}
+                    </button>
                 </div>
             </div>
 
@@ -112,12 +122,32 @@ export const MoveDeltaPanel: React.FC = () => {
             </div>
 
             {/* Charts Area */}
-            <div className="flex-1 bg-charcoal-800 rounded-lg border border-charcoal-700 flex items-center justify-center min-h-[300px]">
-                <p className="text-gray-400 px-4 text-center">
-                    Selected ply: <span className="font-mono text-neon-blue">{selectedMove?.telemetry?.ply}</span><br />
-                    <span className="text-xs">(Charts implementation next)</span>
-                </p>
-            </div>
+            {selectedMove?.telemetry && (
+                <div className="flex-1 space-y-4">
+                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3 h-[300px]">
+                        <DivergingBarChart
+                            telemetry={selectedMove.telemetry}
+                            showRaw={showRaw}
+                            perOpponent={perOpponent}
+                        />
+                    </div>
+
+                    <div className="flex gap-4 h-[300px]">
+                        <div className="flex-1 bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                            <RadarDeltaChart
+                                telemetry={selectedMove.telemetry}
+                                showOpponents={!perOpponent}
+                            />
+                        </div>
+                        <div className="flex-1 bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                            <CumulativeTimelineChart
+                                gameHistory={gameHistory}
+                                currentPly={selectedMove.telemetry.ply}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
