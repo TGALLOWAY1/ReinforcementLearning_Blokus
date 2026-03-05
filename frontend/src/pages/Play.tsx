@@ -31,6 +31,7 @@ export const Play: React.FC = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogConsole, setShowLogConsole] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
+  const [showPieceTray, setShowPieceTray] = useState(true);
   const isTelemetryOpen = useGameStore(s => s.activeRightTab === 'telemetry');
   const boardOverlay = useGameStore(s => s.boardOverlay);
 
@@ -253,16 +254,30 @@ export const Play: React.FC = () => {
 
   return (
     <div className="fixed h-screen w-screen bg-charcoal-900 flex overflow-hidden pr-4">
-      {/* Left Column - PieceTray */}
-      <aside className="w-80 border-r border-charcoal-700 bg-charcoal-900 flex flex-col overflow-y-auto">
-        <PieceTray
-          onPieceSelect={selectPiece}
-          selectedPiece={selectedPiece}
-          pieceOrientation={pieceOrientation}
-          setPieceOrientation={setPieceOrientation}
-          gameState={gameState}
-        />
-      </aside>
+      {/* Left Column - PieceTray (collapsible) */}
+      {showPieceTray && (
+        <aside className="w-80 border-r border-charcoal-700 bg-charcoal-900 flex flex-col overflow-y-auto">
+          <PieceTray
+            onPieceSelect={selectPiece}
+            selectedPiece={selectedPiece}
+            pieceOrientation={pieceOrientation}
+            setPieceOrientation={setPieceOrientation}
+            gameState={gameState}
+          />
+        </aside>
+      )}
+
+      {/* Tray toggle tab */}
+      <button
+        onClick={() => setShowPieceTray(v => !v)}
+        className="self-center z-10 flex-none bg-charcoal-800 border border-charcoal-700 hover:border-neon-blue text-gray-400 hover:text-neon-blue rounded-r-lg px-0.5 py-3 transition-colors"
+        title={showPieceTray ? 'Hide piece tray' : 'Show piece tray'}
+      >
+        <svg className="w-3 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d={showPieceTray ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'} />
+        </svg>
+      </button>
 
       {/* Center Column - Board and Log Console */}
       <main className="flex-1 flex flex-col overflow-hidden">
