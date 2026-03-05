@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { DivergingBarChart } from './charts/DivergingBarChart';
 import { RadarDeltaChart } from './charts/RadarDeltaChart';
@@ -7,6 +7,8 @@ import { MoveImpactWaterfall } from './charts/MoveImpactWaterfall';
 import { TopMovesLeaderboard } from './charts/TopMovesLeaderboard';
 import { WeightPreset, NormalizationMethod } from '../../utils/moveImpactScore';
 import { MoveTelemetryDelta } from '../../types/telemetry';
+import { OpponentSuppressionMultiples } from './charts/OpponentSuppressionMultiples';
+import { StrategyMixPanel } from './StrategyMixPanel';
 
 const PRESETS: { label: string; value: WeightPreset }[] = [
     { label: 'Balanced', value: 'balanced' },
@@ -24,6 +26,9 @@ export const MoveDeltaPanel: React.FC = () => {
     const [perOpponent, setPerOpponent] = useState<boolean>(false);
     const [preset, setPreset] = useState<WeightPreset>('balanced');
     const [normalization] = useState<NormalizationMethod>('z-score');
+    const [strategyPlayer, setStrategyPlayer] = useState<string>('');
+    const [showOverlay, setShowOverlay] = useState<boolean>(false);
+    const setBoardOverlay = useGameStore((s) => s.setBoardOverlay);
 
     if (!gameState) {
         return (
@@ -34,7 +39,7 @@ export const MoveDeltaPanel: React.FC = () => {
     }
 
     const gameHistory = gameState.game_history || [];
-    const winner = (gameState as any).winner;
+    const winner: string = (gameState as any).winner ?? '';
 
     const movesWithTelemetry = useMemo(() => {
         return gameHistory
@@ -75,6 +80,34 @@ export const MoveDeltaPanel: React.FC = () => {
         setSelectedPly(movesWithTelemetry[parseInt(e.target.value, 10)].telemetry.ply);
     };
 
+    // Board overlay: compute cells that changed between before/after board states
+    useEffect(() => {
+        if (!showOverlay || !selectedMove) {
+            setBoardOverlay(null);
+            return;
+        }
+        const moveIdx = selectedMove.originalIndex;
+        const current = gameHistory[moveIdx];
+        const prev = moveIdx > 0 ? gameHistory[moveIdx - 1] : null;
+        const boardAfter: number[][] = current?.board_state;
+        const boardBefore: number[][] = prev?.board_state ?? Array(20).fill(0).map(() => Array(20).fill(0));
+        if (!boardAfter || !boardBefore) { setBoardOverlay(null); return; }
+
+        const overlay: Record<string, { color: string; opacity: number }> = {};
+        const MOVER_COLOR = '#ffffff';
+        for (let r = 0; r < boardAfter.length; r++) {
+            for (let c = 0; c < (boardAfter[r]?.length ?? 0); c++) {
+                const before = boardBefore[r]?.[c] ?? 0;
+                const after = boardAfter[r]?.[c] ?? 0;
+                if (after !== before && after !== 0) {
+                    overlay[`${r}-${c}`] = { color: MOVER_COLOR, opacity: 0.5 };
+                }
+            }
+        }
+        setBoardOverlay(Object.keys(overlay).length > 0 ? overlay : null);
+        return () => setBoardOverlay(null);
+    }, [showOverlay, selectedMove, gameHistory, setBoardOverlay]);
+
     return (
         <div className="h-full flex flex-col p-4 space-y-4 overflow-y-auto">
             {/* Header + Controls */}
@@ -101,6 +134,13 @@ export const MoveDeltaPanel: React.FC = () => {
                         className={`px-3 py-1 text-xs rounded-full transition-colors ${perOpponent ? 'bg-yellow-500 text-charcoal-900 font-bold' : 'bg-charcoal-700 text-gray-300 hover:bg-charcoal-600'}`}
                     >
                         {perOpponent ? 'Per Opponent' : 'Agg. Opp'}
+                    </button>
+                    <button
+                        onClick={() => setShowOverlay(v => !v)}
+                        className={`px-3 py-1 text-xs rounded-full transition-colors ${showOverlay ? 'bg-emerald-500 text-white font-bold' : 'bg-charcoal-700 text-gray-300 hover:bg-charcoal-600'}`}
+                        title="Highlight cells changed by this move on the board"
+                    >
+                        🗺 Overlay
                     </button>
                 </div>
             </div>
@@ -185,6 +225,40 @@ export const MoveDeltaPanel: React.FC = () => {
                             winnerId={winner}
                             selectedPly={selectedMove.telemetry.ply}
                             onSelectPly={setSelectedPly}
+                        />
+                    </div>
+
+                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                        {/* Strategy Mix — player selector */}
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xs text-gray-400 shrink-0">Strategy for:</span>
+                            {Array.from(new Set(allTelemetry.map(m => m.moverId))).map(pid => (
+                                <button
+                                    key={pid}
+                                    onClick={() => setStrategyPlayer(pid)}
+                                    className={`px-2 py-0.5 text-xs rounded-full transition-colors ${(strategyPlayer || winner || allTelemetry[0]?.moverId) === pid
+                                        ? 'bg-blue-500 text-white font-bold'
+                                        : 'bg-charcoal-700 text-gray-300 hover:bg-charcoal-600'
+                                        }`}
+                                >
+                                    {pid}
+                                </button>
+                            ))}
+                        </div>
+                        <StrategyMixPanel
+                            allMoves={allTelemetry}
+                            playerId={strategyPlayer || winner || selectedMove.telemetry.moverId}
+                            preset={preset}
+                            normalization={normalization}
+                            onSelectPly={setSelectedPly}
+                        />
+                    </div>
+
+                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                        <OpponentSuppressionMultiples
+                            allMoves={allTelemetry}
+                            currentPly={selectedMove.telemetry.ply}
+                            moverId={selectedMove.telemetry.moverId}
                         />
                     </div>
                 </div>

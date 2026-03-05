@@ -31,6 +31,7 @@ export const Play: React.FC = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogConsole, setShowLogConsole] = useState(false);
   const isTelemetryOpen = useGameStore(s => s.activeRightTab === 'telemetry');
+  const boardOverlay = useGameStore(s => s.boardOverlay);
 
   // Resizable Right Panel logic
   const [rightPanelWidth, setRightPanelWidth] = useState(800);
@@ -458,6 +459,7 @@ export const Play: React.FC = () => {
             onCellHover={handleCellHover}
             selectedPiece={selectedPiece}
             pieceOrientation={pieceOrientation}
+            overlayMap={boardOverlay ?? undefined}
           />
         </div>
       </main>
