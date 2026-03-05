@@ -7,7 +7,6 @@ import {
     PolarRadiusAxis,
     ResponsiveContainer,
     Tooltip,
-    Legend
 } from 'recharts';
 import { MoveTelemetryDelta } from '../../../types/telemetry';
 
@@ -16,7 +15,7 @@ interface RadarDeltaChartProps {
     showOpponents?: boolean;
 }
 
-/** Expansion (attacking) metrics — gauges how much the move grows options */
+/** Expansion (attacking) metrics — how much does the move grow options */
 const EXPANSION_METRICS: { key: string; label: string }[] = [
     { key: 'frontierSize', label: 'Frontier' },
     { key: 'mobility', label: 'Mobility' },
@@ -25,7 +24,7 @@ const EXPANSION_METRICS: { key: string; label: string }[] = [
     { key: 'effectiveFrontier', label: 'Eff. Frontier' },
 ];
 
-/** Risk / defensive metrics — gauges exposure and vulnerability */
+/** Risk / defensive metrics — exposure and vulnerability */
 const RISK_METRICS: { key: string; label: string }[] = [
     { key: 'deadSpace', label: 'Dead Space' },
     { key: 'pieceLockRisk', label: 'Lock Risk' },
@@ -70,52 +69,63 @@ function buildRadarData(
     });
 }
 
+/** Smart number formatter: integer if all values are whole numbers */
+function fmtRadar(v: number, allVals: number[]): string {
+    const allInt = allVals.every(x => Number.isInteger(x));
+    return allInt ? String(Math.round(v)) : v.toFixed(1);
+}
+
 const MiniRadar: React.FC<{
     title: string;
     data: any[];
     moverColor: string;
     moverId: string;
     showOpponents: boolean;
-}> = ({ title, data, moverColor, moverId, showOpponents }) => (
-    <div className="flex-1 flex flex-col min-w-0">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center mb-1 shrink-0">
-            {title}
-        </p>
-        <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="72%" data={data}>
-                    <PolarGrid stroke="#374151" />
-                    <PolarAngleAxis
-                        dataKey="metric"
-                        tick={{ fill: '#9ca3af', fontSize: 10 }}
-                    />
-                    <PolarRadiusAxis
-                        angle={30}
-                        domain={['auto', 'auto']}
-                        tick={{ fill: '#6b7280', fontSize: 9 }}
-                        tickCount={3}
-                    />
-                    <Tooltip
-                        contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#f3f4f6', fontSize: 11 }}
-                        itemStyle={{ color: '#e5e7eb' }}
-                    />
-                    {showOpponents && (
-                        <>
-                            <Radar name="Opp (Before)" dataKey="OppBefore" stroke="#6b7280" fill="#6b7280" fillOpacity={0.08} strokeDasharray="3 3" dot={false} />
-                            <Radar name="Opp (After)" dataKey="OppAfter" stroke="#9ca3af" fill="#9ca3af" fillOpacity={0.25} dot={false} />
-                        </>
-                    )}
-                    <Radar name={`${moverId} Before`} dataKey="Before" stroke={moverColor} fill={moverColor} fillOpacity={0.08} strokeDasharray="4 2" dot={false} />
-                    <Radar name={`${moverId} After`} dataKey="After" stroke={moverColor} fill={moverColor} fillOpacity={0.45} dot={false} />
-                    <Legend
-                        wrapperStyle={{ fontSize: 10, color: '#9ca3af', paddingTop: 4 }}
-                        iconSize={8}
-                    />
-                </RadarChart>
-            </ResponsiveContainer>
+}> = ({ title, data, moverColor, moverId, showOpponents }) => {
+    // Collect all numeric values for integer-detection
+    const allVals = data.flatMap(d => [d.Before ?? 0, d.After ?? 0, d.OppBefore ?? 0, d.OppAfter ?? 0]);
+
+    return (
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center mb-1 shrink-0">
+                {title}
+            </p>
+            {/* Chart — takes remaining height */}
+            <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={data}>
+                        <PolarGrid stroke="#374151" />
+                        <PolarAngleAxis
+                            dataKey="metric"
+                            tick={{ fill: '#9ca3af', fontSize: 9 }}
+                        />
+                        <PolarRadiusAxis
+                            angle={30}
+                            domain={['auto', 'auto']}
+                            tick={{ fill: '#6b7280', fontSize: 8 }}
+                            tickCount={3}
+                            tickFormatter={(v) => fmtRadar(v, allVals)}
+                        />
+                        <Tooltip
+                            contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#f3f4f6', fontSize: 11 }}
+                            itemStyle={{ color: '#e5e7eb' }}
+                            formatter={(v: any) => fmtRadar(Number(v), allVals)}
+                        />
+                        {showOpponents && (
+                            <>
+                                <Radar name="Opp Before" dataKey="OppBefore" stroke="#6b7280" fill="#6b7280" fillOpacity={0.08} strokeDasharray="3 3" dot={false} />
+                                <Radar name="Opp After" dataKey="OppAfter" stroke="#9ca3af" fill="#9ca3af" fillOpacity={0.2} dot={false} />
+                            </>
+                        )}
+                        <Radar name={`${moverId} Before`} dataKey="Before" stroke={moverColor} fill={moverColor} fillOpacity={0.08} strokeDasharray="4 2" dot={false} />
+                        <Radar name={`${moverId} After`} dataKey="After" stroke={moverColor} fill={moverColor} fillOpacity={0.4} dot={false} />
+                        {/* No <Legend> — we render a shared legend below both charts */}
+                    </RadarChart>
+                </ResponsiveContainer>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 export const RadarDeltaChart: React.FC<RadarDeltaChartProps> = ({ telemetry, showOpponents = false }) => {
     const { expansionData, riskData, moverColor } = useMemo(() => {
@@ -135,9 +145,11 @@ export const RadarDeltaChart: React.FC<RadarDeltaChartProps> = ({ telemetry, sho
 
     return (
         <div className="w-full h-full flex flex-col min-h-0">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2 shrink-0">
+            <h3 className="text-sm font-semibold text-gray-300 mb-1 shrink-0">
                 Move Shape (Before vs After)
             </h3>
+
+            {/* Two mini radars side by side */}
             <div className="flex-1 flex gap-2 min-h-0">
                 <MiniRadar
                     title="Expansion"
@@ -154,6 +166,30 @@ export const RadarDeltaChart: React.FC<RadarDeltaChartProps> = ({ telemetry, sho
                     moverId={telemetry.moverId}
                     showOpponents={showOpponents}
                 />
+            </div>
+
+            {/* Shared legend — lives below both charts, no overlap */}
+            <div className="shrink-0 flex items-center justify-center gap-4 pt-1 flex-wrap">
+                <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                    <span className="inline-block w-5 h-0.5 rounded" style={{ borderTop: `1.5px dashed ${moverColor}` }} />
+                    {telemetry.moverId} Before
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                    <span className="inline-block w-5 h-1.5 rounded" style={{ backgroundColor: moverColor, opacity: 0.7 }} />
+                    {telemetry.moverId} After
+                </span>
+                {showOpponents && (
+                    <>
+                        <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                            <span className="inline-block w-5 h-0.5 rounded border-t border-dashed border-gray-500" />
+                            Opp Before
+                        </span>
+                        <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                            <span className="inline-block w-5 h-1.5 rounded bg-gray-400 opacity-60" />
+                            Opp After
+                        </span>
+                    </>
+                )}
             </div>
         </div>
     );

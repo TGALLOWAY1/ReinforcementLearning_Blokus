@@ -95,6 +95,14 @@ export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ telemetry,
         ? Object.keys(telemetry.deltaOppByPlayer)
         : [];
 
+    // Smart formatting: if every numeric value is a whole number, skip decimals
+    const allNums = chartData.flatMap(d => Object.values(d).filter(v => typeof v === 'number')) as number[];
+    const allInt = allNums.every(v => Number.isInteger(v));
+    const fmtVal = (v: number) => {
+        const s = allInt ? String(Math.round(Math.abs(v))) : Math.abs(v).toFixed(1);
+        return v > 0 ? `+${s}` : v < 0 ? `-${s}` : allInt ? '0' : '0.0';
+    };
+
     return (
         <div className="w-full h-full min-h-[300px] flex flex-col">
             <h3 className="text-sm font-semibold text-gray-300 mb-2 truncate">
@@ -109,12 +117,12 @@ export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ telemetry,
                         stackOffset="sign"
                     >
                         <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" horizontal={false} />
-                        <XAxis type="number" stroke="#9ca3af" fontSize={12} tickFormatter={(val) => val > 0 ? `+${val.toFixed(1)}` : val.toFixed(1)} />
+                        <XAxis type="number" stroke="#9ca3af" fontSize={12} tickFormatter={fmtVal} />
                         <YAxis dataKey="metric" type="category" stroke="#9ca3af" fontSize={11} width={130} />
                         <Tooltip
                             contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
                             itemStyle={{ color: '#e5e7eb' }}
-                            formatter={(value: any, name: string | undefined) => [value > 0 ? `+${Number(value).toFixed(2)}` : Number(value).toFixed(2), (name || '').replace('_Opp', '')]}
+                            formatter={(value: any, name: string | undefined) => [fmtVal(Number(value)), (name || '').replace('_Opp', '')]}
                         />
                         <ReferenceLine x={0} stroke="#9ca3af" />
 

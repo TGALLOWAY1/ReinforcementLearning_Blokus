@@ -9,6 +9,7 @@ import {
     ResponsiveContainer,
     Cell,
     ReferenceLine,
+    LabelList,
 } from 'recharts';
 import { MoveTelemetryDelta } from '../../../types/telemetry';
 import {
@@ -57,7 +58,15 @@ export const MoveImpactWaterfall: React.FC<MoveImpactWaterfallProps> = ({
         const idx = allMoves.findIndex(m => m.ply === telemetry.ply);
         const total = idx >= 0 ? scores[idx].total : 0;
 
-        return { contributions, total };
+        // Determine whether all values are integers for formatting
+        const allInt = [...contributions.map(c => c.value), total].every(v => Number.isInteger(v));
+        const fmt = (v: number, decimals = 2) => allInt ? String(Math.round(v)) : v.toFixed(decimals);
+        const fmtSigned = (v: number, decimals = 2) => {
+            const s = fmt(v, decimals);
+            return v > 0 ? `+${s}` : s;
+        };
+
+        return { contributions, total, fmtSigned, fmt };
     }, [telemetry, preset, normalization, allMoves]);
 
     return (
@@ -78,7 +87,7 @@ export const MoveImpactWaterfall: React.FC<MoveImpactWaterfallProps> = ({
                             type="number"
                             stroke="#9ca3af"
                             fontSize={11}
-                            tickFormatter={(v: any) => v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2)}
+                            tickFormatter={(v: any) => impactData.fmtSigned(v)}
                         />
                         <YAxis
                             dataKey="metric"
@@ -90,10 +99,10 @@ export const MoveImpactWaterfall: React.FC<MoveImpactWaterfallProps> = ({
                         <Tooltip
                             contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
                             itemStyle={{ color: '#e5e7eb' }}
-                            formatter={(v: any) => [v > 0 ? `+${v.toFixed(3)}` : v.toFixed(3), 'Contribution']}
+                            formatter={(v: any) => [impactData.fmtSigned(Number(v), 3), 'Contribution']}
                         />
                         <ReferenceLine x={0} stroke="#9ca3af" />
-                        <Bar dataKey="value" name="Impact">
+                        <Bar dataKey="value" name="Impact" minPointSize={2}>
                             {impactData.contributions.map((entry, index) => (
                                 <Cell
                                     key={index}
@@ -101,6 +110,13 @@ export const MoveImpactWaterfall: React.FC<MoveImpactWaterfallProps> = ({
                                     opacity={0.8}
                                 />
                             ))}
+                            <LabelList
+                                dataKey="value"
+                                position="right"
+                                formatter={(v: any) => impactData.fmtSigned(Number(v))}
+                                fill="#9ca3af"
+                                fontSize={10}
+                            />
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
@@ -109,7 +125,7 @@ export const MoveImpactWaterfall: React.FC<MoveImpactWaterfallProps> = ({
             <div className="mt-2 pt-2 border-t border-charcoal-700 flex items-center justify-between px-1">
                 <span className="text-xs text-gray-400">Total Impact Score</span>
                 <span className={`text-sm font-bold font-mono ${impactData.total >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {impactData.total >= 0 ? '+' : ''}{impactData.total.toFixed(3)}
+                    {impactData.fmtSigned(impactData.total, 3)}
                 </span>
             </div>
         </div>
