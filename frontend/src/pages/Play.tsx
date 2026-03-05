@@ -32,6 +32,8 @@ export const Play: React.FC = () => {
   const [showLogConsole, setShowLogConsole] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
   const [showPieceTray, setShowPieceTray] = useState(true);
+  // Which player's pieces the tray displays — locked to human player by default, never auto-follows
+  const [viewingPlayer, setViewingPlayer] = useState<string | null>(null);
   const isTelemetryOpen = useGameStore(s => s.activeRightTab === 'telemetry');
   const boardOverlay = useGameStore(s => s.boardOverlay);
 
@@ -84,6 +86,14 @@ export const Play: React.FC = () => {
   const playerConfig = gameState?.players?.find((p: any) => p.player === currentPlayer);
   const isHumanPlayer = playerConfig?.agent_type === 'human' || !gameState?.players; // Default to human if no player config
   const legalMovesCount = gameState?.legal_moves?.length || 0;
+
+  // Set viewingPlayer once when the game first loads (to human player's color)
+  const humanPlayerColor = gameState?.players?.find((p: any) => p.agent_type === 'human')?.player ?? null;
+  React.useEffect(() => {
+    if (humanPlayerColor && viewingPlayer === null) {
+      setViewingPlayer(humanPlayerColor);
+    }
+  }, [humanPlayerColor, viewingPlayer]);
 
   const handleCellClick = useCallback(async (row: number, col: number) => {
     if (!selectedPiece) {
@@ -263,6 +273,8 @@ export const Play: React.FC = () => {
             pieceOrientation={pieceOrientation}
             setPieceOrientation={setPieceOrientation}
             gameState={gameState}
+            viewingPlayer={viewingPlayer}
+            onViewingPlayerChange={setViewingPlayer}
           />
         </aside>
       )}

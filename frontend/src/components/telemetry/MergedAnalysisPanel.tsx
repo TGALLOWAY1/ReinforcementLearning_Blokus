@@ -10,7 +10,6 @@ import { MoveTelemetryDelta } from '../../types/telemetry';
 import { OpponentSuppressionMultiples } from './charts/OpponentSuppressionMultiples';
 import { calculateDashboardMetrics, calculateWinProbability } from '../../utils/dashboardMetrics';
 import {
-    ModuleC_CornerChart,
     ModuleE_FrontierChart,
     ModuleF_UrgencyChart,
 } from '../AnalysisDashboard';
@@ -281,9 +280,6 @@ export const MergedAnalysisPanel: React.FC = () => {
                 <div className="p-3 space-y-3">
                     <div className="h-[180px]">
                         <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
-                    </div>
-                    <div className="h-[180px]">
-                        <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
                     </div>
                     <div className="h-[180px]">
                         <ModuleF_UrgencyChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
