@@ -1,100 +1,130 @@
-# Move Delta Dashboard Plan
+# Move Delta Dashboard
 
-## Findings
-- **Metrics plumbing**: `engine/advanced_metrics.py` defines `compute_dead_zones`. `webapi/app.py` calculates mobility, corner control, and frontier size and attaches them to `GameState`. `engine/game.py` maintains `game_history` which logs basic metrics per move via `BlokusGame.make_move()`.
-- **Telemetry charts**: Frontend components live in `frontend/src/components/AnalysisDashboard.tsx` (renders `DeadZoneMap`, `ModuleE_FrontierChart`, etc.) and `frontend/src/components/TelemetryPanel.tsx`.
-- **Game history & logs**: In the backend, `webapi/app.py` maintains `move_records` on the active `game_data` dict and writes to MongoDB (`db.move_records`).
-- **State advancement**: `engine/game.py` -> `BlokusGame.make_move()` handles state transitions and populates `game_history`. `webapi/app.py` contains endpoints that advance the turn and push moves.
+The Move Delta Dashboard is a per-move analysis tool that lets you analyze *why* a move was good or bad by breaking it down into measurable game-state changes.
 
-## Implementation Plan (Milestones)
-See `task.md` for the full breakdown.
-1. **Types & Validation** (Commit: "chore: add move delta telemetry types")
-2. **Data Production** (Commit: "feat(engine): compute per-move metric snapshots")
-3. **Data Transport** (Commit: "feat(api): include move delta telemetry in game payload")
-4. **UI Foundation** (Commit: "feat(ui): add Move Delta tab with selector and controls")
-5. **Charts MVP** (Commit: "feat(charts): add diverging delta bar chart")
-6. **Advanced Charts & Overlays** (Commits: radar, cumulative timeline, opponent suppression)
-7. **Scoring & Leaderboard** (Commits: impact score, waterfall, top moves list)
-8. **Polish & Docs** (Commits: perf optimization, documentation)
+## Accessing the Dashboard
 
-## Schema Definitions
+1. Start or load a game from the Play page.
+2. Click the **"Move Impact"** tab in the right panel.
+3. Play or watch at least one move — the panel will populate automatically.
 
-```typescript
-export type MetricKey = 'frontierSize' | 'mobility' | 'deadSpace' | 'frontierUtility' | string;
+---
 
-export interface PlayerMetricSnapshot {
-  playerId: string; // e.g., 'RED', 'BLUE'
-  metrics: Record<MetricKey, number>;
-}
+## How to Navigate
 
-export interface MoveTelemetrySnapshot {
-  ply: number;
-  moverId: string;
-  moveId: string; // e.g., '14-0-3-4'
-  before: PlayerMetricSnapshot[];
-  after: PlayerMetricSnapshot[];
-}
+The **Move Selector** at the top of the panel controls which ply is being analysed.
 
-export interface MoveTelemetryDelta {
-  ply: number;
-  moverId: string;
-  moveId: string;
-  deltaSelf: Record<MetricKey, number>;
-  deltaOppTotal: Record<MetricKey, number>;
-  deltaOppByPlayer: Record<string, Record<MetricKey, number>>;
-  impactScore?: number;
-}
+| Control | Effect |
+|---|---|
+| **← Prev / Next →** | Step one move at a time |
+| **Slider** | Jump to any move in the game |
+| **Preset dropdown** | Switch scoring weight profile (see below) |
+| **Raw / Normalized** toggle | Show raw delta values or z-score normalised values |
+| **Agg. Opp / Per Opponent** | Switch diverging bar and radar charts between aggregate and per-player views |
+| **🗺 Overlay** | Highlight the cells placed by the selected move on the main board |
 
-export interface GameTelemetry {
-  gameId: string;
-  players: string[];
-  moves: MoveTelemetryDelta[];
-  normalization: 'z-score' | 'min-max' | 'none';
-  weights?: Record<MetricKey, number>;
-}
+---
+
+## Weight Presets
+
+Each preset adjusts how much each metric contributes to the composite **Impact Score**:
+
+| Preset | Favours |
+|---|---|
+| **Balanced** | Equal mix of frontier expansion, mobility, and blocking |
+| **Aggressive Blocking** | Dead-space suppression and piece-lock risk reduction |
+| **Expansion** | Frontier size and center control |
+| **Late-game** | Mobility maximization and lock-risk mitigation |
+
+Switching presets re-ranks the Top Moves leaderboard in real time.
+
+---
+
+## Charts
+
+### 1. Diverging Bar Chart
+Shows `deltaSelf` (your gain) vs `deltaOppTotal` (opponent loss) per metric. Bars extending right = improved your position; left = the opponent benefited.
+
+### 2. Move Impact Waterfall
+Breaks the composite **Impact Score** into per-metric contributions, coloured green (positive) or red (negative). The footer shows the final normalized score.
+
+### 3. Radar / Before–After Shape
+Two overlapping spider polygons: your player's metric profile **before** the move (dashed) vs **after** (solid). A large expansion of the polygon = strong move.
+
+### 4. Cumulative Timeline
+Tracks each player's cumulative impact over the full game (ply on X-axis). The yellow vertical line marks the currently selected move.
+
+### 5. Top Moves Leaderboard
+Ranks the winner's (or selected player's) top 10 moves by Impact Score. **Click any row** to jump the move selector to that ply.
+
+### 6. Strategy Mix
+Shows what fraction of the selected player's total impact came from each metric category (frontier, mobility, dead space, etc.). Use the **phase tabs** (Opening / Mid-game / End-game) to see how the strategy evolved throughout the game.
+
+### 7. Opponent Suppression
+One small area-chart per opponent, showing their Frontier Size, Mobility, and Dead Space trajectory across the game. The yellow line marks the currently selected move so you can see when they were suppressed most.
+
+---
+
+## How to Interpret Move Deltas
+
+**A move was strong if:**
+- `deltaSelf.frontierSize` is large and positive — you opened new territory.
+- `deltaOppTotal.deadSpace` is large and positive — you densified opponents' dead zones.
+- `deltaSelf.mobility` is positive or stable — you maintained piece-play options.
+- The **Waterfall** shows mostly green bars.
+- The Impact Score (bottom of Waterfall) is in the top quartile.
+
+**A move was weak if:**
+- `deltaSelf.frontierSize` is near zero or negative — you closed yourself in.
+- `deltaOppTotal.frontierSize` is positive — you opened territory for opponents instead.
+- The **Radar chart** shows little change between Before and After.
+
+**Strategy Mix tells you style:**
+- Frontier-dominant player → expansion strategy.
+- Dead-space dominant → aggressive blocker.
+- Mobility-dominant late-game → optimizing for end-score.
+
+---
+
+## Data Flow
+
+```
+Engine: BlokusGame.make_move()
+  └─ collect_all_player_metrics (before)
+  └─ place piece
+  └─ collect_all_player_metrics (after)
+  └─ compute_move_telemetry_delta()
+  └─ store in game_history[n].telemetry
+       ├─ deltaSelf, deltaOppTotal, deltaOppByPlayer
+       └─ before[], after[] (raw snapshots)
+
+WebAPI /api/games/{id}/history
+  └─ includes telemetry dict in each history entry
+
+Frontend gameStore.gameState.game_history
+  └─ MoveDeltaPanel reads telemetry per entry
+       ├─ DivergingBarChart, RadarDeltaChart, CumulativeTimelineChart
+       ├─ MoveImpactWaterfall (via moveImpactScore.ts)
+       ├─ TopMovesLeaderboard (ranks all moves by Impact Score)
+       ├─ StrategyMixPanel (via strategyMix.ts phase segments)
+       └─ OpponentSuppressionMultiples (from after[] snapshots)
 ```
 
-## Data Flow Diagram
-```text
-[Engine: make_move()]
-       |
-       v
-Compute Metrics (Before) -> Place Piece -> Compute Metrics (After)
-       |
-       v
-Calculate Deltas -> Append to GameHistory/MoveRecord
-       |
-       v
-[WebAPI: /api/games/{id}/replay or /api/games/{id}]
-       |
-       v
-[Frontend: API Slice / Store] -> Parse & Validate Schema
-       |
-       v
-[Move Delta UI Components: Charts, Overlays, Leaderboards]
-```
+---
 
-## Metric Definitions and Approximations
-- **frontierSize**: Number of unique frontier cells available to the player. (Existing: `board.get_frontier(player)`)
-- **mobility**: Number of legal moves. (Existing: Cached legal moves list, fallback to fast approximation if legal move generation is too slow mid-game)
-- **deadSpace**: Number of dead zone cells. (Existing: `compute_dead_zones` BFS)
-- **frontierUtility**: Value of frontier cells. (MVP approximation: Count of adjacent open cells or overlap with influence map)
+## Files Reference
 
-## Performance Considerations
-- `compute_dead_zones` is a BFS and can be expensive. We should gate parsing the full deadzone diff behind an analytical toggle if it bottlenecks the game loop per move.
-- Fast mobility proxy: If full legal move counting across all orientations is too slow for all opponents every move, we can use the size of the frontier as a proxy or just count piece/anchor pairs.
-- Frontend rendering: Memoize chart datapoints to avoid re-calculating diverging bars on every render. Virtualize the move list to handle 80+ ply games smoothly.
-- Payload size: Delta vectors add O(P * M) data per move. This is small enough for JSON delivery but may require `/api/games/:id/telemetry` separation if it blows up the initial game load size.
-
-## UI Components List (MVP + Stretch)
-1. **Move Delta Route/Tab**: Main container.
-2. **Move Selector**: Slider + Virtualized list.
-3. **Controls Sidebar**: Weight presets, normalization toggles, player visibility.
-4. **Diverging Bar Chart**: Component for `deltaSelf` vs `deltaOppTotal`.
-5. **Radar Chart**: Before vs After shape comparison.
-6. **Cumulative Timeline**: Line chart tracking cumulative move impact.
-7. **Move Impact Waterfall**: Breakdown of a single move's components.
-8. **Top Moves Leaderboard**: Ranked list with jump-to-move action.
-9. **Opponent Suppression**: Small multiples of opponent metric timelines.
-10. **Board Overlay**: Cell-level heatmap delta styling on the grid.
-11. **Strategy Mix Summary**: Phase tabs with aggregate stats.
+| Area | File |
+|---|---|
+| TS types | `frontend/src/types/telemetry.ts` |
+| Impact Score | `frontend/src/utils/moveImpactScore.ts` |
+| Strategy Mix | `frontend/src/utils/strategyMix.ts` |
+| Panel entry | `frontend/src/components/telemetry/MoveDeltaPanel.tsx` |
+| Diverging bar | `frontend/src/components/telemetry/charts/DivergingBarChart.tsx` |
+| Radar chart | `frontend/src/components/telemetry/charts/RadarDeltaChart.tsx` |
+| Timeline | `frontend/src/components/telemetry/charts/CumulativeTimelineChart.tsx` |
+| Waterfall | `frontend/src/components/telemetry/charts/MoveImpactWaterfall.tsx` |
+| Leaderboard | `frontend/src/components/telemetry/charts/TopMovesLeaderboard.tsx` |
+| Opp suppression | `frontend/src/components/telemetry/charts/OpponentSuppressionMultiples.tsx` |
+| Strategy Mix UI | `frontend/src/components/telemetry/StrategyMixPanel.tsx` |
+| Engine telemetry | `engine/telemetry.py` |
