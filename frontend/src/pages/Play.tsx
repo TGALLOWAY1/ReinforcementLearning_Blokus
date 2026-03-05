@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { Board } from '../components/Board';
-import { RightPanel } from '../components/RightPanel';
+import { RightPanel, HintModal } from '../components/RightPanel';
 import { PieceTray } from '../components/PieceTray';
 import { LogConsole } from '../components/LogConsole';
 import { GameConfigModal } from '../components/GameConfigModal';
@@ -30,6 +30,7 @@ export const Play: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogConsole, setShowLogConsole] = useState(false);
+  const [showHintModal, setShowHintModal] = useState(false);
   const isTelemetryOpen = useGameStore(s => s.activeRightTab === 'telemetry');
   const boardOverlay = useGameStore(s => s.boardOverlay);
 
@@ -461,6 +462,19 @@ export const Play: React.FC = () => {
             pieceOrientation={pieceOrientation}
             overlayMap={boardOverlay ?? undefined}
           />
+          {/* Hint button — bottom-right corner of board container */}
+          {isHumanPlayer && !gameState?.game_over && (
+            <button
+              onClick={() => setShowHintModal(true)}
+              className="absolute bottom-3 right-3 z-20 bg-charcoal-800 border border-charcoal-600 hover:border-neon-blue text-gray-300 hover:text-neon-blue px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all shadow-lg"
+              title="Show legal moves and positions"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              Hint
+            </button>
+          )}
         </div>
       </main>
 
@@ -477,6 +491,9 @@ export const Play: React.FC = () => {
       >
         <RightPanel onNewGame={() => setShowConfigModal(true)} />
       </aside>
+
+      {/* Hint Modal */}
+      {showHintModal && <HintModal onClose={() => setShowHintModal(false)} />}
 
       {/* Game Config Modal */}
       <GameConfigModal

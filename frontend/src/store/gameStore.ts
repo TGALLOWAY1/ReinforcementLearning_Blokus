@@ -175,7 +175,7 @@ interface GameStore {
   isPaused: boolean;
   error: string | null;
   logs: LogEntry[];
-  activeRightTab: 'main' | 'telemetry' | 'explanation' | 'moveDelta';
+  activeRightTab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis';
   boardOverlay: Record<string, { color: string; opacity?: number }> | null;
 
   connect: (gameId: string) => Promise<void>;
@@ -192,7 +192,7 @@ interface GameStore {
   setGameState: (gameState: GameState | null) => void;
   addLog: (message: string, level?: 'INFO' | 'WARN' | 'ERROR') => void;
   clearLogs: () => void;
-  setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta') => void;
+  setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis') => void;
   setBoardOverlay: (overlay: Record<string, { color: string; opacity?: number }> | null) => void;
   saveGame: () => void;
   loadGame: (history: GameHistoryEntry[]) => Promise<void>;
@@ -397,7 +397,7 @@ export const useGameStore = create<GameStore>()(
     },
 
     clearLogs: () => { set({ logs: [] }); },
-    setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta') => { set({ activeRightTab: tab }); },
+    setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis') => { set({ activeRightTab: tab }); },
     setBoardOverlay: (overlay) => { set({ boardOverlay: overlay }); },
 
     saveGame: () => {

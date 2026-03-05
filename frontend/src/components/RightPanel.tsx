@@ -4,17 +4,13 @@ import {
   TrainingParametersSection,
   ModelStatusSection,
 } from './ResearchSidebar';
-import { PolicyView, ValueView } from './AgentVisualizations';
+import { PolicyView } from './AgentVisualizations';
 import { TelemetryPanel } from './TelemetryPanel';
 import { LegalMovesBarChart } from './LegalMovesBarChart';
-import {
-  ModuleC_CornerChart,
-  ModuleE_FrontierChart,
-} from './AnalysisDashboard';
 import { ExplainMovePanel } from './ExplainMovePanel';
-import { MoveDeltaPanel } from './telemetry/MoveDeltaPanel';
 import { IS_DEPLOY_PROFILE, ENABLE_DEBUG_UI } from '../constants/gameConstants';
 import { useGameStore } from '../store/gameStore';
+import { MergedAnalysisPanel } from './telemetry/MergedAnalysisPanel';
 
 interface CollapsibleSectionProps {
   title: string;
@@ -44,21 +40,59 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   );
 };
 
+/** Hint modal: shows Legal Moves by Piece and Legal Positions grids. */
+const HintModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div
+      className="bg-charcoal-800 border border-charcoal-700 rounded-xl max-w-xl w-full max-h-[90vh] overflow-y-auto"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between p-4 border-b border-charcoal-700">
+        <h2 className="text-lg font-bold text-gray-200">💡 Move Hints</h2>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-200 transition-colors"
+          title="Close"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="p-4 space-y-4">
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Legal Moves by Piece
+          </h3>
+          <LegalMovesBarChart />
+        </section>
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Legal Positions
+          </h3>
+          <PolicyView />
+        </section>
+      </div>
+    </div>
+  </div>
+);
+
 interface RightPanelProps {
   onNewGame?: () => void;
 }
-
 
 export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
   const activeTab = useGameStore((s) => s.activeRightTab);
   const setActiveTab = useGameStore((s) => s.setActiveRightTab);
   const gameState = useGameStore((s) => s.gameState);
-  const gameHistory = gameState?.game_history || [];
-  const liveTurn = gameHistory.length;
+  const [showHint, setShowHint] = useState(false);
 
-  const isDemoMode = (gameState?.players as any)?.demo_mode || window.location.search.includes('demo=1') || gameState?.players?.length === 4;
+  const isDemoMode =
+    (gameState?.players as any)?.demo_mode ||
+    window.location.search.includes('demo=1') ||
+    gameState?.players?.length === 4;
 
-  // Deploy: New Game + Legal Moves chart + Legal Positions grid
+  // Deploy / Demo mode: simplified nav
   if (IS_DEPLOY_PROFILE || isDemoMode) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
@@ -80,103 +114,41 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('main')}
-              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'main' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+              onClick={() => setActiveTab('analysis')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
             >
-              Charts
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('telemetry')}
-              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'telemetry' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
-            >
-              Dashboard
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('moveDelta')}
-              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'moveDelta' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
-            >
-              Move Impact
+              Analysis
             </button>
           </div>
         </div>
+
         <div className="flex-1 overflow-hidden">
           {activeTab === 'explanation' ? (
             <ExplainMovePanel />
+          ) : activeTab === 'analysis' ? (
+            <MergedAnalysisPanel />
           ) : activeTab === 'telemetry' ? (
             <TelemetryPanel />
-          ) : activeTab === 'moveDelta' ? (
-            <MoveDeltaPanel />
-          ) : (
-            <div className="h-full overflow-y-auto">
-              <section className="p-3 border-b border-charcoal-700">
-                <LegalMovesBarChart />
-              </section>
-
-              <section className="p-3 border-b border-charcoal-700 h-[220px]">
-                <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={liveTurn} mode="move" />
-              </section>
-
-              <section className="p-3 border-b border-charcoal-700 h-[220px]">
-                <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={liveTurn} mode="move" />
-              </section>
-
-              <section className="p-3 border-b border-charcoal-700">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                  Legal Positions
-                </h3>
-                <PolicyView />
-              </section>
-            </div>
-          )}
+          ) : null}
         </div>
+
+        {showHint && <HintModal onClose={() => setShowHint(false)} />}
       </div>
     );
   }
 
+  // Research mode
   const researchMainContent = (
     <div className="h-full overflow-y-auto">
-      {/* Collapsible controls */}
       <CollapsibleSection title="Environment Controls" defaultOpen>
         <EnvironmentControlsSection onNewGame={onNewGame} />
       </CollapsibleSection>
-
       <CollapsibleSection title="Training Parameters" defaultOpen={false}>
         <TrainingParametersSection />
       </CollapsibleSection>
-
       <CollapsibleSection title="Model Status" defaultOpen={false}>
         <ModelStatusSection />
       </CollapsibleSection>
-
-      {/* Restored Live Charts for the Main Tab */}
-      <section className="p-3 border-b border-charcoal-700">
-        <LegalMovesBarChart />
-      </section>
-
-      <section className="p-3 border-b border-charcoal-700 h-[220px]">
-        <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={liveTurn} mode="move" />
-      </section>
-
-      <section className="p-3 border-b border-charcoal-700 h-[220px]">
-        <ModuleC_CornerChart gameHistory={gameHistory} currentTurn={liveTurn} mode="move" />
-      </section>
-
-      {/* Always-visible Policy & Value */}
-      <section className="p-3 border-b border-charcoal-700">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Policy
-        </h3>
-        <PolicyView />
-      </section>
-
-      <section className="p-3 border-b border-charcoal-700">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Value
-        </h3>
-        <ValueView />
-      </section>
     </div>
   );
 
@@ -193,25 +165,22 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('telemetry')}
-            className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'telemetry' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            onClick={() => setActiveTab('analysis')}
+            className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
           >
-            Dashboard
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('moveDelta')}
-            className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'moveDelta' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
-          >
-            Move Impact
+            Analysis
           </button>
         </div>
       )}
       <div className="flex-1 overflow-hidden">
-        {ENABLE_DEBUG_UI && activeTab === 'telemetry' ? <TelemetryPanel /> :
-          ENABLE_DEBUG_UI && activeTab === 'moveDelta' ? <MoveDeltaPanel /> : researchMainContent}
+        {ENABLE_DEBUG_UI && activeTab === 'analysis' ? <MergedAnalysisPanel /> :
+          ENABLE_DEBUG_UI && activeTab === 'telemetry' ? <TelemetryPanel /> : researchMainContent}
       </div>
+
+      {showHint && <HintModal onClose={() => setShowHint(false)} />}
     </div>
   );
 };
 
+/** Exported for use in Play.tsx near the board */
+export { HintModal };
