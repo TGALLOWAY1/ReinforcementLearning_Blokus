@@ -1,0 +1,69 @@
+{
+  "num_games": 40,
+  "seat_policy": "randomized",
+  "seed": 2027,
+  "thinking_time_ms": 50,
+  "tunings": [
+    {
+      "name": "base_no_eval",
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "use_transposition_table": true
+      }
+    },
+    {
+      "name": "eval_no_bias",
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/dummy_model.json",
+        "potential_shaping_enabled": false,
+        "progressive_bias_enabled": false,
+        "progressive_bias_weight": 0.25,
+        "use_transposition_table": true
+      }
+    },
+    {
+      "name": "eval_with_bias_0.1",
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/dummy_model.json",
+        "potential_shaping_enabled": false,
+        "progressive_bias_enabled": true,
+        "progressive_bias_weight": 0.1,
+        "use_transposition_table": true
+      }
+    },
+    {
+      "name": "eval_with_bias_0.25",
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/dummy_model.json",
+        "potential_shaping_enabled": false,
+        "progressive_bias_enabled": true,
+        "progressive_bias_weight": 0.25,
+        "use_transposition_table": true
+      }
+    },
+    {
+      "name": "eval_with_bias_0.5",
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/dummy_model.json",
+        "potential_shaping_enabled": false,
+        "progressive_bias_enabled": true,
+        "progressive_bias_weight": 0.5,
+        "use_transposition_table": true
+      }
+    }
+  ],
+  "tunings_set": "ablation_leaf_eval"
+}

@@ -1,0 +1,20 @@
+{
+  "child_run_ids": [
+    "20260303_163932_d7841104",
+    "20260303_164140_2c657bf4",
+    "20260303_164349_3bf77293",
+    "20260303_164600_f45f8772",
+    "20260303_164817_c964bffa"
+  ],
+  "num_games": 100,
+  "seat_policy": "randomized",
+  "seeds": [
+    2026,
+    2027,
+    2028,
+    2029,
+    2030
+  ],
+  "thinking_time_ms": 200,
+  "tunings_set": "adaptive_vs_best_fixed"
+}

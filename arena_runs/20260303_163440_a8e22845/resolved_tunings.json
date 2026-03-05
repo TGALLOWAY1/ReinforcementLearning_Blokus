@@ -1,0 +1,63 @@
+{
+  "adaptive_bias": {
+    "backend": "fast_mcts",
+    "name": "adaptive_bias",
+    "params": {
+      "_resolved_budget": 50,
+      "deterministic_time_budget": false,
+      "exploration_constant": 1.414,
+      "leaf_evaluation_enabled": true,
+      "learned_model_path": "models/dummy_model.json",
+      "potential_shaping_enabled": false,
+      "progressive_bias_enabled": true,
+      "progressive_bias_weight": 0.5,
+      "use_transposition_table": true
+    },
+    "thinking_time_ms": 50
+  },
+  "fixed_200ms_best": {
+    "backend": "fast_mcts",
+    "name": "fixed_200ms_best",
+    "params": {
+      "deterministic_time_budget": false,
+      "exploration_constant": 1.414,
+      "leaf_evaluation_enabled": true,
+      "learned_model_path": "models/dummy_model.json",
+      "potential_shaping_enabled": false,
+      "progressive_bias_enabled": true,
+      "progressive_bias_weight": 0.0,
+      "use_transposition_table": true
+    },
+    "thinking_time_ms": 50
+  },
+  "fixed_400ms_best": {
+    "backend": "fast_mcts",
+    "name": "fixed_400ms_best",
+    "params": {
+      "deterministic_time_budget": false,
+      "exploration_constant": 1.414,
+      "leaf_evaluation_enabled": true,
+      "learned_model_path": "models/dummy_model.json",
+      "potential_shaping_enabled": false,
+      "progressive_bias_enabled": true,
+      "progressive_bias_weight": 0.25,
+      "use_transposition_table": true
+    },
+    "thinking_time_ms": 50
+  },
+  "fixed_50ms_best": {
+    "backend": "fast_mcts",
+    "name": "fixed_50ms_best",
+    "params": {
+      "deterministic_time_budget": false,
+      "exploration_constant": 1.414,
+      "leaf_evaluation_enabled": true,
+      "learned_model_path": "models/dummy_model.json",
+      "potential_shaping_enabled": false,
+      "progressive_bias_enabled": true,
+      "progressive_bias_weight": 0.5,
+      "use_transposition_table": true
+    },
+    "thinking_time_ms": 50
+  }
+}

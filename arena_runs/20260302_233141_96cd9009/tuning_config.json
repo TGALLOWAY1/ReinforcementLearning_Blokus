@@ -1,0 +1,62 @@
+{
+  "num_games": 100,
+  "seat_policy": "randomized",
+  "seed": 2028,
+  "thinking_time_ms": 400,
+  "tunings": [
+    {
+      "name": "adaptive_bias",
+      "params": {
+        "_resolved_budget": 400,
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/dummy_model.json",
+        "potential_shaping_enabled": false,
+        "progressive_bias_enabled": true,
+        "progressive_bias_weight": 0.25,
+        "use_transposition_table": true
+      }
+    },
+    {
+      "name": "fixed_50ms_best",
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/dummy_model.json",
+        "potential_shaping_enabled": false,
+        "progressive_bias_enabled": true,
+        "progressive_bias_weight": 0.5,
+        "use_transposition_table": true
+      }
+    },
+    {
+      "name": "fixed_200ms_best",
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/dummy_model.json",
+        "potential_shaping_enabled": false,
+        "progressive_bias_enabled": true,
+        "progressive_bias_weight": 0.0,
+        "use_transposition_table": true
+      }
+    },
+    {
+      "name": "fixed_400ms_best",
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/dummy_model.json",
+        "potential_shaping_enabled": false,
+        "progressive_bias_enabled": true,
+        "progressive_bias_weight": 0.25,
+        "use_transposition_table": true
+      }
+    }
+  ],
+  "tunings_set": "adaptive_vs_best_fixed"
+}

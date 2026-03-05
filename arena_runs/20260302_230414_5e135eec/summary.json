@@ -1,0 +1,458 @@
+{
+  "completed_games": 10,
+  "error_games": 0,
+  "game_duration_sec": {
+    "count": 10,
+    "max": 6.537568958,
+    "mean": 5.9762974959,
+    "median": 6.107232688,
+    "min": 5.316549125000001,
+    "p25": 5.581475531,
+    "p75": 6.30299406225,
+    "std": 0.41539701023266445
+  },
+  "num_games": 10,
+  "pairwise_matchups": {
+    "base_no_eval__vs__eval_no_bias": {
+      "a_beats_b": 4,
+      "agent_a": "base_no_eval",
+      "agent_b": "eval_no_bias",
+      "b_beats_a": 2,
+      "tie": 0,
+      "total": 6
+    },
+    "base_no_eval__vs__eval_with_bias_0.1": {
+      "a_beats_b": 4,
+      "agent_a": "base_no_eval",
+      "agent_b": "eval_with_bias_0.1",
+      "b_beats_a": 2,
+      "tie": 0,
+      "total": 6
+    },
+    "base_no_eval__vs__eval_with_bias_0.25": {
+      "a_beats_b": 0,
+      "agent_a": "base_no_eval",
+      "agent_b": "eval_with_bias_0.25",
+      "b_beats_a": 5,
+      "tie": 1,
+      "total": 6
+    },
+    "base_no_eval__vs__eval_with_bias_0.5": {
+      "a_beats_b": 2,
+      "agent_a": "base_no_eval",
+      "agent_b": "eval_with_bias_0.5",
+      "b_beats_a": 3,
+      "tie": 1,
+      "total": 6
+    },
+    "eval_no_bias__vs__eval_with_bias_0.1": {
+      "a_beats_b": 5,
+      "agent_a": "eval_no_bias",
+      "agent_b": "eval_with_bias_0.1",
+      "b_beats_a": 1,
+      "tie": 0,
+      "total": 6
+    },
+    "eval_no_bias__vs__eval_with_bias_0.25": {
+      "a_beats_b": 4,
+      "agent_a": "eval_no_bias",
+      "agent_b": "eval_with_bias_0.25",
+      "b_beats_a": 2,
+      "tie": 0,
+      "total": 6
+    },
+    "eval_no_bias__vs__eval_with_bias_0.5": {
+      "a_beats_b": 3,
+      "agent_a": "eval_no_bias",
+      "agent_b": "eval_with_bias_0.5",
+      "b_beats_a": 3,
+      "tie": 0,
+      "total": 6
+    },
+    "eval_with_bias_0.1__vs__eval_with_bias_0.25": {
+      "a_beats_b": 2,
+      "agent_a": "eval_with_bias_0.1",
+      "agent_b": "eval_with_bias_0.25",
+      "b_beats_a": 3,
+      "tie": 1,
+      "total": 6
+    },
+    "eval_with_bias_0.1__vs__eval_with_bias_0.5": {
+      "a_beats_b": 3,
+      "agent_a": "eval_with_bias_0.1",
+      "agent_b": "eval_with_bias_0.5",
+      "b_beats_a": 3,
+      "tie": 0,
+      "total": 6
+    },
+    "eval_with_bias_0.25__vs__eval_with_bias_0.5": {
+      "a_beats_b": 2,
+      "agent_a": "eval_with_bias_0.25",
+      "agent_b": "eval_with_bias_0.5",
+      "b_beats_a": 3,
+      "tie": 1,
+      "total": 6
+    }
+  },
+  "pairwise_total_comparisons": 60,
+  "run_config": {
+    "agents": [
+      {
+        "name": "base_no_eval",
+        "params": {
+          "deterministic_time_budget": false,
+          "exploration_constant": 1.414,
+          "use_transposition_table": true
+        },
+        "thinking_time_ms": 50,
+        "type": "fast_mcts"
+      },
+      {
+        "name": "eval_no_bias",
+        "params": {
+          "deterministic_time_budget": false,
+          "exploration_constant": 1.414,
+          "leaf_evaluation_enabled": true,
+          "learned_model_path": "models/dummy_model.json",
+          "potential_shaping_enabled": false,
+          "progressive_bias_enabled": false,
+          "progressive_bias_weight": 0.25,
+          "use_transposition_table": true
+        },
+        "thinking_time_ms": 50,
+        "type": "fast_mcts"
+      },
+      {
+        "name": "eval_with_bias_0.1",
+        "params": {
+          "deterministic_time_budget": false,
+          "exploration_constant": 1.414,
+          "leaf_evaluation_enabled": true,
+          "learned_model_path": "models/dummy_model.json",
+          "potential_shaping_enabled": false,
+          "progressive_bias_enabled": true,
+          "progressive_bias_weight": 0.1,
+          "use_transposition_table": true
+        },
+        "thinking_time_ms": 50,
+        "type": "fast_mcts"
+      },
+      {
+        "name": "eval_with_bias_0.25",
+        "params": {
+          "deterministic_time_budget": false,
+          "exploration_constant": 1.414,
+          "leaf_evaluation_enabled": true,
+          "learned_model_path": "models/dummy_model.json",
+          "potential_shaping_enabled": false,
+          "progressive_bias_enabled": true,
+          "progressive_bias_weight": 0.25,
+          "use_transposition_table": true
+        },
+        "thinking_time_ms": 50,
+        "type": "fast_mcts"
+      }
+    ],
+    "max_turns": 2500,
+    "notes": "Tuning Set: ablation_leaf_eval. ",
+    "num_games": 10,
+    "output_root": "arena_runs",
+    "seat_policy": "randomized",
+    "seed": 2028,
+    "snapshots": {
+      "checkpoints": [
+        8,
+        16,
+        24,
+        32,
+        40,
+        48,
+        56,
+        64
+      ],
+      "enabled": false,
+      "strategy": "fixed_ply"
+    }
+  },
+  "run_id": "20260302_230414_5e135eec",
+  "score_stats": {
+    "base_no_eval": {
+      "count": 8,
+      "max": 99.0,
+      "mean": 78.625,
+      "median": 78.0,
+      "min": 64.0,
+      "p25": 70.0,
+      "p75": 84.5,
+      "std": 10.676346519292075
+    },
+    "eval_no_bias": {
+      "count": 8,
+      "max": 92.0,
+      "mean": 76.125,
+      "median": 79.5,
+      "min": 56.0,
+      "p25": 72.25,
+      "p75": 81.75,
+      "std": 11.95237947021429
+    },
+    "eval_with_bias_0.1": {
+      "count": 8,
+      "max": 86.0,
+      "mean": 70.875,
+      "median": 73.0,
+      "min": 52.0,
+      "p25": 62.0,
+      "p75": 79.25,
+      "std": 11.329579647983415
+    },
+    "eval_with_bias_0.25": {
+      "count": 8,
+      "max": 88.0,
+      "mean": 76.25,
+      "median": 75.5,
+      "min": 63.0,
+      "p25": 73.0,
+      "p75": 80.0,
+      "std": 7.595228765481656
+    },
+    "eval_with_bias_0.5": {
+      "count": 8,
+      "max": 103.0,
+      "mean": 77.75,
+      "median": 72.0,
+      "min": 64.0,
+      "p25": 65.0,
+      "p75": 84.75,
+      "std": 15.06444489518283
+    }
+  },
+  "seat_policy": "randomized",
+  "seed": 2028,
+  "time_sim_efficiency": {
+    "base_no_eval": {
+      "avg_budget_utilization": 0.9676923076923077,
+      "avg_simulations_per_move": 913.8692307692307,
+      "avg_time_ms_per_move": 48.38461538461539,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 60.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 51.55,
+      "moves": 130.0,
+      "score_per_second": 1625.0,
+      "simulations_per_second": 18887.599364069953,
+      "total_simulations": 118803.0,
+      "total_time_ms": 6290.0,
+      "win_rate_per_second": 5.166931637519872
+    },
+    "eval_no_bias": {
+      "avg_budget_utilization": 0.9627642276422764,
+      "avg_simulations_per_move": 986.609756097561,
+      "avg_time_ms_per_move": 48.13821138211382,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 66.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 51.0,
+      "moves": 123.0,
+      "score_per_second": 1581.3840567471711,
+      "simulations_per_second": 20495.355514271236,
+      "total_simulations": 121353.0,
+      "total_time_ms": 5921.0,
+      "win_rate_per_second": 7.790069245059956
+    },
+    "eval_with_bias_0.1": {
+      "avg_budget_utilization": 0.9973451327433628,
+      "avg_simulations_per_move": 841.2035398230089,
+      "avg_time_ms_per_move": 49.86725663716814,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 76.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 60.39999999999999,
+      "moves": 113.0,
+      "score_per_second": 1421.273291925466,
+      "simulations_per_second": 16868.85536823425,
+      "total_simulations": 95056.0,
+      "total_time_ms": 5635.0,
+      "win_rate_per_second": 2.5066548358473826
+    },
+    "eval_with_bias_0.25": {
+      "avg_budget_utilization": 1.001880341880342,
+      "avg_simulations_per_move": 981.4273504273505,
+      "avg_time_ms_per_move": 50.0940170940171,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 73.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 64.79999999999995,
+      "moves": 117.0,
+      "score_per_second": 1522.1378604333731,
+      "simulations_per_second": 19591.707899675825,
+      "total_simulations": 114827.0,
+      "total_time_ms": 5861.0,
+      "win_rate_per_second": 2.4953079679235626
+    },
+    "eval_with_bias_0.5": {
+      "avg_budget_utilization": 0.994959349593496,
+      "avg_simulations_per_move": 1017.390243902439,
+      "avg_time_ms_per_move": 49.7479674796748,
+      "configured_thinking_time_ms": 50.0,
+      "move_time_ms_max": 95.0,
+      "move_time_ms_p50": 50.0,
+      "move_time_ms_p95": 52.89999999999999,
+      "moves": 123.0,
+      "score_per_second": 1562.877921228959,
+      "simulations_per_second": 20450.890668409873,
+      "total_simulations": 125139.0,
+      "total_time_ms": 6119.0,
+      "win_rate_per_second": 7.537996404641281
+    }
+  },
+  "win_stats": {
+    "base_no_eval": {
+      "games_played": 8.0,
+      "outright_wins": 2.0,
+      "shared_wins": 0.0,
+      "win_points": 2.0,
+      "win_rate": 0.25
+    },
+    "eval_no_bias": {
+      "games_played": 8.0,
+      "outright_wins": 3.0,
+      "shared_wins": 0.0,
+      "win_points": 3.0,
+      "win_rate": 0.375
+    },
+    "eval_with_bias_0.1": {
+      "games_played": 8.0,
+      "outright_wins": 1.0,
+      "shared_wins": 0.0,
+      "win_points": 1.0,
+      "win_rate": 0.125
+    },
+    "eval_with_bias_0.25": {
+      "games_played": 8.0,
+      "outright_wins": 1.0,
+      "shared_wins": 0.0,
+      "win_points": 1.0,
+      "win_rate": 0.125
+    },
+    "eval_with_bias_0.5": {
+      "games_played": 8.0,
+      "outright_wins": 3.0,
+      "shared_wins": 0.0,
+      "win_points": 3.0,
+      "win_rate": 0.375
+    }
+  },
+  "wins_by_seat": {
+    "base_no_eval": {
+      "0": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "1": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "2": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      },
+      "3": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      }
+    },
+    "eval_no_bias": {
+      "0": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      },
+      "1": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "2": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      },
+      "3": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      }
+    },
+    "eval_with_bias_0.1": {
+      "0": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "1": {
+        "games": 3,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "2": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "3": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      }
+    },
+    "eval_with_bias_0.25": {
+      "0": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      },
+      "1": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "2": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "3": {
+        "games": 2,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    },
+    "eval_with_bias_0.5": {
+      "0": {
+        "games": 3,
+        "win_points": 1.0,
+        "win_rate": 0.3333333333333333
+      },
+      "1": {
+        "games": 1,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "2": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      },
+      "3": {
+        "games": 2,
+        "win_points": 1.0,
+        "win_rate": 0.5
+      }
+    }
+  }
+}

@@ -1,0 +1,902 @@
+[
+  {
+    "game_index": 1,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 2,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 3,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 4,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 5,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 6,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 7,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 8,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 9,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 10,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 11,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 12,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 13,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 14,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 15,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 16,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_400ms_best",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 17,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_400ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 18,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_400ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 19,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_200ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 20,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 21,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 22,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 23,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 24,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_200ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 25,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_400ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 26,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_200ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 27,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 28,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 29,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 30,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 31,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 32,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_400ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 33,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 34,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_400ms_best",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 35,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_200ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 36,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 37,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 38,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 39,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 40,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 41,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 42,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_400ms_best",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 43,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 44,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 45,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_50ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 46,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 47,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 48,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_200ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 49,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 50,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 51,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_50ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 52,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 53,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 54,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 55,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 56,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 57,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 58,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_400ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 59,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 60,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 61,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 62,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 63,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 64,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 65,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 66,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 67,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 68,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 69,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 70,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_50ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 71,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 72,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 73,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 74,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 75,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 76,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 77,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 78,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 79,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 80,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 81,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 82,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_200ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 83,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 84,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 85,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_400ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 86,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 87,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 88,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_400ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 89,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_50ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 90,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_200ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 91,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_400ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 92,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "fixed_400ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 93,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_50ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 94,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_200ms_best",
+      "2": "adaptive_bias",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 95,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_400ms_best",
+      "3": "fixed_200ms_best"
+    }
+  },
+  {
+    "game_index": 96,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  },
+  {
+    "game_index": 97,
+    "seats": {
+      "0": "fixed_200ms_best",
+      "1": "fixed_400ms_best",
+      "2": "fixed_50ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 98,
+    "seats": {
+      "0": "adaptive_bias",
+      "1": "fixed_200ms_best",
+      "2": "fixed_400ms_best",
+      "3": "fixed_50ms_best"
+    }
+  },
+  {
+    "game_index": 99,
+    "seats": {
+      "0": "fixed_400ms_best",
+      "1": "fixed_50ms_best",
+      "2": "fixed_200ms_best",
+      "3": "adaptive_bias"
+    }
+  },
+  {
+    "game_index": 100,
+    "seats": {
+      "0": "fixed_50ms_best",
+      "1": "adaptive_bias",
+      "2": "fixed_200ms_best",
+      "3": "fixed_400ms_best"
+    }
+  }
+]

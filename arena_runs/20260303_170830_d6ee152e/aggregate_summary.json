@@ -1,0 +1,64 @@
+{
+  "n_seeds": 5,
+  "underpowered": false,
+  "base_tuning": "adaptive_bias",
+  "tunings_set": "adaptive_vs_best_fixed",
+  "metrics": {
+    "adaptive_bias": {
+      "win_rate_mean": 0.269,
+      "win_rate_se": 0.007968688725254608,
+      "win_rate_ci_lower": 0.24687537319392197,
+      "win_rate_ci_upper": 0.29112462680607804,
+      "mean_score": 74.502,
+      "mean_rank": 64.151,
+      "p95_mean": 403.40999999999997,
+      "p95_max": 407.04999999999995,
+      "sims_mean": 2986.196349929524,
+      "beats_baseline_in_seeds": 0,
+      "pairwise_wpct_mean": 0.5273333333333333,
+      "dominance_score": 3
+    },
+    "fixed_200ms_best": {
+      "win_rate_mean": 0.254,
+      "win_rate_se": 0.0029154759474226528,
+      "win_rate_ci_lower": 0.24590534107645645,
+      "win_rate_ci_upper": 0.26209465892354356,
+      "mean_score": 73.46199999999999,
+      "mean_rank": 62.13099999999999,
+      "p95_mean": 402.8,
+      "p95_max": 406.0,
+      "sims_mean": 2977.1315344453787,
+      "beats_baseline_in_seeds": 1,
+      "pairwise_wpct_mean": 0.4876666666666667,
+      "dominance_score": 1
+    },
+    "fixed_50ms_best": {
+      "win_rate_mean": 0.25200000000000006,
+      "win_rate_se": 0.011895377253370313,
+      "win_rate_ci_lower": 0.2189731380503988,
+      "win_rate_ci_upper": 0.2850268619496013,
+      "mean_score": 74.382,
+      "mean_rank": 62.391000000000005,
+      "p95_mean": 403.2,
+      "p95_max": 407.0,
+      "sims_mean": 2968.9905282185264,
+      "beats_baseline_in_seeds": 2,
+      "pairwise_wpct_mean": 0.521,
+      "dominance_score": 2
+    },
+    "fixed_400ms_best": {
+      "win_rate_mean": 0.225,
+      "win_rate_se": 0.00894427190999916,
+      "win_rate_ci_lower": 0.20016672003592467,
+      "win_rate_ci_upper": 0.24983327996407534,
+      "mean_score": 73.22,
+      "mean_rank": 59.11,
+      "p95_mean": 402.8,
+      "p95_max": 405.0,
+      "sims_mean": 2964.5366543921723,
+      "beats_baseline_in_seeds": 0,
+      "pairwise_wpct_mean": 0.46399999999999997,
+      "dominance_score": 0
+    }
+  }
+}

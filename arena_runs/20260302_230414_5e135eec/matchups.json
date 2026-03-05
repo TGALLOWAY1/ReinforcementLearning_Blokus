@@ -1,0 +1,92 @@
+[
+  {
+    "game_index": 1,
+    "seats": {
+      "0": "eval_with_bias_0.25",
+      "1": "base_no_eval",
+      "2": "eval_with_bias_0.1",
+      "3": "eval_no_bias"
+    }
+  },
+  {
+    "game_index": 2,
+    "seats": {
+      "0": "base_no_eval",
+      "1": "eval_with_bias_0.25",
+      "2": "eval_with_bias_0.5",
+      "3": "eval_with_bias_0.1"
+    }
+  },
+  {
+    "game_index": 3,
+    "seats": {
+      "0": "eval_with_bias_0.1",
+      "1": "eval_with_bias_0.5",
+      "2": "eval_no_bias",
+      "3": "base_no_eval"
+    }
+  },
+  {
+    "game_index": 4,
+    "seats": {
+      "0": "eval_with_bias_0.5",
+      "1": "eval_no_bias",
+      "2": "eval_with_bias_0.25",
+      "3": "base_no_eval"
+    }
+  },
+  {
+    "game_index": 5,
+    "seats": {
+      "0": "eval_no_bias",
+      "1": "eval_with_bias_0.1",
+      "2": "eval_with_bias_0.5",
+      "3": "eval_with_bias_0.25"
+    }
+  },
+  {
+    "game_index": 6,
+    "seats": {
+      "0": "eval_with_bias_0.25",
+      "1": "eval_with_bias_0.1",
+      "2": "base_no_eval",
+      "3": "eval_with_bias_0.5"
+    }
+  },
+  {
+    "game_index": 7,
+    "seats": {
+      "0": "eval_no_bias",
+      "1": "eval_with_bias_0.25",
+      "2": "eval_with_bias_0.1",
+      "3": "eval_with_bias_0.5"
+    }
+  },
+  {
+    "game_index": 8,
+    "seats": {
+      "0": "eval_with_bias_0.5",
+      "1": "eval_no_bias",
+      "2": "base_no_eval",
+      "3": "eval_with_bias_0.1"
+    }
+  },
+  {
+    "game_index": 9,
+    "seats": {
+      "0": "base_no_eval",
+      "1": "eval_with_bias_0.1",
+      "2": "eval_no_bias",
+      "3": "eval_with_bias_0.25"
+    }
+  },
+  {
+    "game_index": 10,
+    "seats": {
+      "0": "eval_with_bias_0.5",
+      "1": "base_no_eval",
+      "2": "eval_with_bias_0.25",
+      "3": "eval_no_bias"
+    }
+  }
+]

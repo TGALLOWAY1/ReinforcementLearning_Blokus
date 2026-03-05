@@ -23,9 +23,9 @@ class MctsTuning:
             if thinking_time_ms <= 75:
                 resolved["progressive_bias_weight"] = 0.5
             elif thinking_time_ms <= 250:
-                resolved["progressive_bias_weight"] = 0.0
-            else:
                 resolved["progressive_bias_weight"] = 0.25
+            else:
+                resolved["progressive_bias_weight"] = 0.0
             
             resolved["_resolved_budget"] = thinking_time_ms
             

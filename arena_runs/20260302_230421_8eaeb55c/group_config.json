@@ -1,0 +1,14 @@
+{
+  "child_run_ids": [
+    "20260302_230407_e4256342",
+    "20260302_230414_5e135eec"
+  ],
+  "num_games": 10,
+  "seat_policy": "randomized",
+  "seeds": [
+    2026,
+    2028
+  ],
+  "thinking_time_ms": 50,
+  "tunings_set": "ablation_leaf_eval"
+}

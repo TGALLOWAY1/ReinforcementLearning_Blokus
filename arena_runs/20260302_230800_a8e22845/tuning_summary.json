@@ -1,0 +1,117 @@
+{
+  "ablation_vs_baseline": {
+    "fixed_200ms_best": {
+      "base_tuning": "adaptive_bias",
+      "delta_mean_score": -0.04999999999999716,
+      "delta_win_rate": -0.0050000000000000044
+    },
+    "fixed_400ms_best": {
+      "base_tuning": "adaptive_bias",
+      "delta_mean_score": -1.8499999999999943,
+      "delta_win_rate": -0.08499999999999999
+    },
+    "fixed_50ms_best": {
+      "base_tuning": "adaptive_bias",
+      "delta_mean_score": -2.3100000000000023,
+      "delta_win_rate": -0.15
+    }
+  },
+  "budget_compliance": {
+    "adaptive_bias": {
+      "actual_ms": 49.90374677002584,
+      "configured_ms": 50,
+      "diff_ms": -0.09625322997415964,
+      "max_ms": 124.0,
+      "p50_ms": 50.0,
+      "p95_ms": 58.0,
+      "simulations_per_move": 863.0277777777778
+    },
+    "fixed_200ms_best": {
+      "actual_ms": 49.59389213775179,
+      "configured_ms": 50,
+      "diff_ms": -0.4061078622482128,
+      "max_ms": 92.0,
+      "p50_ms": 50.0,
+      "p95_ms": 59.0,
+      "simulations_per_move": 853.53216374269
+    },
+    "fixed_400ms_best": {
+      "actual_ms": 49.81890812250333,
+      "configured_ms": 50,
+      "diff_ms": -0.18109187749666944,
+      "max_ms": 151.0,
+      "p50_ms": 50.0,
+      "p95_ms": 56.0,
+      "simulations_per_move": 884.8508655126498
+    },
+    "fixed_50ms_best": {
+      "actual_ms": 49.245556287030944,
+      "configured_ms": 50,
+      "diff_ms": -0.7544437129690564,
+      "max_ms": 124.0,
+      "p50_ms": 50.0,
+      "p95_ms": 54.0,
+      "simulations_per_move": 931.2541145490454
+    }
+  },
+  "configured_time_ms": 50,
+  "rankings": [
+    {
+      "avg_sims": 863.0277777777778,
+      "avg_time_ms": 49.90374677002584,
+      "games_played": 100.0,
+      "max_time_ms": 124.0,
+      "mean_score": 77.16,
+      "name": "adaptive_bias",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 58.0,
+      "rank_score": 69.58,
+      "win_rate": 0.31,
+      "win_rate_ci_lower": 0.22779563206132378,
+      "win_rate_ci_upper": 0.40626239477955695
+    },
+    {
+      "avg_sims": 853.53216374269,
+      "avg_time_ms": 49.59389213775179,
+      "games_played": 100.0,
+      "max_time_ms": 92.0,
+      "mean_score": 77.11,
+      "name": "fixed_200ms_best",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 59.0,
+      "rank_score": 69.055,
+      "win_rate": 0.305,
+      "win_rate_ci_lower": 0.22336571268691052,
+      "win_rate_ci_upper": 0.4010622622287302
+    },
+    {
+      "avg_sims": 884.8508655126498,
+      "avg_time_ms": 49.81890812250333,
+      "games_played": 100.0,
+      "max_time_ms": 151.0,
+      "mean_score": 75.31,
+      "name": "fixed_400ms_best",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 56.0,
+      "rank_score": 60.155,
+      "win_rate": 0.225,
+      "win_rate_ci_lower": 0.15421388380301487,
+      "win_rate_ci_upper": 0.3161332603087862
+    },
+    {
+      "avg_sims": 931.2541145490454,
+      "avg_time_ms": 49.245556287030944,
+      "games_played": 100.0,
+      "max_time_ms": 124.0,
+      "mean_score": 74.85,
+      "name": "fixed_50ms_best",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 54.0,
+      "rank_score": 53.425,
+      "win_rate": 0.16,
+      "win_rate_ci_lower": 0.10095202349473717,
+      "win_rate_ci_upper": 0.24420444558894414
+    }
+  ],
+  "tunings_set": "adaptive_vs_best_fixed"
+}

@@ -1,0 +1,64 @@
+{
+  "n_seeds": 5,
+  "underpowered": false,
+  "base_tuning": "adaptive_bias",
+  "tunings_set": "adaptive_vs_best_fixed",
+  "metrics": {
+    "fixed_400ms_best": {
+      "win_rate_mean": 0.28200000000000003,
+      "win_rate_se": 0.01347219358530748,
+      "win_rate_ci_lower": 0.2445951940637959,
+      "win_rate_ci_upper": 0.3194048059362042,
+      "mean_score": 74.968,
+      "mean_rank": 65.684,
+      "p95_mean": 203.97999999999996,
+      "p95_max": 209.0,
+      "sims_mean": 2272.788070651726,
+      "beats_baseline_in_seeds": 4,
+      "pairwise_wpct_mean": 0.5243333333333334,
+      "dominance_score": 2
+    },
+    "fixed_50ms_best": {
+      "win_rate_mean": 0.286,
+      "win_rate_se": 0.01727715254317099,
+      "win_rate_ci_lower": 0.23803093438975717,
+      "win_rate_ci_upper": 0.33396906561024275,
+      "mean_score": 75.254,
+      "mean_rank": 66.227,
+      "p95_mean": 203.4,
+      "p95_max": 209.0,
+      "sims_mean": 2298.621241261399,
+      "beats_baseline_in_seeds": 3,
+      "pairwise_wpct_mean": 0.5289999999999999,
+      "dominance_score": 3
+    },
+    "adaptive_bias": {
+      "win_rate_mean": 0.244,
+      "win_rate_se": 0.016911534525287767,
+      "win_rate_ci_lower": 0.1970460527458812,
+      "win_rate_ci_upper": 0.29095394725411877,
+      "mean_score": 74.494,
+      "mean_rank": 61.647000000000006,
+      "p95_mean": 203.6,
+      "p95_max": 208.0,
+      "sims_mean": 2326.0360558653847,
+      "beats_baseline_in_seeds": 0,
+      "pairwise_wpct_mean": 0.4963333333333333,
+      "dominance_score": 1
+    },
+    "fixed_200ms_best": {
+      "win_rate_mean": 0.188,
+      "win_rate_se": 0.011575836902790224,
+      "win_rate_ci_lower": 0.15586032429268004,
+      "win_rate_ci_upper": 0.22013967570731996,
+      "mean_score": 73.18199999999999,
+      "mean_rank": 55.391,
+      "p95_mean": 203.4,
+      "p95_max": 208.0,
+      "sims_mean": 2290.471790584013,
+      "beats_baseline_in_seeds": 0,
+      "pairwise_wpct_mean": 0.45033333333333336,
+      "dominance_score": 0
+    }
+  }
+}

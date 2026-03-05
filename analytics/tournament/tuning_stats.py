@@ -77,7 +77,7 @@ def compute_tuning_summary(
         
     tuning_ranks.sort(key=lambda t: t["rank_score"], reverse=True)
     
-    epsilon_ms = 20.0
+    epsilon_ms = max(25.0, configured_time_ms * 0.25)
     budget_compliance = {}
     validation_errors = []
     

@@ -103,6 +103,16 @@ def run_single_tournament(
         "tunings": [t.to_dict(args.thinking_time_ms) for t in tuning_set.tunings]
     })
     
+    resolved_tunings = {}
+    for name, config in agent_configs.items():
+        resolved_tunings[name] = {
+            "name": name,
+            "params": config.params,
+            "backend": config.type,
+            "thinking_time_ms": config.thinking_time_ms
+        }
+    _write_json(run_dir / "resolved_tunings.json", resolved_tunings)
+    
     games_jsonl_path = run_dir / "games.jsonl"
     game_records = []
     

@@ -1,0 +1,145 @@
+{
+  "ablation_vs_baseline": {
+    "eval_no_bias": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 9.875,
+      "delta_win_rate": 0.5
+    },
+    "eval_with_bias_0.1": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 0.0,
+      "delta_win_rate": 0.125
+    },
+    "eval_with_bias_0.25": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 7.375,
+      "delta_win_rate": 0.375
+    },
+    "eval_with_bias_0.5": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 3.0,
+      "delta_win_rate": 0.25
+    }
+  },
+  "budget_compliance": {
+    "base_no_eval": {
+      "actual_ms": 51.8034188034188,
+      "configured_ms": 50,
+      "diff_ms": 1.8034188034188006,
+      "max_ms": 105.0,
+      "p50_ms": 50.0,
+      "p95_ms": 66.39999999999998,
+      "simulations_per_move": 719.8119658119658
+    },
+    "eval_no_bias": {
+      "actual_ms": 51.00763358778626,
+      "configured_ms": 50,
+      "diff_ms": 1.007633587786259,
+      "max_ms": 105.0,
+      "p50_ms": 50.0,
+      "p95_ms": 61.0,
+      "simulations_per_move": 978.0992366412214
+    },
+    "eval_with_bias_0.1": {
+      "actual_ms": 50.92982456140351,
+      "configured_ms": 50,
+      "diff_ms": 0.9298245614035068,
+      "max_ms": 181.0,
+      "p50_ms": 50.0,
+      "p95_ms": 62.74999999999997,
+      "simulations_per_move": 875.2894736842105
+    },
+    "eval_with_bias_0.25": {
+      "actual_ms": 50.14503816793893,
+      "configured_ms": 50,
+      "diff_ms": 0.1450381679389281,
+      "max_ms": 171.0,
+      "p50_ms": 50.0,
+      "p95_ms": 65.5,
+      "simulations_per_move": 1051.0458015267175
+    },
+    "eval_with_bias_0.5": {
+      "actual_ms": 51.760330578512395,
+      "configured_ms": 50,
+      "diff_ms": 1.760330578512395,
+      "max_ms": 151.0,
+      "p50_ms": 50.0,
+      "p95_ms": 67.0,
+      "simulations_per_move": 822.8677685950413
+    }
+  },
+  "configured_time_ms": 50,
+  "rankings": [
+    {
+      "avg_sims": 978.0992366412214,
+      "avg_time_ms": 51.00763358778626,
+      "games_played": 8.0,
+      "max_time_ms": 105.0,
+      "mean_score": 82.0,
+      "name": "eval_no_bias",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 61.0,
+      "rank_score": 91.0,
+      "win_rate": 0.5,
+      "win_rate_ci_lower": 0.21521252682444186,
+      "win_rate_ci_upper": 0.7847874731755582
+    },
+    {
+      "avg_sims": 1051.0458015267175,
+      "avg_time_ms": 50.14503816793893,
+      "games_played": 8.0,
+      "max_time_ms": 171.0,
+      "mean_score": 79.5,
+      "name": "eval_with_bias_0.25",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 65.5,
+      "rank_score": 77.25,
+      "win_rate": 0.375,
+      "win_rate_ci_lower": 0.13684175946152105,
+      "win_rate_ci_upper": 0.6942621454161981
+    },
+    {
+      "avg_sims": 822.8677685950413,
+      "avg_time_ms": 51.760330578512395,
+      "games_played": 8.0,
+      "max_time_ms": 151.0,
+      "mean_score": 75.125,
+      "name": "eval_with_bias_0.5",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 67.0,
+      "rank_score": 62.5625,
+      "win_rate": 0.25,
+      "win_rate_ci_lower": 0.07147768885802763,
+      "win_rate_ci_upper": 0.5907301208974108
+    },
+    {
+      "avg_sims": 875.2894736842105,
+      "avg_time_ms": 50.92982456140351,
+      "games_played": 8.0,
+      "max_time_ms": 181.0,
+      "mean_score": 72.125,
+      "name": "eval_with_bias_0.1",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 62.74999999999997,
+      "rank_score": 48.5625,
+      "win_rate": 0.125,
+      "win_rate_ci_lower": 0.02241690886329617,
+      "win_rate_ci_upper": 0.4708948057698615
+    },
+    {
+      "avg_sims": 719.8119658119658,
+      "avg_time_ms": 51.8034188034188,
+      "games_played": 8.0,
+      "max_time_ms": 105.0,
+      "mean_score": 72.125,
+      "name": "base_no_eval",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 66.39999999999998,
+      "rank_score": 36.0625,
+      "win_rate": 0.0,
+      "win_rate_ci_lower": 0.0,
+      "win_rate_ci_upper": 0.3244156195108769
+    }
+  ],
+  "tunings_set": "ablation_leaf_eval"
+}

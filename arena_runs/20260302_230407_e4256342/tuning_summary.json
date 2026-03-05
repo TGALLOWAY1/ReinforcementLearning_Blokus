@@ -1,0 +1,145 @@
+{
+  "ablation_vs_baseline": {
+    "eval_no_bias": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 2.875,
+      "delta_win_rate": 0.0625
+    },
+    "eval_with_bias_0.1": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": -0.75,
+      "delta_win_rate": 0.1875
+    },
+    "eval_with_bias_0.25": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 6.875,
+      "delta_win_rate": 0.3125
+    },
+    "eval_with_bias_0.5": {
+      "base_tuning": "base_no_eval",
+      "delta_mean_score": 5.375,
+      "delta_win_rate": 0.0625
+    }
+  },
+  "budget_compliance": {
+    "base_no_eval": {
+      "actual_ms": 49.88392857142857,
+      "configured_ms": 50,
+      "diff_ms": -0.1160714285714306,
+      "max_ms": 91.0,
+      "p50_ms": 50.0,
+      "p95_ms": 55.44999999999999,
+      "simulations_per_move": 1030.580357142857
+    },
+    "eval_no_bias": {
+      "actual_ms": 48.91129032258065,
+      "configured_ms": 50,
+      "diff_ms": -1.0887096774193523,
+      "max_ms": 64.0,
+      "p50_ms": 50.0,
+      "p95_ms": 52.0,
+      "simulations_per_move": 808.0967741935484
+    },
+    "eval_with_bias_0.1": {
+      "actual_ms": 47.65546218487395,
+      "configured_ms": 50,
+      "diff_ms": -2.3445378151260527,
+      "max_ms": 55.0,
+      "p50_ms": 50.0,
+      "p95_ms": 52.0,
+      "simulations_per_move": 947.1344537815127
+    },
+    "eval_with_bias_0.25": {
+      "actual_ms": 48.568,
+      "configured_ms": 50,
+      "diff_ms": -1.4320000000000022,
+      "max_ms": 72.0,
+      "p50_ms": 50.0,
+      "p95_ms": 56.19999999999999,
+      "simulations_per_move": 978.72
+    },
+    "eval_with_bias_0.5": {
+      "actual_ms": 51.0234375,
+      "configured_ms": 50,
+      "diff_ms": 1.0234375,
+      "max_ms": 155.0,
+      "p50_ms": 50.0,
+      "p95_ms": 62.0,
+      "simulations_per_move": 1008.1015625
+    }
+  },
+  "configured_time_ms": 50,
+  "rankings": [
+    {
+      "avg_sims": 978.72,
+      "avg_time_ms": 48.568,
+      "games_played": 8.0,
+      "max_time_ms": 72.0,
+      "mean_score": 79.375,
+      "name": "eval_with_bias_0.25",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 56.19999999999999,
+      "rank_score": 83.4375,
+      "win_rate": 0.4375,
+      "win_rate_ci_lower": 0.17449559995652003,
+      "win_rate_ci_upper": 0.7410563524823395
+    },
+    {
+      "avg_sims": 947.1344537815127,
+      "avg_time_ms": 47.65546218487395,
+      "games_played": 8.0,
+      "max_time_ms": 55.0,
+      "mean_score": 71.75,
+      "name": "eval_with_bias_0.1",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 52.0,
+      "rank_score": 67.125,
+      "win_rate": 0.3125,
+      "win_rate_ci_lower": 0.10240597465834517,
+      "win_rate_ci_upper": 0.6442498826582337
+    },
+    {
+      "avg_sims": 1008.1015625,
+      "avg_time_ms": 51.0234375,
+      "games_played": 8.0,
+      "max_time_ms": 155.0,
+      "mean_score": 77.875,
+      "name": "eval_with_bias_0.5",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 62.0,
+      "rank_score": 57.6875,
+      "win_rate": 0.1875,
+      "win_rate_ci_lower": 0.04454287545508048,
+      "win_rate_ci_upper": 0.5332168867392175
+    },
+    {
+      "avg_sims": 808.0967741935484,
+      "avg_time_ms": 48.91129032258065,
+      "games_played": 8.0,
+      "max_time_ms": 64.0,
+      "mean_score": 75.375,
+      "name": "eval_no_bias",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 52.0,
+      "rank_score": 56.4375,
+      "win_rate": 0.1875,
+      "win_rate_ci_lower": 0.04454287545508048,
+      "win_rate_ci_upper": 0.5332168867392175
+    },
+    {
+      "avg_sims": 1030.580357142857,
+      "avg_time_ms": 49.88392857142857,
+      "games_played": 8.0,
+      "max_time_ms": 91.0,
+      "mean_score": 72.5,
+      "name": "base_no_eval",
+      "p50_time_ms": 50.0,
+      "p95_time_ms": 55.44999999999999,
+      "rank_score": 48.75,
+      "win_rate": 0.125,
+      "win_rate_ci_lower": 0.02241690886329617,
+      "win_rate_ci_upper": 0.4708948057698615
+    }
+  ],
+  "tunings_set": "ablation_leaf_eval"
+}

@@ -1,0 +1,78 @@
+{
+  "n_seeds": 2,
+  "underpowered": true,
+  "base_tuning": "base_no_eval",
+  "tunings_set": "ablation_leaf_eval",
+  "metrics": {
+    "eval_with_bias_0.25": {
+      "win_rate_mean": 0.28125,
+      "win_rate_se": 0.15625,
+      "win_rate_ci_lower": 0.0,
+      "win_rate_ci_upper": 1.0,
+      "mean_score": 77.8125,
+      "mean_rank": 67.03125,
+      "p95_mean": 60.49999999999997,
+      "p95_max": 64.79999999999995,
+      "sims_mean": 980.0736752136752,
+      "beats_baseline_in_seeds": 1,
+      "pairwise_wpct_mean": 0.6041666666666667,
+      "dominance_score": 4
+    },
+    "eval_with_bias_0.1": {
+      "win_rate_mean": 0.21875,
+      "win_rate_se": 0.09374999999999999,
+      "win_rate_ci_lower": 0.0,
+      "win_rate_ci_upper": 1.0,
+      "mean_score": 71.3125,
+      "mean_rank": 57.53125,
+      "p95_mean": 56.199999999999996,
+      "p95_max": 60.39999999999999,
+      "sims_mean": 894.1689968022608,
+      "beats_baseline_in_seeds": 1,
+      "pairwise_wpct_mean": 0.39583333333333337,
+      "dominance_score": 1
+    },
+    "eval_with_bias_0.5": {
+      "win_rate_mean": 0.28125,
+      "win_rate_se": 0.09374999999999999,
+      "win_rate_ci_lower": 0.0,
+      "win_rate_ci_upper": 1.0,
+      "mean_score": 77.8125,
+      "mean_rank": 67.03125,
+      "p95_mean": 57.449999999999996,
+      "p95_max": 62.0,
+      "sims_mean": 1012.7459032012196,
+      "beats_baseline_in_seeds": 2,
+      "pairwise_wpct_mean": 0.6041666666666666,
+      "dominance_score": 3
+    },
+    "eval_no_bias": {
+      "win_rate_mean": 0.28125,
+      "win_rate_se": 0.09374999999999999,
+      "win_rate_ci_lower": 0.0,
+      "win_rate_ci_upper": 1.0,
+      "mean_score": 75.75,
+      "mean_rank": 66.0,
+      "p95_mean": 51.5,
+      "p95_max": 52.0,
+      "sims_mean": 897.3532651455547,
+      "beats_baseline_in_seeds": 2,
+      "pairwise_wpct_mean": 0.5208333333333334,
+      "dominance_score": 2
+    },
+    "base_no_eval": {
+      "win_rate_mean": 0.1875,
+      "win_rate_se": 0.0625,
+      "win_rate_ci_lower": 0.0,
+      "win_rate_ci_upper": 0.981637796027006,
+      "mean_score": 75.5625,
+      "mean_rank": 56.53125,
+      "p95_mean": 53.49999999999999,
+      "p95_max": 55.44999999999999,
+      "sims_mean": 972.2247939560439,
+      "beats_baseline_in_seeds": 0,
+      "pairwise_wpct_mean": 0.375,
+      "dominance_score": 0
+    }
+  }
+}

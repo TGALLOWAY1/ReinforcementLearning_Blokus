@@ -72,10 +72,17 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
           <div className="flex gap-1">
             <button
               type="button"
+              onClick={() => setActiveTab('explanation')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'explanation' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            >
+              Explanation
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('main')}
               className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'main' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
             >
-              Explanation
+              Charts
             </button>
             <button
               type="button"
@@ -87,8 +94,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
           </div>
         </div>
         <div className="flex-1 overflow-hidden">
-          {activeTab === 'main' ? (
+          {activeTab === 'explanation' ? (
             <ExplainMovePanel />
+          ) : activeTab === 'telemetry' ? (
+            <TelemetryPanel />
           ) : (
             <div className="h-full overflow-y-auto">
               <section className="p-3 border-b border-charcoal-700">
