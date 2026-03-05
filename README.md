@@ -14,6 +14,28 @@ This project provides a full-stack implementation of Blokus with:
 - **REST API** for programmatic access and research tooling
 - **Arena system** for agent evaluation and tournaments
 
+---
+
+## 👋 For Recruiters & Hiring Managers
+
+**Welcome!** This project demonstrates a production-ready stack for Reinforcement Learning and full-stack web development. 
+
+### ⏱️ 60-Second Architecture Summary
+- **Game Engine (Python)**: High-performance bitboard and frontier-based move generation, capable of thousands of simulations per second.
+- **AI Agents**: Implementations ranging from simple heuristics to an optimized Monte Carlo Tree Search (MCTS) algorithm with UCB1 and transposition tables.
+- **Frontend (React/TypeScript)**: A responsive, color-blind friendly SPA.
+- **Deployment Topology**: The frontend uses `Pyodide` to run the Python core engine directly in the browser via WebWorkers. This allows the heavy MCTS simulations to run locally on the client's machine with zero backend server scaling required, creating a highly portable and free-to-host architecture.
+
+### 🚀 How to Run the Demo
+1. Open the live deployment (or run frontend locally via `npm run dev`).
+2. Click **Run Demo Game** on the home page.
+3. The game will automatically start an AI vs. AI match.
+4. Use the **Pause/Step** controls at the top left to freeze the game.
+5. Watch the **Explain This Move** panel on the right side to see the MCTS agent's thought process, including its top evaluated candidates, simulation counts, and Q-values.
+6. Click **AI Scoreboard** to view a 1,500-game statistically significant evaluation matrix mapping out the strength hierarchy of different agent hyperparameters.
+
+---
+
 ## ✨ Features
 
 ### Game Engine
