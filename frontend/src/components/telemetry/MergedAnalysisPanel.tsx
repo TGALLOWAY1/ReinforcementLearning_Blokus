@@ -105,12 +105,21 @@ export const MergedAnalysisPanel: React.FC = () => {
         [movesWithTelemetry]
     );
 
-    const actualPly = currentSliderTurn === null && movesWithTelemetry.length > 0
-        ? movesWithTelemetry[movesWithTelemetry.length - 1].telemetry.ply
-        : currentSliderTurn || 0;
+    const actualPly = currentSliderTurn ?? (totalTurns > 0 ? totalTurns : 0);
 
-    const currentTelIndex = movesWithTelemetry.findIndex((m: any) => m.telemetry.ply === actualPly);
-    const safeIndex = currentTelIndex >= 0 ? currentTelIndex : movesWithTelemetry.length - 1;
+    // Find the nearest telemetry move at-or-before the current ply
+    const safeIndex = useMemo(() => {
+        if (!movesWithTelemetry.length) return -1;
+        // Prefer exact match
+        const exact = movesWithTelemetry.findIndex((m: any) => m.telemetry.ply === actualPly);
+        if (exact >= 0) return exact;
+        // Fall back to last entry whose ply <= actualPly
+        for (let i = movesWithTelemetry.length - 1; i >= 0; i--) {
+            if (movesWithTelemetry[i].telemetry.ply <= actualPly) return i;
+        }
+        return 0;
+    }, [movesWithTelemetry, actualPly]);
+
     const selectedMove = movesWithTelemetry[safeIndex];
 
     const handlePrev = () => { if (safeIndex > 0) setCurrentSliderTurn(movesWithTelemetry[safeIndex - 1].telemetry.ply); };
@@ -231,27 +240,20 @@ export const MergedAnalysisPanel: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Prev / Next / Slider */}
-                        <div className="flex items-center justify-between mb-2">
-                            <button onClick={handlePrev} disabled={safeIndex === 0} className="px-3 py-1 text-xs bg-charcoal-700 rounded hover:bg-charcoal-600 disabled:opacity-30 text-gray-200">← Prev</button>
+                        {/* Prev / Next navigator — slides via the top Timeline slider */}
+                        <div className="flex items-center justify-between">
+                            <button onClick={handlePrev} disabled={safeIndex <= 0} className="px-3 py-1 text-xs bg-charcoal-700 rounded hover:bg-charcoal-600 disabled:opacity-30 text-gray-200">← Prev</button>
                             <div className="text-center">
                                 <div className="text-sm font-bold" style={{ color: PLAYER_COLORS[selectedMove?.player_to_move] || '#9ca3af' }}>
                                     {selectedMove?.player_to_move}
                                 </div>
                                 <div className="text-xs text-gray-400">
                                     Ply {selectedMove?.telemetry?.ply}{selectedMove?.action ? ` · Piece ${selectedMove.action.piece_id}` : ' · Pass'}
+                                    <span className="ml-1 text-gray-500">({safeIndex + 1}/{movesWithTelemetry.length})</span>
                                 </div>
                             </div>
-                            <button onClick={handleNext} disabled={safeIndex === movesWithTelemetry.length - 1} className="px-3 py-1 text-xs bg-charcoal-700 rounded hover:bg-charcoal-600 disabled:opacity-30 text-gray-200">Next →</button>
+                            <button onClick={handleNext} disabled={safeIndex >= movesWithTelemetry.length - 1} className="px-3 py-1 text-xs bg-charcoal-700 rounded hover:bg-charcoal-600 disabled:opacity-30 text-gray-200">Next →</button>
                         </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max={movesWithTelemetry.length - 1}
-                            value={safeIndex}
-                            onChange={(e) => setCurrentSliderTurn(movesWithTelemetry[parseInt(e.target.value, 10)].telemetry.ply)}
-                            className="w-full accent-blue-500 cursor-pointer"
-                        />
                     </div>
 
                     {/* Charts for selected move */}
@@ -278,14 +280,14 @@ export const MergedAnalysisPanel: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Radar + Timeline */}
-                            <div className="flex gap-3" style={{ height: 240 }}>
-                                <div className="flex-1 bg-charcoal-800 border border-charcoal-700 rounded-lg p-3">
-                                    <RadarDeltaChart telemetry={selectedMove.telemetry} showOpponents={!perOpponent} />
-                                </div>
-                                <div className="flex-1 bg-charcoal-800 border border-charcoal-700 rounded-lg p-3">
-                                    <CumulativeTimelineChart gameHistory={gameHistory} currentPly={selectedMove.telemetry.ply} />
-                                </div>
+                            {/* Move Shape radar — full width */}
+                            <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-3 h-[280px]">
+                                <RadarDeltaChart telemetry={selectedMove.telemetry} showOpponents={!perOpponent} />
+                            </div>
+
+                            {/* Cumulative Move Impact — full width */}
+                            <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-3 h-[240px]">
+                                <CumulativeTimelineChart gameHistory={gameHistory} currentPly={selectedMove.telemetry.ply} />
                             </div>
 
                             {/* Top Moves — collapsed by default */}
