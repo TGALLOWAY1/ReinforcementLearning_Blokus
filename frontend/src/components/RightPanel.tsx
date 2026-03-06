@@ -128,10 +128,17 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             </button>
             <button
               type="button"
+              onClick={() => setActiveTab('analysis')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            >
+              Analysis
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('mcts_analysis')}
               className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'mcts_analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
             >
-              MCTS Diagnostics
+              MCTS
             </button>
           </div>
         </div>
@@ -194,10 +201,17 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             </button>
             <button
               type="button"
+              onClick={() => setActiveTab('analysis')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            >
+              Analysis
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('mcts_analysis')}
               className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'mcts_analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
             >
-              MCTS Diagnostics
+              MCTS
             </button>
           </div>
         </div>
