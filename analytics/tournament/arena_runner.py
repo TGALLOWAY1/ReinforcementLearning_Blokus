@@ -8,10 +8,11 @@ import json
 import random
 import time
 import traceback
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -57,7 +58,7 @@ class AgentConfig:
     params: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, item: Mapping[str, Any]) -> "AgentConfig":
+    def from_dict(cls, item: Mapping[str, Any]) -> AgentConfig:
         if "name" not in item:
             raise ValueError("Agent entries must include 'name'")
         if "type" not in item:
@@ -94,7 +95,7 @@ class SnapshotConfig:
     checkpoints: List[int] = field(default_factory=_default_snapshot_plys)
 
     @classmethod
-    def from_dict(cls, item: Mapping[str, Any]) -> "SnapshotConfig":
+    def from_dict(cls, item: Mapping[str, Any]) -> SnapshotConfig:
         strategy = str(item.get("strategy", "fixed_ply"))
         checkpoints_raw = item.get("checkpoints", _default_snapshot_plys())
         if not isinstance(checkpoints_raw, list):
@@ -134,7 +135,7 @@ class RunConfig:
     snapshots: SnapshotConfig = field(default_factory=SnapshotConfig)
 
     @classmethod
-    def from_dict(cls, config: Mapping[str, Any]) -> "RunConfig":
+    def from_dict(cls, config: Mapping[str, Any]) -> RunConfig:
         agents_raw = config.get("agents")
         if agents_raw is None:
             agents_raw = _legacy_agents_to_list(config)
@@ -695,7 +696,7 @@ def run_single_game(
                 continue
 
             maybe_capture_snapshot()
-    except Exception as exc:
+    except Exception:
         error = traceback.format_exc()
 
     if turn_count >= run_config.max_turns and not game.is_game_over():

@@ -18,7 +18,7 @@ class Piece:
     name: str
     shape: np.ndarray  # 2D array representing the piece
     size: int  # Number of squares in the piece
-    
+
     def __post_init__(self):
         """Validate piece after initialization."""
         if self.shape.ndim != 2:
@@ -75,10 +75,10 @@ def normalize_offsets(offsets: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """
     if not offsets:
         return []
-    
+
     min_row = min(r for r, c in offsets)
     min_col = min(c for r, c in offsets)
-    
+
     normalized = [(r - min_row, c - min_col) for r, c in offsets]
     return sorted(normalized)  # Sort for canonical ordering
 
@@ -104,40 +104,40 @@ def _compute_anchor_indices(offsets: List[Tuple[int, int]], max_anchors: int = 4
     """
     if not offsets:
         return []
-    
+
     if len(offsets) <= max_anchors:
         # If piece is small, use all offsets as anchors
         return list(range(len(offsets)))
-    
+
     anchor_set = set()
-    
+
     # 1. Top-left cell: minimum (row + col)
-    top_left_idx = min(range(len(offsets)), 
+    top_left_idx = min(range(len(offsets)),
                       key=lambda i: offsets[i][0] + offsets[i][1])
     anchor_set.add(top_left_idx)
-    
+
     # 2. Bottom-right cell: maximum (row + col)
     bottom_right_idx = max(range(len(offsets)),
                           key=lambda i: offsets[i][0] + offsets[i][1])
     anchor_set.add(bottom_right_idx)
-    
+
     # 3. Furthest-from-centroid cell
     if len(offsets) > 2:
         # Compute centroid
         avg_row = sum(r for r, c in offsets) / len(offsets)
         avg_col = sum(c for r, c in offsets) / len(offsets)
-        
+
         # Find cell with max distance squared from centroid
         furthest_idx = max(range(len(offsets)),
-                          key=lambda i: (offsets[i][0] - avg_row)**2 + 
+                          key=lambda i: (offsets[i][0] - avg_row)**2 +
                                        (offsets[i][1] - avg_col)**2)
         anchor_set.add(furthest_idx)
-    
+
     # Convert to sorted list and cap at max_anchors
     anchor_list = sorted(anchor_set)
     if len(anchor_list) > max_anchors:
         anchor_list = anchor_list[:max_anchors]
-    
+
     return anchor_list
 
 
@@ -153,44 +153,44 @@ def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> Li
         List of PieceOrientation instances, one per unique orientation
     """
     orientations = []
-    
+
     # Generate all rotations and reflections using existing logic
     current_shape = base_shape.copy()
     shape_variants = [current_shape.copy()]
-    
+
     # Add 90, 180, 270 degree rotations
     for _ in range(3):
         current_shape = np.rot90(current_shape)
         shape_variants.append(current_shape.copy())
-    
+
     # Add reflections
     reflected = np.fliplr(base_shape)
     shape_variants.append(reflected.copy())
-    
+
     # Add reflected rotations
     for _ in range(3):
         reflected = np.rot90(reflected)
         shape_variants.append(reflected.copy())
-    
+
     # Deduplicate by converting to normalized offsets and using as key
     seen_offsets = {}
     orientation_id = 0
-    
+
     for shape in shape_variants:
         # Convert to offsets
         offsets = shape_to_offsets(shape)
         normalized = normalize_offsets(offsets)
-        
+
         # Use sorted tuple as key for deduplication
         offsets_key = tuple(normalized)
         if offsets_key in seen_offsets:
             continue
-        
+
         seen_offsets[offsets_key] = True
-        
+
         # Compute shape mask
         shape_mask = coords_to_mask(normalized)
-        
+
         # Compute diagonal neighbor coords (excluding shape cells)
         # Include ALL neighbors relative to the normalized offsets.
         # Note: Some neighbors may have negative coordinates, which is fine -
@@ -214,7 +214,7 @@ def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> Li
         # We'll include neighbors in a wider range to capture most cases.
         diag_coords_for_mask = {(r, c) for r, c in diag_coords if r >= 0 and c >= 0}
         diag_mask = coords_to_mask(diag_coords_for_mask) if diag_coords_for_mask else 0
-        
+
         # Compute orthogonal neighbor coords (excluding shape cells)
         orth_coords = set()
         for r, c in normalized:
@@ -225,12 +225,12 @@ def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> Li
         orth_coords -= set(normalized)
         orth_coords_for_mask = {(r, c) for r, c in orth_coords if r >= 0 and c >= 0}
         orth_mask = coords_to_mask(orth_coords_for_mask) if orth_coords_for_mask else 0
-        
+
         # Compute anchor indices using heuristic selection
         # This reduces redundant anchor attempts by selecting strategic anchor points
         # that are more likely to produce valid placements when aligned with frontier cells
         anchor_indices = _compute_anchor_indices(normalized)
-        
+
         # Create PieceOrientation
         orientation = PieceOrientation(
             piece_id=piece_id,
@@ -241,10 +241,10 @@ def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> Li
             orth_mask=orth_mask,
             anchor_indices=anchor_indices
         )
-        
+
         orientations.append(orientation)
         orientation_id += 1
-    
+
     return orientations
 
 
@@ -279,77 +279,77 @@ class PieceType(Enum):
 
 class PieceGenerator:
     """Generates all Blokus pieces with rotations and reflections."""
-    
+
     @staticmethod
     def get_all_pieces() -> List[Piece]:
         """Get all 21 Blokus pieces."""
         pieces = []
-        
+
         # Monomino (1 square)
         pieces.append(Piece(1, "Monomino", np.array([[1]]), 1))
-        
+
         # Domino (2 squares)
         pieces.append(Piece(2, "Domino", np.array([[1, 1]]), 2))
-        
+
         # Tromino I (3 squares in line)
         pieces.append(Piece(3, "Tromino I", np.array([[1, 1, 1]]), 3))
-        
+
         # Tromino L (3 squares in L shape)
         pieces.append(Piece(4, "Tromino L", np.array([[1, 0], [1, 1]]), 3))
-        
+
         # Tetromino I (4 squares in line)
         pieces.append(Piece(5, "Tetromino I", np.array([[1, 1, 1, 1]]), 4))
-        
+
         # Tetromino O (2x2 square)
         pieces.append(Piece(6, "Tetromino O", np.array([[1, 1], [1, 1]]), 4))
-        
+
         # Tetromino T (T shape)
         pieces.append(Piece(7, "Tetromino T", np.array([[1, 1, 1], [0, 1, 0]]), 4))
-        
+
         # Tetromino L (L shape)
         pieces.append(Piece(8, "Tetromino L", np.array([[1, 0], [1, 0], [1, 1]]), 4))
-        
+
         # Tetromino S (S shape)
         pieces.append(Piece(9, "Tetromino S", np.array([[0, 1, 1], [1, 1, 0]]), 4))
-        
+
         # Tetromino Z (Z shape)
         pieces.append(Piece(10, "Tetromino Z", np.array([[1, 1, 0], [0, 1, 1]]), 4))
-        
+
         # Pentomino F (F shape)
         pieces.append(Piece(11, "Pentomino F", np.array([[0, 1, 1], [1, 1, 0], [0, 1, 0]]), 5))
-        
+
         # Pentomino I (5 squares in line)
         pieces.append(Piece(12, "Pentomino I", np.array([[1, 1, 1, 1, 1]]), 5))
-        
+
         # Pentomino L (L shape)
         pieces.append(Piece(13, "Pentomino L", np.array([[1, 0], [1, 0], [1, 0], [1, 1]]), 5))
-        
+
         # Pentomino N (N shape)
         pieces.append(Piece(14, "Pentomino N", np.array([[1, 0], [1, 1], [0, 1], [0, 1]]), 5))
-        
+
         # Pentomino P (P shape)
         pieces.append(Piece(15, "Pentomino P", np.array([[1, 1], [1, 1], [1, 0]]), 5))
-        
+
         # Pentomino T (T shape)
         pieces.append(Piece(16, "Pentomino T", np.array([[1, 1, 1], [0, 1, 0], [0, 1, 0]]), 5))
-        
+
         # Pentomino U (U shape)
         pieces.append(Piece(17, "Pentomino U", np.array([[1, 0, 1], [1, 1, 1]]), 5))
-        
+
         # Pentomino V (V shape)
         pieces.append(Piece(18, "Pentomino V", np.array([[1, 0, 0], [1, 0, 0], [1, 1, 1]]), 5))
-        
+
         # Pentomino W (W shape)
         pieces.append(Piece(19, "Pentomino W", np.array([[1, 0, 0], [1, 1, 0], [0, 1, 1]]), 5))
-        
+
         # Pentomino X (X shape)
         pieces.append(Piece(20, "Pentomino X", np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]), 5))
-        
+
         # Pentomino Y (Y shape)
         pieces.append(Piece(21, "Pentomino Y", np.array([[1, 0], [1, 1], [1, 0], [1, 0]]), 5))
-        
+
         return pieces
-    
+
     @staticmethod
     def get_piece_by_id(piece_id: int) -> Optional[Piece]:
         """Get a piece by its ID."""
@@ -358,7 +358,7 @@ class PieceGenerator:
             if piece.id == piece_id:
                 return piece
         return None
-    
+
     @staticmethod
     def get_piece_rotations_and_reflections(piece: Piece) -> List[np.ndarray]:
         """
@@ -368,32 +368,32 @@ class PieceGenerator:
         """
         orientations = []
         current_shape = piece.shape.copy()
-        
+
         # Add original shape
         orientations.append(current_shape.copy())
-        
+
         # Add 90, 180, 270 degree rotations
         for _ in range(3):
             current_shape = np.rot90(current_shape)
             orientations.append(current_shape.copy())
-        
+
         # Add reflections
         reflected = np.fliplr(piece.shape)
         orientations.append(reflected.copy())
-        
+
         # Add reflected rotations
         for _ in range(3):
             reflected = np.rot90(reflected)
             orientations.append(reflected.copy())
-        
+
         # Remove duplicates
         unique_orientations = []
         for orientation in orientations:
             if not any(np.array_equal(orientation, existing) for existing in unique_orientations):
                 unique_orientations.append(orientation)
-        
+
         return unique_orientations
-    
+
     @staticmethod
     def get_all_piece_orientations() -> List[Tuple[Piece, np.ndarray]]:
         """
@@ -403,18 +403,18 @@ class PieceGenerator:
         """
         all_orientations = []
         pieces = PieceGenerator.get_all_pieces()
-        
+
         for piece in pieces:
             orientations = PieceGenerator.get_piece_rotations_and_reflections(piece)
             for orientation in orientations:
                 all_orientations.append((piece, orientation))
-        
+
         return all_orientations
 
 
 class PiecePlacement:
     """Helper class for piece placement calculations."""
-    
+
     @staticmethod
     def get_piece_positions(shape: np.ndarray, anchor_row: int, anchor_col: int) -> List[Tuple[int, int]]:
         """
@@ -430,16 +430,16 @@ class PiecePlacement:
         """
         positions = []
         rows, cols = shape.shape
-        
+
         for i in range(rows):
             for j in range(cols):
                 if shape[i, j] == 1:
                     positions.append((anchor_row + i, anchor_col + j))
-        
+
         return positions
-    
+
     @staticmethod
-    def can_place_piece_at(board_shape: Tuple[int, int], piece_shape: np.ndarray, 
+    def can_place_piece_at(board_shape: Tuple[int, int], piece_shape: np.ndarray,
                           anchor_row: int, anchor_col: int) -> bool:
         """
         Check if a piece can be placed at the given anchor position without going out of bounds.
@@ -455,15 +455,15 @@ class PiecePlacement:
         """
         board_height, board_width = board_shape
         piece_height, piece_width = piece_shape.shape
-        
+
         # Check if piece would go out of bounds
-        if (anchor_row < 0 or anchor_col < 0 or 
-            anchor_row + piece_height > board_height or 
+        if (anchor_row < 0 or anchor_col < 0 or
+            anchor_row + piece_height > board_height or
             anchor_col + piece_width > board_width):
             return False
-        
+
         return True
-    
+
     @staticmethod
     def get_valid_anchor_positions(board_shape: Tuple[int, int], piece_shape: np.ndarray) -> List[Tuple[int, int]]:
         """
@@ -479,12 +479,12 @@ class PiecePlacement:
         valid_positions = []
         board_height, board_width = board_shape
         piece_height, piece_width = piece_shape.shape
-        
+
         for row in range(board_height - piece_height + 1):
             for col in range(board_width - piece_width + 1):
                 if PiecePlacement.can_place_piece_at(board_shape, piece_shape, row, col):
                     valid_positions.append((row, col))
-        
+
         return valid_positions
 
 
@@ -497,7 +497,7 @@ def init_piece_orientations():
     global ALL_PIECE_ORIENTATIONS
     if ALL_PIECE_ORIENTATIONS:
         return  # Already initialized
-    
+
     pieces = PieceGenerator.get_all_pieces()
     for piece in pieces:
         orientations = generate_orientations_for_piece(piece.id, piece.shape)

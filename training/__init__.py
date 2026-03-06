@@ -1,3 +1,0 @@
-"""
-Training utilities and scripts
-"""

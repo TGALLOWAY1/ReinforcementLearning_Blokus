@@ -18,7 +18,7 @@ class RandomAgent:
     This agent serves as a baseline for comparison with more sophisticated
     agents and algorithms.
     """
-    
+
     def __init__(self, seed: Optional[int] = None):
         """
         Initialize random agent.
@@ -29,7 +29,7 @@ class RandomAgent:
         self.rng = np.random.RandomState(seed)
         self.move_generator = LegalMoveGenerator()
         self.piece_generator = PieceGenerator()
-        
+
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
         """
         Select a random legal move.
@@ -44,11 +44,11 @@ class RandomAgent:
         """
         if not legal_moves:
             return None
-            
+
         # Select uniformly from legal moves
         move_idx = self.rng.randint(0, len(legal_moves))
         return legal_moves[move_idx]
-        
+
     def get_action_info(self) -> Dict[str, Any]:
         """Get information about the agent."""
         return {
@@ -56,11 +56,11 @@ class RandomAgent:
             "type": "random",
             "description": "Selects moves uniformly from legal actions"
         }
-        
+
     def reset(self):
         """Reset agent state (no-op for random agent)."""
         pass
-        
+
     def set_seed(self, seed: int):
         """Set random seed for reproducible behavior."""
         self.rng = np.random.RandomState(seed)

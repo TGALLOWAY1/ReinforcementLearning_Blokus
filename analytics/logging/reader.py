@@ -24,7 +24,7 @@ def load_jsonl(path: str, filter_game_id: Optional[str] = None) -> List[Dict[str
     data = []
     if not os.path.exists(path):
         return data
-    with open(path, "r") as f:
+    with open(path) as f:
         for line in f:
             if not line.strip():
                 continue

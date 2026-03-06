@@ -16,7 +16,7 @@ class ZobristHash:
     Zobrist hashing allows for efficient state comparison and transposition
     table lookups in game tree search algorithms like MCTS.
     """
-    
+
     def __init__(self, board_size: int = 20, num_players: int = 4, seed: Optional[int] = None):
         """
         Initialize Zobrist hash system.
@@ -28,21 +28,21 @@ class ZobristHash:
         """
         self.board_size = board_size
         self.num_players = num_players
-        
+
         # Initialize random number generator
         self.rng = np.random.RandomState(seed)
-        
+
         # Generate random hash values
         self._generate_hash_values()
-        
+
     def _generate_hash_values(self):
         """Generate random hash values for each position and player."""
         # Hash values for each (row, col, player) combination
         self.position_player_hashes = np.zeros(
-            (self.board_size, self.board_size, self.num_players + 1), 
+            (self.board_size, self.board_size, self.num_players + 1),
             dtype=np.uint64
         )
-        
+
         # Generate random 64-bit values
         for row in range(self.board_size):
             for col in range(self.board_size):
@@ -50,12 +50,12 @@ class ZobristHash:
                     self.position_player_hashes[row, col, player] = self.rng.randint(
                         0, 2**64, dtype=np.uint64
                     )
-                    
+
         # Hash values for player turn
         self.player_turn_hashes = np.zeros(self.num_players, dtype=np.uint64)
         for player in range(self.num_players):
             self.player_turn_hashes[player] = self.rng.randint(0, 2**64, dtype=np.uint64)
-            
+
         # Hash values for pieces used by each player
         self.piece_used_hashes = np.zeros(
             (self.num_players, 21),  # 21 pieces per player
@@ -66,7 +66,7 @@ class ZobristHash:
                 self.piece_used_hashes[player, piece_id] = self.rng.randint(
                     0, 2**64, dtype=np.uint64
                 )
-                
+
     def hash_board(self, board: Board) -> int:
         """
         Compute Zobrist hash for a board state.
@@ -78,26 +78,26 @@ class ZobristHash:
             Hash value for the board state
         """
         hash_value = 0
-        
+
         # Hash board positions
         for row in range(self.board_size):
             for col in range(self.board_size):
                 cell_value = board.get_cell(Position(row, col))
                 hash_value ^= self.position_player_hashes[row, col, cell_value]
-                
+
         # Hash current player
         current_player_idx = board.current_player.value - 1
         hash_value ^= self.player_turn_hashes[current_player_idx]
-        
+
         # Hash pieces used by each player
         for player in Player:
             player_idx = player.value - 1
             used_pieces = board.player_pieces_used[player]
             for piece_id in used_pieces:
                 hash_value ^= self.piece_used_hashes[player_idx, piece_id - 1]
-                
+
         return hash_value
-        
+
     def hash_move(self, board: Board, move_hash: int, player: Player, piece_id: int) -> int:
         """
         Update hash value after making a move.
@@ -112,21 +112,21 @@ class ZobristHash:
             Updated hash value
         """
         new_hash = move_hash
-        
+
         # XOR out the current player
         current_player_idx = board.current_player.value - 1
         new_hash ^= self.player_turn_hashes[current_player_idx]
-        
+
         # XOR in the new player (next player)
         next_player_idx = (current_player_idx + 1) % self.num_players
         new_hash ^= self.player_turn_hashes[next_player_idx]
-        
+
         # XOR in the piece being used
         player_idx = player.value - 1
         new_hash ^= self.piece_used_hashes[player_idx, piece_id - 1]
-        
+
         return new_hash
-        
+
     def hash_position_placement(self, row: int, col: int, player: Player) -> int:
         """
         Get hash contribution for placing a piece at a position.
@@ -140,7 +140,7 @@ class ZobristHash:
             Hash contribution for this placement
         """
         return self.position_player_hashes[row, col, player.value]
-        
+
     def get_hash_info(self) -> Dict[str, any]:
         """Get information about the hash system."""
         return {
@@ -156,7 +156,7 @@ class TranspositionTable:
     """
     Transposition table for caching MCTS node information.
     """
-    
+
     def __init__(self, max_size: int = 1000000):
         """
         Initialize transposition table.
@@ -168,7 +168,7 @@ class TranspositionTable:
         self.table: Dict[int, Dict] = {}
         self.access_count = 0
         self.hit_count = 0
-        
+
     def get(self, hash_value: int) -> Optional[Dict]:
         """
         Get entry from transposition table.
@@ -184,7 +184,7 @@ class TranspositionTable:
             self.hit_count += 1
             return self.table[hash_value]
         return None
-        
+
     def put(self, hash_value: int, entry: Dict):
         """
         Store entry in transposition table.
@@ -199,15 +199,15 @@ class TranspositionTable:
             keys_to_remove = list(self.table.keys())[:self.max_size // 10]
             for key in keys_to_remove:
                 del self.table[key]
-                
+
         self.table[hash_value] = entry
-        
+
     def clear(self):
         """Clear the transposition table."""
         self.table.clear()
         self.access_count = 0
         self.hit_count = 0
-        
+
     def get_stats(self) -> Dict[str, float]:
         """Get transposition table statistics."""
         hit_rate = self.hit_count / max(self.access_count, 1)

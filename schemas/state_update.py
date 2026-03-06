@@ -13,7 +13,7 @@ class BoardState(BaseModel):
     """Current state of the game board."""
     cells: List[List[Optional[Player]]] = Field(description="20x20 board state")
     move_count: int = Field(description="Total number of moves made")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -34,7 +34,7 @@ class PlayerState(BaseModel):
     pieces_used: List[int] = Field(description="IDs of pieces already used")
     pieces_remaining: List[int] = Field(description="IDs of pieces still available")
     is_active: bool = Field(description="Whether it's this player's turn")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -54,7 +54,7 @@ class LegalMove(BaseModel):
     anchor_row: int
     anchor_col: int
     positions: List[Position] = Field(description="Positions this move would occupy")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -81,7 +81,7 @@ class GameState(BaseModel):
         default=None,
         description="20x20 grid where 1.0 = legal move position, 0.0 = illegal"
     )
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -106,7 +106,7 @@ class StateUpdate(BaseModel):
     game_id: str
     data: Any = Field(description="Update data (GameState, Move, or error message)")
     timestamp: float = Field(description="Unix timestamp of the update")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -133,7 +133,7 @@ class GameSummary(BaseModel):
     duration_seconds: Optional[float] = None
     created_at: float
     last_updated: float
-    
+
     class Config:
         json_schema_extra = {
             "example": {

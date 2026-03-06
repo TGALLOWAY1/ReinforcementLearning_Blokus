@@ -105,7 +105,7 @@ def compute_player_mobility_metrics(
             if piece_id not in pieces_used_set and Pi > 0:
                 q_p = Pi / total_placements
                 entropy_sum -= q_p * math.log(q_p)
-        
+
         # Normalize by log(num_available_pieces) to get [0, 1]
         num_avail = 21 - len(pieces_used_set)
         if num_avail > 1:

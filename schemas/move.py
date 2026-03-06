@@ -23,7 +23,7 @@ class MoveRequest(BaseModel):
     orientation: int = Field(..., ge=0, description="Orientation index of the piece")
     anchor_row: int = Field(..., ge=0, le=19, description="Row position of the anchor")
     anchor_col: int = Field(..., ge=0, le=19, description="Column position of the anchor")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -43,7 +43,7 @@ class MoveResponse(BaseModel):
     new_score: Optional[int] = None
     game_over: bool = False
     winner: Optional[Player] = None
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -72,7 +72,7 @@ class Move(BaseModel):
     positions: List[Position] = Field(description="All positions occupied by this move")
     score_delta: int = Field(description="Score change from this move")
     move_number: int = Field(description="Move number in the game")
-    
+
     class Config:
         json_schema_extra = {
             "example": {

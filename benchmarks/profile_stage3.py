@@ -11,13 +11,14 @@ from torch.distributions.distribution import Distribution
 
 Distribution.set_default_validate_args(False)
 
+from rl.train import _make_vec_env, load_config
+
 from benchmarks.bench_selfplay_league import (
     _make_model,
     _prepare_stage3_sampler,
     _resolve_device,
     _rollout_steps,
 )
-from rl.train import _make_vec_env, load_config
 
 
 def main() -> None:

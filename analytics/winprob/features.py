@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -18,7 +19,6 @@ from engine.board import Board, Player
 from engine.mobility_metrics import compute_player_mobility_metrics
 from engine.move_generator import LegalMoveGenerator
 from engine.pieces import PieceGenerator
-
 
 SNAPSHOT_FEATURE_COLUMNS: List[str] = [
     "frontier_size",

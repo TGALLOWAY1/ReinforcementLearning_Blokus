@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from envs.blokus_v0 import BlokusEnv
 
 from agents.registry import (
     AgentProtocol,
@@ -16,7 +17,6 @@ from agents.registry import (
     RLPolicyAgent,
     build_baseline_agent,
 )
-from envs.blokus_v0 import BlokusEnv
 from league.db import LeagueDB
 from league.elo import EloConfig, update_ratings
 

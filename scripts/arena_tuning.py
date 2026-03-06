@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -15,15 +15,18 @@ from analytics.tournament.arena_runner import (
     AgentConfig,
     RunConfig,
     SnapshotConfig,
+    _append_index_row,
     _prepare_run_directory,
     _write_json,
-    _append_index_row,
     run_single_game,
 )
-from analytics.tournament.scheduler import generate_matchups, validate_balance
-from analytics.tournament.tuning import get_tuning_set, TuningSet
 from analytics.tournament.arena_stats import compute_summary
-from analytics.tournament.tuning_stats import compute_tuning_summary, render_tuning_summary_markdown
+from analytics.tournament.scheduler import generate_matchups, validate_balance
+from analytics.tournament.tuning import TuningSet, get_tuning_set
+from analytics.tournament.tuning_stats import (
+    compute_tuning_summary,
+    render_tuning_summary_markdown,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,11 +58,11 @@ def run_single_tournament(
     # Pre-generate schedule and validate
     matchups = generate_matchups(tuning_names, args.num_games, seed, args.seat_policy)
     validate_balance(matchups, tuning_names)
-    
+
     # We create a pseudo RunConfig just to track run_id, seed, output_root etc.
     # We spoof 4 agents just so it validates, but we'll use agent_configs dynamically.
     pseudo_agents = list(agent_configs.values())[:4]
-    
+
     run_config = RunConfig(
         agents=pseudo_agents,
         num_games=args.num_games,
@@ -70,16 +73,16 @@ def run_single_tournament(
         notes=f"Tuning Set: {args.tunings_set}. " + args.notes,
         snapshots=SnapshotConfig(enabled=False)
     )
-    
+
     if args.print_config:
         print(json.dumps({"tuning_set": args.tunings_set, "matchups": len(matchups)}))
         return ""
-        
+
     run_id, run_dir = _prepare_run_directory(run_config)
-    
+
     # Dump matchup schedule
     matchups_data = []
-    games_scheduled = {name: 0 for name in tuning_names}
+    games_scheduled = dict.fromkeys(tuning_names, 0)
     for m in matchups:
         matchups_data.append({
             "game_index": m.game_index,
@@ -87,13 +90,13 @@ def run_single_tournament(
         })
         for seat, name in m.seats.items():
             games_scheduled[name] += 1
-            
+
     _write_json(run_dir / "matchups.json", matchups_data)
-    
+
     for name, count in games_scheduled.items():
         if count == 0:
             raise ValueError(f"Tuning '{name}' was scheduled 0 games! Aborting tournament.")
-    
+
     _write_json(run_dir / "tuning_config.json", {
         "tunings_set": args.tunings_set,
         "thinking_time_ms": args.thinking_time_ms,
@@ -102,7 +105,7 @@ def run_single_tournament(
         "seat_policy": args.seat_policy,
         "tunings": [t.to_dict(args.thinking_time_ms) for t in tuning_set.tunings]
     })
-    
+
     resolved_tunings = {}
     for name, config in agent_configs.items():
         resolved_tunings[name] = {
@@ -112,25 +115,26 @@ def run_single_tournament(
             "thinking_time_ms": config.thinking_time_ms
         }
     _write_json(run_dir / "resolved_tunings.json", resolved_tunings)
-    
+
     games_jsonl_path = run_dir / "games.jsonl"
     game_records = []
-    
+
     completed_games = 0
     error_games = 0
-    
+
     with games_jsonl_path.open("w", encoding="utf-8") as handle:
         from concurrent.futures import ProcessPoolExecutor, as_completed
+
         from analytics.tournament.arena_runner import game_seed_from_run_seed
-        
+
         futures = []
         with ProcessPoolExecutor() as executor:
             for idx, matchup in enumerate(matchups):
                 game_index = matchup.game_index
                 seat_assignment = {str(seat + 1): agent_name for seat, agent_name in matchup.seats.items()}
-                
+
                 game_seed = game_seed_from_run_seed(run_config.seed, game_index)
-                
+
                 futures.append(executor.submit(
                     run_single_game,
                     run_id=run_id,
@@ -140,20 +144,20 @@ def run_single_tournament(
                     seat_assignment=seat_assignment,
                     agent_configs=agent_configs
                 ))
-                
+
             for future in as_completed(futures):
                 try:
                     record, _ = future.result()
                     game_records.append(record)
                     handle.write(json.dumps(record, sort_keys=True) + "\n")
                     handle.flush()
-                    
+
                     if record.get("error"):
                         error_games += 1
                         print(f"Error in game {record.get('game_index')}: {record.get('error')}")
                     else:
                         completed_games += 1
-                        
+
                     if args.verbose:
                         print(f"[{completed_games + error_games}/{args.num_games}] "
                               f"winners={record.get('winner_agents')} "
@@ -173,16 +177,16 @@ def run_single_tournament(
         thinking_time_ms_by_agent=thinking_params,
         run_config=run_config.to_dict()
     )
-    
+
     _write_json(run_dir / "summary.json", core_summary)
-    
+
     # Tournament specific stats (ranking, ablation, budget validation)
     tuning_summary = compute_tuning_summary(
-        core_summary, 
+        core_summary,
         tuning_set,
         args.thinking_time_ms
     )
-    
+
     _write_json(run_dir / "tuning_summary.json", tuning_summary)
     with (run_dir / "tuning_summary.md").open("w", encoding="utf-8") as handle:
         handle.write(render_tuning_summary_markdown(tuning_summary))
@@ -196,20 +200,20 @@ def run_single_tournament(
         run_config=run_config,
         completed_games=completed_games
     )
-    
+
     print(f"run_id: {run_id}")
     print(f"Completed: {completed_games}/{args.num_games}")
     print(f"Results: {run_dir}/tuning_summary.md")
-    
+
     return run_id
 
 
 def main() -> None:
     args = parse_args()
-    
+
     tuning_set = get_tuning_set(args.tunings_set)
     tuning_names = [t.name for t in tuning_set.tunings]
-    
+
     # Build AgentConfigs for each tuning
     agent_configs: Dict[str, AgentConfig] = {}
     for tuning in tuning_set.tunings:
@@ -227,7 +231,7 @@ def main() -> None:
         seeds = list(range(args.seed_start, args.seed_start + args.seed_count))
     else:
         seeds = [args.seed]
-        
+
     run_ids = []
     for s in seeds:
         print(f"\n--- Running tournament for seed {s} ---")
@@ -236,14 +240,14 @@ def main() -> None:
             run_ids.append(run_id)
 
     if len(seeds) > 1:
-        import hashlib
         import datetime
+        import hashlib
         group_hash = hashlib.md5(f"{args.tunings_set}_{args.thinking_time_ms}_{seeds}".encode()).hexdigest()[:8]
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         group_run_id = f"{timestamp}_{group_hash}"
         meta_dir = Path(args.output_root) / group_run_id
         meta_dir.mkdir(parents=True, exist_ok=True)
-        
+
         _write_json(meta_dir / "group_config.json", {
             "tunings_set": args.tunings_set,
             "thinking_time_ms": args.thinking_time_ms,

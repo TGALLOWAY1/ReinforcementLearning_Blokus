@@ -15,7 +15,7 @@ from .state_update import (
 
 __all__ = [
     "GameConfig",
-    "AgentConfig", 
+    "AgentConfig",
     "PlayerType",
     "MoveRequest",
     "MoveResponse",

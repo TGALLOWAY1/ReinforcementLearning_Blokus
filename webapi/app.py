@@ -91,23 +91,23 @@ except Exception:  # pragma: no cover - deploy runtime may omit mongo deps
 
 class GameManager:
     """Manages active games and their state."""
-    
+
     def __init__(self, app_profile: Optional[str] = None):
         self.app_profile = app_profile or get_app_profile()
         self.games: Dict[str, Dict[str, Any]] = {}
         self.agent_instances: Dict[str, Any] = {}
         self._strategy_loggers: Dict[str, Any] = {}  # game_id -> StrategyLogger
-    
+
     def create_game(self, config: GameConfig) -> str:
         """Create a new game."""
         game_id = config.game_id or str(uuid.uuid4())
-        
+
         if game_id in self.games:
             raise HTTPException(status_code=400, detail="Game ID already exists")
-        
+
         # Create game instance
         game = BlokusGame()
-        
+
         # Store game data
         now = datetime.now()
         self.games[game_id] = {
@@ -122,17 +122,17 @@ class GameManager:
             'winner': None,
             'configured_players': {self._convert_player(player_cfg.player) for player_cfg in config.players},
         }
-        
+
         # Initialize agent instances
         self._initialize_agents(game_id, config)
-        
+
         # Start game if auto_start is True
         if config.auto_start:
             self._start_game(game_id)
-        
+
         logger.info(f"Game created: {game_id}")
         return game_id
-    
+
     def _initialize_agents(self, game_id: str, config: GameConfig):
         """Initialize agent instances for the game."""
         agents = {}
@@ -144,7 +144,7 @@ class GameManager:
             if self.app_profile == APP_PROFILE_DEPLOY:
                 agents[player] = build_deploy_gameplay_agent(agent_type, agent_config)
                 continue
-            
+
             if agent_type == AgentType.RANDOM:
                 agents[player] = RandomAgent()
             elif agent_type == AgentType.HEURISTIC:
@@ -160,9 +160,9 @@ class GameManager:
                 agents[player] = None  # Human players don't need agents
             else:
                 raise HTTPException(status_code=400, detail=f"Unknown agent type: {agent_type}")
-        
+
         self.agent_instances[game_id] = agents
-    
+
     def _all_configured_players_blocked(self, game_data: Dict[str, Any]) -> bool:
         """True if all configured players have no legal moves."""
         game = game_data['game']
@@ -178,20 +178,20 @@ class GameManager:
         """Start the game."""
         if game_id not in self.games:
             raise HTTPException(status_code=404, detail="Game not found")
-        
+
         self.games[game_id]['status'] = GameStatus.IN_PROGRESS
         self.games[game_id]['updated_at'] = datetime.now()
-        
+
         self._init_strategy_logger(game_id)
-        
-        # In serverless/polling mode, turns are advanced via HTTP endpoints 
+
+        # In serverless/polling mode, turns are advanced via HTTP endpoints
         # instead of a background asyncio task.
-    
+
     async def advance_turn(self, game_id: str) -> MoveResponse:
         """Advance the turn by letting the current agent make a move."""
         if game_id not in self.games:
             raise HTTPException(status_code=404, detail="Game not found")
-            
+
         game_data = self.games[game_id]
         if game_data['status'] != GameStatus.IN_PROGRESS:
             return MoveResponse(
@@ -199,9 +199,9 @@ class GameManager:
                 message="Game is not in progress",
                 game_state=self._get_game_state(game_id)
             )
-            
+
         game = game_data['game']
-        
+
         if game.is_game_over() or self._all_configured_players_blocked(game_data):
             logger.info(f"Game {game_id} is over")
             await self._end_game(game_id)
@@ -210,11 +210,11 @@ class GameManager:
                 message="Game is over",
                 game_state=self._get_game_state(game_id)
             )
-            
+
         current_player = game.get_current_player()
         agents = self.agent_instances.get(game_id, {})
         agent = agents.get(current_player)
-        
+
         configured_players = game_data.get('configured_players', set(EnginePlayer))
         if current_player not in configured_players:
             game.board._update_current_player()
@@ -227,11 +227,11 @@ class GameManager:
         if agent is not None:
             # Agent move
             await self._make_agent_move(game_id, current_player, agent)
-            
+
             # Check if game is over after move
             if game.is_game_over() or self._all_configured_players_blocked(game_data):
                 await self._end_game(game_id)
-                
+
             return MoveResponse(
                 success=True,
                 message="Agent moved",
@@ -243,7 +243,7 @@ class GameManager:
                 message="Waiting for human move",
                 game_state=self._get_game_state(game_id)
             )
-    
+
     async def _make_agent_move(self, game_id: str, player: EnginePlayer, agent: Any):
         """
         Make a move for an agent.
@@ -260,14 +260,14 @@ class GameManager:
             logger.info(f"AGENT MOVE START: game_id={game_id}, player={player.name}, agent={type(agent).__name__}")
             game_data = self.games[game_id]
             game = game_data['game']
-            
+
             # Get legal moves
             start_legal = time.perf_counter()
             legal_moves = game.get_legal_moves(player)
             end_legal = time.perf_counter()
             legal_time = end_legal - start_legal
             logger.info(f"AGENT MOVE legal_moves: {len(legal_moves)} moves found in {legal_time:.4f}s for player={player.name}")
-            
+
             if not legal_moves:
                 # Player cannot move, skip turn
                 logger.info(f"AGENT MOVE: No legal moves for {player.name}, skipping turn")
@@ -275,7 +275,7 @@ class GameManager:
                 game.board._update_current_player()
                 game._check_game_over()  # No piece placed, so make_move never ran this
                 return
-            
+
             # Get agent's move with timeout / budget
             start_agent = time.perf_counter()
             player_config = next((p for p in game_data['config'].players if self._convert_player(p.player) == player), None)
@@ -352,7 +352,7 @@ class GameManager:
                 game.board._update_current_player()
                 game._check_game_over()
                 return
-            
+
             # Make the move (only reached if agent successfully returned a move)
             state_before = game.get_board_copy()
             turn_index = game.get_move_count()
@@ -361,7 +361,7 @@ class GameManager:
             end_apply = time.perf_counter()
             apply_time = end_apply - start_apply
             logger.info(f"AGENT MOVE apply: success={success} in {apply_time:.4f}s")
-            
+
             if success:
                 self._log_step(game_id, turn_index, player.value, state_before, move, game.board)
                 # Log the move details
@@ -395,18 +395,18 @@ class GameManager:
                 })
                 game_data['last_turn_started_at'] = time.perf_counter()
                 game_data['last_turn_player'] = game.get_current_player()
-                
+
                 end_total = time.perf_counter()
                 total_time = end_total - start_total
                 logger.info(f"AGENT MOVE timing: total={total_time:.4f}s, legal={legal_time:.4f}s, agent={agent_time:.4f}s, apply={apply_time:.4f}s, broadcast={broadcast_time:.4f}s")
             else:
                 logger.warning(f"AGENT MOVE: Invalid move from agent {type(agent).__name__} for player {player.name}")
-                
+
         except Exception as e:
             logger.error(f"AGENT MOVE ERROR: {str(e)} for player {player.name}")
             import traceback
             traceback.print_exc()
-    
+
     def _record_pass(self, game_id: str, player: EnginePlayer, agent_type: str = "human", reason: str = "no_moves"):
         """Record a pass (skip turn) in move_records for replay."""
         if game_id not in self.games:
@@ -523,32 +523,32 @@ class GameManager:
                 ])
         except Exception as exc:
             logger.warning(f"Could not persist game analytics for {game_id}: {exc}")
-    
+
     async def make_move(self, game_id: str, move_request: MoveRequest) -> MoveResponse:
         """Make a move in the game."""
         if game_id not in self.games:
             raise HTTPException(status_code=404, detail="Game not found")
-        
+
         game_data = self.games[game_id]
         game = game_data['game']
-        
+
         if game_data['status'] != GameStatus.IN_PROGRESS:
             return MoveResponse(
                 success=False,
                 message="Game is not in progress",
                 game_state=self._get_game_state(game_id)
             )
-        
+
         # Convert move - MoveRequest has move data nested under 'move' field
         move_data = move_request.move
         engine_move = EngineMove(move_data.piece_id, move_data.orientation, move_data.anchor_row, move_data.anchor_col)
         player = self._convert_player(move_request.player)
-        
+
         state_before = game.get_board_copy()
         turn_index = game.get_move_count()
         # Make the move
         success = game.make_move(engine_move, player)
-        
+
         if success:
             self._log_step(game_id, turn_index, player.value, state_before, engine_move, game.board)
             game_data['updated_at'] = datetime.now()
@@ -563,7 +563,7 @@ class GameManager:
                 message="Invalid move",
                 game_state=self._get_game_state(game_id)
             )
-    
+
     async def _process_human_pass(self, game_id: str, player: Player) -> MoveResponse:
         """
         Process a human player's pass (skip turn).
@@ -577,55 +577,55 @@ class GameManager:
         """
         try:
             logger.info(f"Processing human pass for {player.value}")
-            
+
             # Get game data
             if game_id not in self.games:
                 return MoveResponse(success=False, message="Game not found", game_over=False)
-            
+
             game_data = self.games[game_id]
             game = game_data['game']
-            
+
             # Convert schema player to engine player
             engine_player = self._convert_player(player)
-            
+
             # Verify it's the player's turn
             current_player = game.get_current_player()
             if current_player != engine_player:
                 return MoveResponse(
-                    success=False, 
-                    message=f"It's not {player.value}'s turn", 
+                    success=False,
+                    message=f"It's not {player.value}'s turn",
                     game_over=False
                 )
-            
+
             # Optionally check if player has legal moves (log warning if they do)
             legal_moves = game.get_legal_moves(engine_player)
             if legal_moves:
                 logger.warning(f"Player {player.value} is passing but has {len(legal_moves)} legal moves available")
-            
+
             # Record pass for replay
             self._record_pass(game_id, engine_player, agent_type="human", reason="no_moves")
 
             # Advance to next player (same logic as agent skip)
             game.board._update_current_player()
             logger.info(f"Turn advanced to {game.get_current_player().name}")
-            
+
             # Update game data
             game_data['updated_at'] = datetime.now()
-            
+
             # Re-check game-over (no piece was placed, so make_move never ran _check_game_over)
             game._check_game_over()
-            
+
             # Check if game is over
             game_over = game.is_game_over()
             if game_over:
                 await self._end_game(game_id)
-            
+
             return MoveResponse(
                 success=True,
                 message="Turn passed successfully",
                 game_state=self._get_game_state(game_id)
             )
-                
+
         except Exception as e:
             logger.error(f"Error in pass processing: {e}")
             return MoveResponse(
@@ -633,7 +633,7 @@ class GameManager:
                 message=f"Error passing turn: {str(e)}",
                 game_over=False
             )
-    
+
     async def _process_human_move_immediately(self, game_id: str, move_request: MoveRequest) -> MoveResponse:
         """Process human move immediately without waiting for turn loop."""
         start_total = time.perf_counter()
@@ -641,33 +641,33 @@ class GameManager:
             # Log incoming move with raw data
             move_data = move_request.move
             logger.info(f"HUMAN MOVE START: game_id={game_id}, player={move_request.player}, raw_move={move_data.dict() if hasattr(move_data, 'dict') else {'piece_id': move_data.piece_id, 'orientation': move_data.orientation, 'anchor_row': move_data.anchor_row, 'anchor_col': move_data.anchor_col}}")
-            
+
             # Get game data
             if game_id not in self.games:
                 return MoveResponse(success=False, message="Game not found", game_over=False)
-            
+
             game_data = self.games[game_id]
             game = game_data['game']
-            
+
             # Convert schema player to engine player
             engine_player = self._convert_player(move_request.player)
-            
+
             # Pre-check 1: Verify it's the player's turn
             current_player = game.get_current_player()
             if current_player != engine_player:
                 logger.warning(f"HUMAN MOVE: Not player's turn. Current={current_player.name}, Requested={engine_player.name}")
                 return MoveResponse(
-                    success=False, 
-                    message="It is not your turn.", 
+                    success=False,
+                    message="It is not your turn.",
                     game_over=False
                 )
-            
+
             # Create move object
             piece_id = move_data.piece_id
             orientation = move_data.orientation
             anchor_row = move_data.anchor_row
             anchor_col = move_data.anchor_col
-            
+
             # Pre-check 2: Piece already used
             if piece_id in game.board.player_pieces_used[engine_player]:
                 logger.warning(f"HUMAN MOVE: Piece {piece_id} already used by {engine_player.name}")
@@ -676,7 +676,7 @@ class GameManager:
                     message="This piece has already been used.",
                     game_state=self._get_game_state(game_id)
                 )
-            
+
             # Pre-check 3: Invalid orientation index
             if piece_id not in game.move_generator.piece_orientations_cache:
                 logger.warning(f"HUMAN MOVE: Invalid piece_id {piece_id}")
@@ -685,7 +685,7 @@ class GameManager:
                     message="Invalid piece ID.",
                     game_state=self._get_game_state(game_id)
                 )
-            
+
             orientations = game.move_generator.piece_orientations_cache[piece_id]
             if orientation < 0 or orientation >= len(orientations):
                 logger.warning(f"HUMAN MOVE: Invalid orientation {orientation} for piece {piece_id} (max={len(orientations)-1})")
@@ -694,7 +694,7 @@ class GameManager:
                     message="Invalid orientation for this piece.",
                     game_state=self._get_game_state(game_id)
                 )
-            
+
             # Pre-check 4: Out of bounds
             from engine.pieces import PiecePlacement
             orientation_shape = orientations[orientation]
@@ -710,10 +710,10 @@ class GameManager:
                     message="Move is out of bounds.",
                     game_state=self._get_game_state(game_id)
                 )
-            
+
             # Create engine move object
             engine_move = EngineMove(piece_id, orientation, anchor_row, anchor_col)
-            
+
             state_before = game.get_board_copy()
             turn_index = game.get_move_count()
             # Make the move immediately
@@ -722,13 +722,13 @@ class GameManager:
             end_make_move = time.perf_counter()
             make_move_time = end_make_move - start_make_move
             logger.info(f"HUMAN MOVE make_move: success={success} in {make_move_time:.4f}s")
-            
+
             if success:
                 self._log_step(game_id, turn_index, engine_player.value, state_before, engine_move, game.board)
                 # Log the move details
                 player_name = move_request.player.value if hasattr(move_request.player, 'value') else str(move_request.player)
                 logger.info(f"Player {player_name} placed a piece at {anchor_row},{anchor_col} (piece_id={piece_id}, orientation={orientation})")
-                
+
                 # Prepare move information for broadcast
                 last_move = {
                     "piece_id": piece_id,
@@ -737,7 +737,7 @@ class GameManager:
                     "anchor_col": anchor_col,
                     "player": player_name
                 }
-                
+
                 # Update game data
                 game_data['updated_at'] = datetime.now()
                 user_move_time_ms = int((time.perf_counter() - game_data.get('last_turn_started_at', time.perf_counter())) * 1000)
@@ -757,11 +757,16 @@ class GameManager:
                 })
                 game_data['last_turn_started_at'] = time.perf_counter()
                 game_data['last_turn_player'] = game.get_current_player()
-                
+
+                # The broadcast_time variable is not defined in this scope.
+                # It seems to be intended for a different context or was removed.
+                # To fix the scope error, we can define it as 0.0 or remove it from the log.
+                # Assuming it should be 0.0 if no broadcast is explicitly timed here.
+                broadcast_time = 0.0 # Placeholder for broadcast time if not explicitly measured here
                 end_total = time.perf_counter()
                 total_time = end_total - start_total
                 logger.info(f"HUMAN MOVE timing: total={total_time:.4f}s, make_move={make_move_time:.4f}s, broadcast={broadcast_time:.4f}s")
-                
+
                 # Check if game is over
                 game_over = game.is_game_over()
                 winner = None
@@ -770,7 +775,7 @@ class GameManager:
                     if winner_engine:
                         winner = self._convert_player_back(winner_engine)
                     await self._end_game(game_id)
-                
+
                 return MoveResponse(
                     success=True,
                     message="Move made successfully",
@@ -784,7 +789,7 @@ class GameManager:
                     message="Move violates Blokus placement rules (overlap, edge contact, or missing corner connection).",
                     game_state=self._get_game_state(game_id)
                 )
-                
+
         except Exception as e:
             logger.error(f"HUMAN MOVE ERROR: {str(e)}")
             import traceback
@@ -794,7 +799,7 @@ class GameManager:
                 message=f"Error making move: {str(e)}",
                 game_over=False
             )
-    
+
     async def force_finish_game(self, game_id: str) -> None:
         """Force-complete a game and persist analytics."""
         if game_id not in self.games:
@@ -805,27 +810,27 @@ class GameManager:
         """Get the current game state."""
         if game_id not in self.games:
             raise HTTPException(status_code=404, detail="Game not found")
-        
+
         return self._get_game_state(game_id)
-    
+
     def _get_game_state(self, game_id: str) -> GameState:
         """Internal method to get game state."""
         game_data = self.games[game_id]
         game = game_data['game']
-        
+
         # Convert board to list of lists
         board = game.board.grid.tolist()
-        
+
         # Get scores
         scores = {}
         for player in EnginePlayer:
             scores[player.name] = game.get_score(player)
-        
+
         # Get pieces used
         pieces_used = {}
         for player in EnginePlayer:
             pieces_used[player.name] = list(game.board.player_pieces_used[player])
-        
+
         # Get legal moves (optimized: reuse move_generator from game)
         legal_moves = []
         engine_moves = []
@@ -833,7 +838,7 @@ class GameManager:
         if not game.is_game_over():
             engine_moves = game.get_legal_moves()
             legal_moves = [self._convert_move_back(move) for move in engine_moves]
-            
+
             # Calculate heatmap: map legal_moves to 20x20 grid (1 = legal, 0 = illegal)
             # OPTIMIZED: Use cached move_generator and cached positions
             move_generator = game.move_generator
@@ -862,10 +867,10 @@ class GameManager:
         current_player_engine = game.get_current_player()
         pieces_used_current = list(game.board.player_pieces_used[current_player_engine])
         mobility = compute_player_mobility_metrics(engine_moves, pieces_used_current)
-        
+
         center_control = game._calculate_center_bonus(current_player_engine) // 2
         frontier_size = len(game.board.get_frontier(current_player_engine))
-        
+
         mobility_metrics = {
             "totalPlacements": mobility.totalPlacements,
             "totalOrientationNormalized": mobility.totalOrientationNormalized,
@@ -894,7 +899,7 @@ class GameManager:
             mobility_metrics=mobility_metrics,
             mcts_top_moves=mcts_top_moves
         )
-    
+
     def get_available_agents(self) -> List[AgentInfo]:
         """Get list of available agents."""
         return [
@@ -919,19 +924,19 @@ class GameManager:
                 description="Human player controlled via WebSocket"
             )
         ]
-    
+
     def _convert_player(self, player: Player) -> EnginePlayer:
         """Convert schema Player to engine Player."""
         return EnginePlayer[player.value]
-    
+
     def _convert_player_back(self, player: EnginePlayer) -> Player:
         """Convert engine Player to schema Player."""
         return Player(player.name)
-    
+
     def _convert_move(self, move: Move) -> EngineMove:
         """Convert schema Move to engine Move."""
         return EngineMove(move.piece_id, move.orientation, move.anchor_row, move.anchor_col)
-    
+
     def _convert_move_back(self, move: EngineMove) -> Move:
         """Convert engine Move to schema Move."""
         return Move(
@@ -1454,18 +1459,18 @@ async def list_training_runs(
     try:
         db = get_database()
         collection = db.training_runs
-        
+
         # Build query
         query = {}
         if agent_id:
             query["agent_id"] = agent_id
         if status:
             query["status"] = status
-        
+
         # Fetch runs sorted by start_time descending
         cursor = collection.find(query).sort("start_time", -1).limit(limit)
         runs = await cursor.to_list(length=limit)
-        
+
         # Convert ObjectId to string for JSON serialization
         for run in runs:
             if "_id" in run:
@@ -1476,7 +1481,7 @@ async def list_training_runs(
                 run["start_time"] = run["start_time"].isoformat()
             if "end_time" in run and isinstance(run["end_time"], datetime):
                 run["end_time"] = run["end_time"].isoformat()
-        
+
         return runs
     except RuntimeError as e:
         logger.error(f"Database not available: {e}")
@@ -1505,26 +1510,26 @@ async def get_training_run(run_id: str):
     try:
         db = get_database()
         collection = db.training_runs
-        
+
         run = await collection.find_one({"run_id": run_id})
-        
+
         if not run:
             raise HTTPException(
                 status_code=404,
                 detail=f"Training run {run_id} not found"
             )
-        
+
         # Convert ObjectId to string
         if "_id" in run:
             run["id"] = str(run["_id"])
             del run["_id"]
-        
+
         # Convert datetime to ISO format strings
         if "start_time" in run and isinstance(run["start_time"], datetime):
             run["start_time"] = run["start_time"].isoformat()
         if "end_time" in run and isinstance(run["end_time"], datetime):
             run["end_time"] = run["end_time"].isoformat()
-        
+
         return run
     except HTTPException:
         raise
@@ -1552,10 +1557,10 @@ async def list_agents():
     try:
         db = get_database()
         collection = db.training_runs
-        
+
         # Get distinct agent IDs
         agent_ids = await collection.distinct("agent_id")
-        
+
         return {"agent_ids": agent_ids}
     except RuntimeError as e:
         logger.error(f"Database not available: {e}")
@@ -1584,9 +1589,9 @@ async def get_training_run_evaluations(run_id: str):
     try:
         db = get_database()
         collection = db.evaluation_runs
-        
+
         evaluations = await collection.find({"training_run_id": run_id}).sort("created_at", -1).to_list(length=100)
-        
+
         # Convert ObjectId to string and datetime to ISO format
         for eval_run in evaluations:
             if "_id" in eval_run:
@@ -1594,7 +1599,7 @@ async def get_training_run_evaluations(run_id: str):
                 del eval_run["_id"]
             if "created_at" in eval_run and isinstance(eval_run["created_at"], datetime):
                 eval_run["created_at"] = eval_run["created_at"].isoformat()
-        
+
         return evaluations
     except RuntimeError as e:
         logger.error(f"Database not available: {e}")

@@ -10,7 +10,7 @@ if __name__ == "__main__":
     print("API Documentation: http://localhost:8000/docs")
     print("WebSocket endpoint: ws://localhost:8000/ws/games/{game_id}")
     print()
-    
+
     uvicorn.run(
         app,
         host="0.0.0.0",

@@ -39,41 +39,41 @@ def setup_logging(
     """
     # Create log directory if it doesn't exist
     log_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Create log file path
     log_file = log_dir / f"{run_name}.log"
-    
+
     # Default format: timestamp, level, logger name, message
     if format_string is None:
         format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    
+
     # Create formatter
     formatter = logging.Formatter(
         format_string,
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-    
+
     # Get root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
-    
+
     # Remove existing handlers to avoid duplicates
     # (useful if setup_logging is called multiple times)
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
-    
+
     # File handler
     file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
     file_handler.setLevel(level)
     file_handler.setFormatter(formatter)
     root_logger.addHandler(file_handler)
-    
+
     # Console handler
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
-    
+
     return log_file
 
 
@@ -100,20 +100,20 @@ def create_run_directory(
     """
     # Create base directory if it doesn't exist
     base_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Generate timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
+
     # Use experiment name or default
     exp_name = experiment_name or "run"
-    
+
     # Create run directory name
     run_dir_name = f"{timestamp}_{exp_name}"
     run_dir = base_dir / run_dir_name
-    
+
     # Create directory
     run_dir.mkdir(parents=True, exist_ok=True)
-    
+
     return run_dir
 
 
@@ -143,9 +143,9 @@ def setup_training_logging(
     """
     # Create run directory
     run_dir = create_run_directory(base_run_dir, experiment_name)
-    
+
     # Set up logging
     log_file = setup_logging(run_dir, "training", level)
-    
+
     return run_dir, log_file
 

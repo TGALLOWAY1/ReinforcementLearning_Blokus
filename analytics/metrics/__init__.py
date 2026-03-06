@@ -29,11 +29,11 @@ class MetricInput:
     next_state: Any # Board object
     player_id: int # ID of the player making the move
     opponents: List[int] # IDs of opponents
-    
+
     # Precomputed/cached values to avoid re-deriving
     placed_squares: Optional[List[Tuple[int, int]]] = None
     precomputed_values: Optional[Dict[str, Any]] = None # Generic cache for things like mobility counts
-    
+
     def get_placed_squares(self) -> List[Tuple[int, int]]:
         if self.placed_squares is not None:
             return self.placed_squares

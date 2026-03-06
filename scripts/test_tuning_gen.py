@@ -2,8 +2,13 @@
 
 import json
 from pathlib import Path
-from analytics.tournament.tuning_stats import compute_tuning_summary, render_tuning_summary_markdown
-from analytics.tournament.tuning import TuningSet, MctsTuning
+
+from analytics.tournament.tuning import MctsTuning, TuningSet
+from analytics.tournament.tuning_stats import (
+    compute_tuning_summary,
+    render_tuning_summary_markdown,
+)
+
 
 def main():
     target = Path("arena_runs/test_det_1/summary.json")

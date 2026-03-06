@@ -114,11 +114,11 @@ def shift_mask(mask: int, d_row: int, d_col: int, strict: bool = True) -> Option
     # Convert mask to coords, shift them, and rebuild mask
     coords = mask_to_coords(mask)
     shifted_coords = []
-    
+
     for row, col in coords:
         new_row = row + d_row
         new_col = col + d_col
-        
+
         # Check bounds
         if new_row < 0 or new_row >= BOARD_HEIGHT:
             if strict:
@@ -130,7 +130,7 @@ def shift_mask(mask: int, d_row: int, d_col: int, strict: bool = True) -> Option
                 return None
             else:
                 continue  # Skip this coordinate
-        
+
         # Check for row wrapping (if we shifted across a row boundary incorrectly)
         # This shouldn't happen with our bounds check, but we verify the index is still valid
         new_index = coord_to_index(new_row, new_col)
@@ -139,8 +139,8 @@ def shift_mask(mask: int, d_row: int, d_col: int, strict: bool = True) -> Option
                 return None
             else:
                 continue  # Skip this coordinate
-        
+
         shifted_coords.append((new_row, new_col))
-    
+
     return coords_to_mask(shifted_coords) if shifted_coords else 0
 

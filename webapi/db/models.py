@@ -30,7 +30,7 @@ class EpisodeMetric(BaseModel):
     steps: int = Field(..., description="Number of steps in the episode")
     win: Optional[bool] = Field(None, description="Whether the agent won (if applicable)")
     epsilon: Optional[float] = Field(None, description="Exploration rate (if applicable)")
-    
+
     class Config:
         json_encoders = {ObjectId: str}
 
@@ -39,7 +39,7 @@ class RollingWinRate(BaseModel):
     """Rolling win rate metric at a specific episode."""
     episode: int = Field(..., description="Episode number")
     win_rate: float = Field(..., description="Win rate (0.0 to 1.0)")
-    
+
     class Config:
         json_encoders = {ObjectId: str}
 
@@ -48,7 +48,7 @@ class CheckpointPath(BaseModel):
     """Checkpoint path information."""
     episode: int = Field(..., description="Episode number when checkpoint was saved")
     path: str = Field(..., description="File path to the checkpoint")
-    
+
     class Config:
         json_encoders = {ObjectId: str}
 
@@ -83,7 +83,7 @@ class TrainingRun(BaseModel):
         default_factory=dict,
         description="Additional metadata (git hash, env version, etc.)"
     )
-    
+
     class Config:
         populate_by_name = True
         arbitrary_types_allowed = True
@@ -147,7 +147,7 @@ class EvaluationRun(BaseModel):
     avg_reward: float = Field(..., description="Average reward per game")
     avg_game_length: float = Field(..., description="Average game length in steps")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Evaluation run creation time")
-    
+
     class Config:
         populate_by_name = True
         arbitrary_types_allowed = True

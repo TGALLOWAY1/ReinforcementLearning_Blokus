@@ -5,9 +5,16 @@ from __future__ import annotations
 import itertools
 import json
 import math
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from statistics import median
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 
 import numpy as np
 
@@ -212,7 +219,7 @@ def _compute_efficiency(
         win_rate = float(win_stats.get(agent_name, {}).get("win_rate", 0.0))
         mean_score = _to_float(score_stats.get(agent_name, {}).get("mean")) or 0.0
         avg_time_seconds = (avg_time_ms or 0.0) / 1000.0
-        
+
         all_times = entry.get("all_move_times", [])
         p50 = float(np.percentile(all_times, 50)) if all_times else None
         p95 = float(np.percentile(all_times, 95)) if all_times else None

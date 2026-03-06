@@ -1,15 +1,20 @@
 # Reinforcement Learning Environment for Blokus
 
-A comprehensive reinforcement learning research environment for the Blokus board game, featuring a complete game engine, multiple AI agents, web interface, and PettingZoo/Gymnasium compatibility.
+A comprehensive reinforcement learning research environment for the Blokus board game, featuring a complete game engine, multiple AI agents, web interface,.
 
 <img width="1795" height="865" alt="image" src="https://github.com/user-attachments/assets/751e771f-ce00-45b8-8289-6086f760cd7d" />
 
 ## 🎯 Overview
 
+> **Note**: The reinforcement learning (RL) agents and training pipeline have been archived to consolidate the project. To access the PyTorch/Stable-Baselines3 training code or PettingZoo environments, check out the `archive/rl-agents` branch:
+> ```bash
+> git fetch && git checkout archive/rl-agents
+> ```
+
+
 This project provides a full-stack implementation of Blokus with:
 - **Complete game engine** implementing official Blokus rules
 - **Multiple AI agents** (Random, Heuristic, MCTS)
-- **Reinforcement learning environment** compatible with PettingZoo and Gymnasium
 - **Web interface** for interactive gameplay
 - **REST API** for programmatic access and research tooling
 - **Arena system** for agent evaluation and tournaments
@@ -53,13 +58,6 @@ This project provides a full-stack implementation of Blokus with:
 
 <img width="712" height="213" alt="image" src="https://github.com/user-attachments/assets/32be3357-c4cf-4b89-8954-90f6c6a8b075" />
 
-### RL Environment
-- **PettingZoo AEC** environment for multi-agent RL
-- **Gymnasium compatibility** for single-agent training
-- Action masking for legal moves only
-- Multi-channel observations (board state, remaining pieces, last move)
-- Dense and sparse reward signals
-
 ### Web Interface
 - React + TypeScript frontend
 - Real-time game visualization with SVG
@@ -82,88 +80,6 @@ This project provides a full-stack implementation of Blokus with:
 - Win-probability training scripts:
   - `scripts/train_winprob_v1.py` (pairwise logistic regression, calibrated baseline)
   - `scripts/train_winprob_v2.py` (phase-aware gradient boosting)
-
-## Stage 3 Self-Play League (Checkpoint-Only)
-
-Stage 3 is a GPU-first self-play regime where the learning agent plays only against a league of its own prior checkpoints. No MCTS or random opponents are used during training.
-
-Quick start:
-1. Produce Stage 2 checkpoints (e.g., `configs/v1_rl_vs_mcts.yaml`).
-2. Set `stage3_league.seed_dir` to the Stage 2 checkpoint directory and `stage3_league.league_dir` to a new Stage 3 output directory.
-3. Run Stage 3:
-
-```bash
-PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay.yaml
-```
-
-GPU-first (DummyVecEnv) variant:
-
-```bash
-PYTHONPATH=. python rl/train.py --config configs/stage3_selfplay_gpu.yaml
-```
-
-On macOS, GPU acceleration uses `mps`. The `stage3_selfplay_gpu.yaml` config is set up for MPS (DummyVecEnv + `device: mps`, opponent_device `mps`).
-
-Additional Stage 3 configs:
-1. `configs/stage3_selfplay_gpu_small.yaml`: smaller policy net for throughput testing.
-2. `configs/stage3_selfplay_subproc.yaml`: SubprocVecEnv for parallel env stepping (opponents on CPU).
-3. `configs/stage3_selfplay_fast.yaml`: reduced eval overhead (SubprocVecEnv).
-4. `configs/stage3_selfplay_gpu_fast.yaml`: reduced eval overhead (DummyVecEnv + MPS).
-
-Profiling Stage 3 rollout:
-
-```bash
-PYTHONPATH=. python benchmarks/profile_stage3.py --config configs/stage3_selfplay_gpu.yaml --steps 200
-```
-
-Scan Stage 3 throughput across vecenv/num_envs combinations:
-
-```bash
-PYTHONPATH=. python benchmarks/scan_stage3_envs.py --config configs/stage3_selfplay_gpu.yaml --steps 500 --num-envs 2,4,8 --vecenvs dummy,subproc
-```
-
-Key config fields in `configs/stage3_selfplay.yaml`:
-1. `training_stage: 3`
-2. `stage3_league.seed_dir`: where to discover prior checkpoints (Stage 2 output)
-3. `stage3_league.league_dir`: where Stage 3 checkpoints + registry live
-4. `stage3_league.save_every_steps`: how often to register new checkpoints into the league
-5. `stage3_league.max_checkpoints_to_keep`: retention cap for league snapshots
-6. `stage3_league.window_schedule`: progressive window shrink schedule (recent-focus over time)
-7. `stage3_league.sampling`: band weights for old/mid/recent checkpoints
-8. `stage3_league.vecenv_mode`: optional override for Stage 3 vec env (`dummy` or `subproc`)
-9. `stage3_league.strict_resume`: require RNG + step metadata when resuming Stage 3
-10. `device`: training device (`auto`, `cuda`, `mps`, `cpu`)
-
-League metadata:
-1. Registry file: `stage3_league.league_dir/league_registry.jsonl`
-2. State file: `stage3_league.league_dir/league_state.json`
-
-Note: when using `vec_env_type: subproc`, Stage 3 auto-resolves `opponent_device` to `cpu` to avoid multi-process GPU memory duplication. Use `vec_env_type: dummy` if you want opponents on GPU.
-
-## Benchmarks
-
-Compare Stage 2 (MCTS baseline) vs Stage 3 (checkpoint league) rollout throughput:
-
-```bash
-PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
-  --stage2-config configs/v1_rl_vs_mcts.yaml \\
-  --stage3-config configs/stage3_selfplay.yaml \\
-  --steps 5000
-```
-
-Results are saved to `benchmarks/results/*.json`.
-
-macOS MPS fast path:
-
-```bash
-PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
-  --stage2-config configs/v1_rl_vs_mcts.yaml \\
-  --stage2-vecenv dummy \\
-  --stage3-config configs/stage3_selfplay_gpu.yaml \\
-  --stage3-vecenv dummy \\
-  --stage3-opponent-device mps \\
-  --steps 2000
-```
 
 ## 🚀 Quick Start
 
@@ -212,29 +128,6 @@ PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
    Frontend runs at `http://localhost:5173`
 
 3. **Open your browser** and navigate to `http://localhost:5173`
-
-### Arena + Win-Probability Workflow
-
-Run a reproducible 100-game arena benchmark:
-
-```bash
-python scripts/arena.py --config scripts/arena_config.json
-```
-
-Run fair-time benchmark (equal think times):
-
-```bash
-python scripts/arena.py --config scripts/arena_config_fair_time.json
-```
-
-Train v1/v2 win-probability models from a completed run:
-
-```bash
-python scripts/train_winprob_v1.py --snapshots arena_runs/<run_id>
-python scripts/train_winprob_v2.py --snapshots arena_runs/<run_id>
-```
-
-Detailed arena/modeling docs: [`docs/arena.md`](docs/arena.md), [`docs/datasets.md`](docs/datasets.md)
 
 ## 📖 Usage
 
@@ -290,61 +183,6 @@ response = requests.post(
         }
     }
 )
-```
-
-### Using the RL Environment
-
-#### PettingZoo AEC Environment
-```python
-from envs.blokus_v0 import env
-
-# Create environment
-blokus_env = env(render_mode="human", max_episode_steps=1000)
-
-# Reset
-blokus_env.reset()
-
-# Step through game
-while not blokus_env.terminations[blokus_env.agent_selection]:
-    agent = blokus_env.agent_selection
-    obs = blokus_env.observe(agent)
-    info = blokus_env.infos[agent]
-    
-    # Get legal moves from info
-    legal_mask = info["legal_action_mask"]
-    legal_actions = [i for i, legal in enumerate(legal_mask) if legal]
-    
-    # Select action (example: random legal action)
-    import random
-    action = random.choice(legal_actions)
-    
-    # Step
-    blokus_env.step(action)
-```
-
-#### Gymnasium Compatibility
-```python
-from envs.blokus_v0 import make_gymnasium_env
-
-env = make_gymnasium_env(render_mode="human")
-obs, info = env.reset()
-
-done = False
-while not done:
-    action = env.action_space.sample()  # Replace with your agent
-    obs, reward, terminated, truncated, info = env.step(action)
-    done = terminated or truncated
-```
-
-### Self-Play Training (MaskablePPO)
-Run an overnight training job with periodic Elo evaluation:
-```bash
-python -m rl.train --config configs/overnight.yaml
-```
-
-Run a quick smoke test (~1 minute) that trains briefly and updates Elo across 10 matches:
-```bash
-python -m rl.smoke_test
 ```
 
 ### Running Agent Arena
@@ -500,136 +338,6 @@ Test coverage includes:
 - Agent behavior
 - Environment compatibility
 
-## 🎓 Training RL Agents
-
-The environment is compatible with:
-- **Stable-Baselines3**: Use `make_gymnasium_env()` wrapper
-- **PettingZoo**: Use `env()` directly for multi-agent training
-- **Custom training**: See `training/trainer.py` for examples
-
-### Quick Start: Smoke Test
-
-Before running long training jobs, verify everything works with a smoke test:
-
-```bash
-# Quick verification run (5 episodes, detailed logging)
-python training/trainer.py --mode smoke
-
-# Or use a config file
-python training/trainer.py --config training/config_smoke.yaml
-```
-
-### Full Training
-
-Once smoke test passes, run full training:
-
-```bash
-# Full training run
-python training/trainer.py --mode full --total-timesteps 1000000
-
-# Or use a config file
-python training/trainer.py --config training/config_full.yaml
-```
-
-### Training Features
-
-The training system includes:
-- **Smoke-test mode**: Quick verification with small episode counts and detailed logging
-- **Full mode**: Production training with optimized settings
-- **Config files**: YAML/JSON configuration support
-- **Seed control**: Reproducible training runs
-- **Sanity checks**: Automatic detection of NaN/Inf values and other issues
-- **Checkpointing**: Periodic checkpoint saving with resume capability
-- **Training History**: Automatic logging of all training runs to MongoDB with web interface
-
-See `training/README.md` for complete documentation.
-
-### Training History
-
-All training runs are automatically logged to MongoDB and can be viewed in the web interface:
-
-1. **Start a training run** (runs are automatically logged)
-2. **View Training History**: Navigate to `/training` in the web app
-3. **View Run Details**: Click any run to see metrics, charts, and configuration
-
-Features:
-- **List view**: Filter by agent, status, view key metrics
-- **Detail view**: Charts (reward over time, win rate), statistics, full configuration
-- **Checkpoints**: View all saved checkpoints with resume commands
-- **API access**: REST endpoints for programmatic access
-
-See `docs/training-history.md` for complete documentation.
-
-### Checkpointing and Resume
-
-The training system includes automatic checkpointing:
-
-- **Periodic checkpoints**: Save checkpoints every N episodes (default: 50)
-- **Automatic cleanup**: Keep only the most recent N checkpoints (default: 3)
-- **Resume training**: Continue from any saved checkpoint
-- **UI integration**: View checkpoints and copy resume commands from web interface
-
-Example:
-```bash
-# Start training with checkpointing
-python training/trainer.py --mode full --checkpoint-interval-episodes 50
-
-# Resume from checkpoint
-python training/trainer.py --resume-from-checkpoint checkpoints/ppo_agent/run123/ep000100.zip
-```
-
-See `docs/checkpoints.md` for complete checkpointing documentation.
-
-### Hyperparameter Configuration and Sweeps
-
-The system supports structured hyperparameter management:
-
-- **Agent configs**: Versioned hyperparameter files in `config/agents/`
-- **Config includes**: Learning rate, gamma, network architecture, PPO parameters
-- **Quick sweeps**: Test multiple configs with short runs before long training
-- **UI integration**: View config names and hyperparameters in Training History
-
-Example:
-```bash
-# Use specific agent config
-python training/trainer.py --agent-config config/agents/ppo_agent_v1.yaml
-
-# Run hyperparameter sweep
-python training/run_sweep.py config/agents/ppo_agent_sweep_*.yaml --episodes 100
-```
-
-See `docs/hyperparams.md` for complete hyperparameter documentation.
-
-### Evaluation and Baselines
-
-The system includes evaluation protocols to assess trained agents:
-
-- **Baseline Agents**: RandomAgent and HeuristicAgent for comparison
-- **Evaluation Script**: Test trained checkpoints against baselines
-- **Metrics**: Win rate, average reward, game length
-- **UI Integration**: View evaluation results in Training History
-
-Example:
-```bash
-# Evaluate a checkpoint
-python training/evaluate_agent.py checkpoints/ppo_agent/run123/ep000100.zip --num-games 100
-```
-
-See `docs/evaluation.md` for complete evaluation documentation.
-
-### Example with Stable-Baselines3 (Direct)
-
-For custom training scripts:
-
-```python
-from envs.blokus_v0 import make_gymnasium_env
-from stable_baselines3 import PPO
-
-env = make_gymnasium_env()
-model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=100000)
-```
-
 ## 🛠️ Development
 
 ### Code Quality
@@ -752,9 +460,6 @@ This project is part of a reinforcement learning research environment.
 
 - **Frontend README**: See `docs/frontend/README.md` for frontend-specific details
 - **API README**: See `docs/webapi/README.md` for API documentation
-- **PettingZoo**: https://pettingzoo.farama.org/
-- **Gymnasium**: https://gymnasium.farama.org/
-- **Stable-Baselines3**: https://stable-baselines3.readthedocs.io/
 
 ## 🐛 Troubleshooting
 

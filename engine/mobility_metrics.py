@@ -105,7 +105,7 @@ def compute_player_mobility_metrics(
             if piece_id not in pieces_used_set and Pi > 0:
                 q_p = Pi / total_placements
                 entropy_sum -= q_p * math.log(q_p)
-        
+
         # Normalize by log(num_available_pieces) to get [0, 1]
         num_avail = 21 - len(pieces_used_set)
         if num_avail > 1:
@@ -141,14 +141,17 @@ def compute_player_mobility_metrics_from_dicts(
     Same as compute_player_mobility_metrics but accepts dicts with piece_id or pieceId.
     Used when receiving API payloads.
     """
-    # Convert to Move-like objects for counting
     class MoveLike:
-        def __init__(self, piece_id: int):
+        def __init__(self, piece_id: int, anchor_row: int, anchor_col: int):
             self.piece_id = piece_id
+            self.anchor_row = anchor_row
+            self.anchor_col = anchor_col
 
     moves = []
     for m in legal_moves:
         pid = m.get("piece_id") or m.get("pieceId")
         if pid is not None:
-            moves.append(MoveLike(pid))
+            r = m.get("anchor_row") or m.get("anchorRow", 0)
+            c = m.get("anchor_col") or m.get("anchorCol", 0)
+            moves.append(MoveLike(pid, r, c))
     return compute_player_mobility_metrics(moves, pieces_used)

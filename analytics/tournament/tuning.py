@@ -11,11 +11,11 @@ class MctsTuning:
     """A specific parameter tuning for the MCTS agent."""
     name: str
     params: Dict[str, Any] = field(default_factory=dict)
-    
+
     def resolve_params(self, thinking_time_ms: int) -> Dict[str, Any]:
         """Resolve dynamic parameters based on the time budget."""
         resolved = dict(self.params)
-        
+
         # Handle adaptive bias
         if resolved.get("is_adaptive_bias"):
             del resolved["is_adaptive_bias"]
@@ -26,11 +26,11 @@ class MctsTuning:
                 resolved["progressive_bias_weight"] = 0.25
             else:
                 resolved["progressive_bias_weight"] = 0.0
-            
+
             resolved["_resolved_budget"] = thinking_time_ms
-            
+
         return resolved
-    
+
     def to_dict(self, thinking_time_ms: int = None) -> Dict[str, Any]:
         p = self.resolve_params(thinking_time_ms) if thinking_time_ms is not None else dict(self.params)
         return {
@@ -95,19 +95,19 @@ register_tuning_set(TuningSet(
     tunings=[
         MctsTuning("base_no_eval", {**_BASE_PARAMS}),
         MctsTuning("eval_no_bias", {
-            **_LEAF_EVAL_BASE, 
+            **_LEAF_EVAL_BASE,
             "progressive_bias_enabled": False
         }),
         MctsTuning("eval_with_bias_0.1", {
-            **_LEAF_EVAL_BASE, 
+            **_LEAF_EVAL_BASE,
             "progressive_bias_weight": 0.1
         }),
         MctsTuning("eval_with_bias_0.25", {
-            **_LEAF_EVAL_BASE, 
+            **_LEAF_EVAL_BASE,
             "progressive_bias_weight": 0.25
         }),
         MctsTuning("eval_with_bias_0.5", {
-            **_LEAF_EVAL_BASE, 
+            **_LEAF_EVAL_BASE,
             "progressive_bias_weight": 0.5
         }),
     ]
@@ -120,22 +120,22 @@ register_tuning_set(TuningSet(
         MctsTuning("base_expl_1.414", {**_BASE_PARAMS, "exploration_constant": 1.414}),
         MctsTuning("base_expl_2.0", {**_BASE_PARAMS, "exploration_constant": 2.0}),
         MctsTuning("eval_bias_0.25_expl_1.414", {
-            **_LEAF_EVAL_BASE, 
+            **_LEAF_EVAL_BASE,
             "progressive_bias_weight": 0.25,
             "exploration_constant": 1.414
         }),
         MctsTuning("eval_bias_0.25_expl_2.0", {
-            **_LEAF_EVAL_BASE, 
+            **_LEAF_EVAL_BASE,
             "progressive_bias_weight": 0.25,
             "exploration_constant": 2.0
         }),
         MctsTuning("eval_bias_0.5_expl_1.414", {
-            **_LEAF_EVAL_BASE, 
+            **_LEAF_EVAL_BASE,
             "progressive_bias_weight": 0.5,
             "exploration_constant": 1.414
         }),
         MctsTuning("eval_bias_all_shaping", {
-            **_LEAF_EVAL_BASE, 
+            **_LEAF_EVAL_BASE,
             "progressive_bias_weight": 0.25,
             "potential_shaping_enabled": True,
             "potential_shaping_weight": 1.0

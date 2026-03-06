@@ -40,7 +40,7 @@ def benchmark_naive_generator(generator, board, player, num_runs: int):
     """
     times = []
     num_moves = None
-    
+
     for _ in range(num_runs):
         start = time.perf_counter()
         moves = generator._get_legal_moves_naive(board, player)
@@ -48,7 +48,7 @@ def benchmark_naive_generator(generator, board, player, num_runs: int):
         times.append((end - start) * 1000.0)  # Convert to milliseconds
         if num_moves is None:
             num_moves = len(moves)
-    
+
     avg_time = sum(times) / len(times)
     return avg_time, num_moves
 
@@ -69,15 +69,15 @@ def benchmark_frontier_grid_generator(generator, board, player, num_runs: int):
     # Save original flags
     original_frontier = move_gen_module.USE_FRONTIER_MOVEGEN
     original_bitboard = move_gen_module.USE_BITBOARD_LEGALITY
-    
+
     try:
         move_gen_module.USE_FRONTIER_MOVEGEN = True
         move_gen_module.USE_BITBOARD_LEGALITY = False
-        
+
         times = []
         num_moves = None
         frontier_size = len(board.get_frontier(player))
-        
+
         for _ in range(num_runs):
             start = time.perf_counter()
             moves = generator._get_legal_moves_frontier(board, player)
@@ -85,7 +85,7 @@ def benchmark_frontier_grid_generator(generator, board, player, num_runs: int):
             times.append((end - start) * 1000.0)  # Convert to milliseconds
             if num_moves is None:
                 num_moves = len(moves)
-        
+
         avg_time = sum(times) / len(times)
         return avg_time, num_moves, frontier_size
     finally:
@@ -109,15 +109,15 @@ def benchmark_frontier_bitboard_generator(generator, board, player, num_runs: in
     # Save original flags
     original_frontier = move_gen_module.USE_FRONTIER_MOVEGEN
     original_bitboard = move_gen_module.USE_BITBOARD_LEGALITY
-    
+
     try:
         move_gen_module.USE_FRONTIER_MOVEGEN = True
         move_gen_module.USE_BITBOARD_LEGALITY = True
-        
+
         times = []
         num_moves = None
         frontier_size = len(board.get_frontier(player))
-        
+
         for _ in range(num_runs):
             start = time.perf_counter()
             moves = generator._get_legal_moves_frontier(board, player)
@@ -125,7 +125,7 @@ def benchmark_frontier_bitboard_generator(generator, board, player, num_runs: in
             times.append((end - start) * 1000.0)  # Convert to milliseconds
             if num_moves is None:
                 num_moves = len(moves)
-        
+
         avg_time = sum(times) / len(times)
         return avg_time, num_moves, frontier_size
     finally:
@@ -142,10 +142,10 @@ def main():
     print("NOTE: This is a non-deterministic benchmark for development use only.")
     print("Results may vary based on system load, Python version, and random state generation.")
     print()
-    
+
     generator = LegalMoveGenerator()
     num_runs = 50
-    
+
     # Define representative board states (early, mid, late game)
     states = [
         ("Early game", 5),
@@ -154,35 +154,35 @@ def main():
         ("Mid game", 30),
         ("Late game", 40),
     ]
-    
+
     results = []
-    
+
     for state_label, num_moves in states:
         state_name = f"{state_label} ({num_moves} moves)"
         print(f"Generating state: {state_name}...")
         board, current_player = generate_random_valid_state(num_moves, seed=num_moves)
-        
+
         # Benchmark naive generator (grid-based)
         print(f"  Benchmarking naive (grid) generator ({num_runs} runs)...")
         naive_avg, naive_moves = benchmark_naive_generator(generator, board, current_player, num_runs)
-        
+
         # Benchmark frontier generator with grid-based legality
         print(f"  Benchmarking frontier+grid generator ({num_runs} runs)...")
         frontier_grid_avg, frontier_grid_moves, frontier_size = benchmark_frontier_grid_generator(
             generator, board, current_player, num_runs
         )
-        
+
         # Benchmark frontier generator with bitboard legality
         print(f"  Benchmarking frontier+bitboard generator ({num_runs} runs)...")
         frontier_bitboard_avg, frontier_bitboard_moves, _ = benchmark_frontier_bitboard_generator(
             generator, board, current_player, num_runs
         )
-        
+
         # Calculate speedups
         speedup_grid = naive_avg / frontier_grid_avg if frontier_grid_avg > 0 else float('inf')
         speedup_bitboard = naive_avg / frontier_bitboard_avg if frontier_bitboard_avg > 0 else float('inf')
         speedup_bitboard_vs_grid = frontier_grid_avg / frontier_bitboard_avg if frontier_bitboard_avg > 0 else float('inf')
-        
+
         results.append({
             'name': state_name,
             'naive_avg': naive_avg,
@@ -195,11 +195,11 @@ def main():
             'frontier_size': frontier_size,
             'player': current_player.name
         })
-        
+
         print(f"  Done. Naive: {naive_avg:.2f}ms, Frontier+Grid: {frontier_grid_avg:.2f}ms, "
               f"Frontier+Bitboard: {frontier_bitboard_avg:.2f}ms")
         print()
-    
+
     # Print summary table
     print("=" * 80)
     print("Summary")
@@ -207,7 +207,7 @@ def main():
     print(f"{'State':<25} {'Naive':<10} {'Frontier+Grid':<15} {'Frontier+Bitboard':<18} "
           f"{'Speedup':<10} {'Moves':<8} {'Frontier':<10}")
     print("-" * 80)
-    
+
     for result in results:
         speedup_str = f"{result['speedup_bitboard']:.2f}x" if result['speedup_bitboard'] != float('inf') else "N/A"
         print(f"{result['name']:<25} "
@@ -217,7 +217,7 @@ def main():
               f"{speedup_str:>8}  "
               f"{result['num_moves']:>6}  "
               f"{result['frontier_size']:>8}")
-    
+
     print("=" * 80)
     print()
     print("Speedup is relative to naive generator.")

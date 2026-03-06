@@ -17,14 +17,14 @@ class TestMobilityMetrics(unittest.TestCase):
         # Ensure state attributes exist even if ignored
         mock_inp.state = MagicMock()
         mock_inp.next_state = MagicMock()
-        
+
         res = compute_mobility_metrics(mock_inp)
-        
+
         self.assertEqual(res['mobility_me_before'], 10)
         self.assertEqual(res['mobility_me_after'], 12)
         self.assertEqual(res['mobility_me_delta'], 2)
         self.assertAlmostEqual(res['mobility_me_ratio'], 1.2)
-        
+
         self.assertEqual(res['mobility_opp_before_sum'], 20)
         self.assertEqual(res['mobility_opp_after_sum'], 15)
         self.assertEqual(res['mobility_opp_delta_sum'], -5)
@@ -34,7 +34,7 @@ class TestMobilityMetrics(unittest.TestCase):
         # Setup mock generator
         mock_gen = MagicMock()
         mock_get_gen.return_value = mock_gen
-        
+
         # Mock legal moves return (lists of dummy items)
         # get_legal_moves(board, player) -> List[Move]
         def fake_moves(board, player):
@@ -43,18 +43,18 @@ class TestMobilityMetrics(unittest.TestCase):
             if board == 'state_after':
                 return [1]*12 if player.value == 1 else [1]*15
             return []
-            
+
         mock_gen.get_legal_moves.side_effect = fake_moves
-        
+
         mock_inp = MagicMock(spec=MetricInput)
         mock_inp.player_id = 1
         mock_inp.opponents = [2]
         mock_inp.precomputed_values = None # Force computation
         mock_inp.state = 'state_before'
         mock_inp.next_state = 'state_after'
-        
+
         res = compute_mobility_metrics(mock_inp)
-        
+
         self.assertEqual(res['mobility_me_before'], 10)
         self.assertEqual(res['mobility_me_after'], 12)
         self.assertEqual(res['mobility_opp_delta_sum'], -5)

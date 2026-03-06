@@ -12,6 +12,8 @@ from torch.distributions.distribution import Distribution
 
 Distribution.set_default_validate_args(False)
 
+from rl.train import _make_vec_env, load_config
+
 from benchmarks.bench_selfplay_league import (
     _accelerator_metrics,
     _make_model,
@@ -19,7 +21,6 @@ from benchmarks.bench_selfplay_league import (
     _resolve_device,
     _rollout_steps,
 )
-from rl.train import _make_vec_env, load_config
 
 
 def _run_once(config_path: str, num_envs: int, vecenv: str, steps: int, opponent_device: str) -> Dict[str, Any]:

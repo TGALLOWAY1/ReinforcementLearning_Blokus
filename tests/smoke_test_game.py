@@ -27,11 +27,11 @@ from engine.game import BlokusGame
 def test_engine():
     game = BlokusGame()
     print(f"Initial Player: {game.board.current_player}") # Should be RED
-    
+
     # Get valid moves
     moves = game.get_legal_moves()
     print(f"Legal moves for RED: {len(moves)}")
-    
+
     if not moves:
         print("CRITICAL: No legal moves generated for start of game!")
         return
@@ -41,7 +41,7 @@ def test_engine():
     print(f"Attempting move: {move}")
     success = game.make_move(move)
     print(f"Move success: {success}")
-    
+
     # Verify turn change
     print(f"Next Player: {game.board.current_player}") # Should be BLUE
 

@@ -39,7 +39,7 @@ def _rebuild_board(game_state: Dict[str, Any]) -> Board:
         board.player_frontiers[player] = board._compute_full_frontier(player) if used else {(board.player_start_corners[player].row, board.player_start_corners[player].col)}
 
     board.occupied_bits = 0
-    board.player_bits = {player: 0 for player in Player}
+    board.player_bits = dict.fromkeys(Player, 0)
     for r in range(board.SIZE):
         for c in range(board.SIZE):
             v = int(board.grid[r, c])

@@ -44,7 +44,7 @@ class LeagueSamplingConfig:
 
     allow_duplicates: bool = False
 
-    def normalize(self) -> "LeagueSamplingConfig":
+    def normalize(self) -> LeagueSamplingConfig:
         total_pct = self.recent_band_pct + self.mid_band_pct + self.old_band_pct
         if total_pct <= 0:
             raise ValueError("Band pct sum must be > 0")
@@ -111,7 +111,7 @@ class Stage3LeagueConfig:
         return Path(self.seed_dir) if self.seed_dir else None
 
     @classmethod
-    def from_dict(cls, raw: Dict[str, Any]) -> "Stage3LeagueConfig":
+    def from_dict(cls, raw: Dict[str, Any]) -> Stage3LeagueConfig:
         config = cls()
         for key, value in raw.items():
             if key == "sampling" and isinstance(value, dict):
@@ -145,7 +145,7 @@ class LeagueCheckpoint:
         }
 
     @classmethod
-    def from_dict(cls, raw: Dict[str, Any]) -> "LeagueCheckpoint":
+    def from_dict(cls, raw: Dict[str, Any]) -> LeagueCheckpoint:
         return cls(
             checkpoint_id=raw["checkpoint_id"],
             path=raw["path"],
@@ -160,7 +160,7 @@ class CheckpointPolicyCache:
     def __init__(self, max_size: int = 4, device: str = "auto") -> None:
         self.max_size = max_size
         self.device = _resolve_device(device)
-        self._cache: "OrderedDict[str, Any]" = OrderedDict()
+        self._cache: OrderedDict[str, Any] = OrderedDict()
         self.hits = 0
         self.misses = 0
         self.load_time_sec = 0.0
@@ -224,7 +224,7 @@ class LeagueRegistry:
         self._path_index = {}
         if not self.registry_path.exists():
             return
-        with open(self.registry_path, "r", encoding="utf-8") as handle:
+        with open(self.registry_path, encoding="utf-8") as handle:
             for line in handle:
                 line = line.strip()
                 if not line:
@@ -493,7 +493,7 @@ class CheckpointOpponentSampler:
             return
         self._registry_mtime = mtime
         entries = []
-        with open(self.registry_path, "r", encoding="utf-8") as handle:
+        with open(self.registry_path, encoding="utf-8") as handle:
             for line in handle:
                 line = line.strip()
                 if not line:
@@ -514,7 +514,7 @@ class CheckpointOpponentSampler:
         if self._state_mtime is not None and mtime == self._state_mtime:
             return
         self._state_mtime = mtime
-        with open(self.state_path, "r", encoding="utf-8") as handle:
+        with open(self.state_path, encoding="utf-8") as handle:
             data = json.load(handle)
         self._training_step = int(data.get("step", 0))
         self._total_timesteps = int(data.get("total_timesteps", 0))
@@ -533,7 +533,7 @@ def _infer_step_from_checkpoint(path: Path) -> Optional[int]:
     meta_path = path.with_suffix(".meta.json")
     if meta_path.exists():
         try:
-            with open(meta_path, "r", encoding="utf-8") as handle:
+            with open(meta_path, encoding="utf-8") as handle:
                 meta = json.load(handle)
             if "step" in meta:
                 return int(meta["step"])

@@ -9,8 +9,8 @@ The project root must appear before browser_python on sys.path so that
 advanced_metrics, etc.), while worker_bridge itself is still importable from
 browser_python/.
 """
-import sys
 import os
+import sys
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 BROWSER_PYTHON = os.path.join(PROJECT_ROOT, "browser_python")

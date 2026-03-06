@@ -28,19 +28,25 @@ class WebWorkerGameBridge:
         self.mcts_top_moves = []
         self.mcts_stats = {}
         self.game_id = "local-webworker"
-        
+
         self.frontend_to_backend = {}
         self.backend_to_frontend = {}
         self._init_orientation_mappings()
 
     def _init_orientation_mappings(self):
         import numpy as np
-        from engine.pieces import PieceGenerator, normalize_offsets, shape_to_offsets, ALL_PIECE_ORIENTATIONS
-        
+
+        from engine.pieces import (
+            ALL_PIECE_ORIENTATIONS,
+            PieceGenerator,
+            normalize_offsets,
+            shape_to_offsets,
+        )
+
         for piece in PieceGenerator.get_all_pieces():
             self.frontend_to_backend[piece.id] = {}
             self.backend_to_frontend[piece.id] = {}
-            
+
             base_shape = piece.shape.copy()
             for frontend_idx in range(8):
                 shape = base_shape.copy()
@@ -48,23 +54,23 @@ class WebWorkerGameBridge:
                     shape = np.fliplr(shape)
                 for _ in range(frontend_idx % 4):
                     shape = np.rot90(shape)
-                    
+
                 normalized = normalize_offsets(shape_to_offsets(shape))
-                
+
                 backend_ori_id = 0
                 for o in ALL_PIECE_ORIENTATIONS.get(piece.id, []):
                     if tuple(o.offsets) == tuple(normalized):
                         backend_ori_id = o.orientation_id
                         break
-                        
+
                 self.frontend_to_backend[piece.id][frontend_idx] = backend_ori_id
-                
+
                 if backend_ori_id not in self.backend_to_frontend[piece.id]:
                     self.backend_to_frontend[piece.id][backend_ori_id] = frontend_idx
 
     def _get_backend_ori(self, piece_id, frontend_ori):
         return self.frontend_to_backend.get(int(piece_id), {}).get(int(frontend_ori), 0)
-        
+
     def _get_frontend_ori(self, piece_id, backend_ori):
         return self.backend_to_frontend.get(int(piece_id), {}).get(int(backend_ori), 0)
 
@@ -79,12 +85,12 @@ class WebWorkerGameBridge:
                 "agent_config": dict(p["agent_config"]) if p.get("agent_config") else {}
             }
             self.players_config.append(p_dict)
-            
+
         self.agents = {}
         self.mcts_top_moves = []
         self.mcts_stats = {}
         self.game_id = str(config_dict.get("game_id", "local-webworker"))
-        
+
         for pc in self.players_config:
             player_enum = EnginePlayer[pc["player"]]
             agent_type = pc.get("agent_type", "human")
@@ -98,21 +104,21 @@ class WebWorkerGameBridge:
                 )
             elif agent_type == "human":
                 self.agents[player_enum] = None
-        
+
         return self.get_state()
 
     def get_state(self) -> Dict[str, Any]:
         game = self.game
-        
+
         # Convert board
         board_list = game.board.grid.tolist()
-        
+
         scores = {p.name: game.get_score(p) for p in EnginePlayer}
         pieces_used = {p.name: list(game.board.player_pieces_used[p]) for p in EnginePlayer}
-        
+
         legal_moves_out = []
         heatmap = [[0.0 for _ in range(20)] for _ in range(20)]
-        
+
         current_player = game.get_current_player()
         all_players_legal_moves = {}
         for p in EnginePlayer:
@@ -120,9 +126,9 @@ class WebWorkerGameBridge:
                 all_players_legal_moves[p] = game.get_legal_moves(p)
             else:
                 all_players_legal_moves[p] = []
-        
+
         current_player_moves = all_players_legal_moves[current_player]
-        
+
         for m in current_player_moves:
             positions = []
             cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
@@ -132,7 +138,7 @@ class WebWorkerGameBridge:
                     positions.append({"row": pt.row, "col": pt.col})
                     if 0 <= pt.row < 20 and 0 <= pt.col < 20:
                         heatmap[pt.row][pt.col] = 1.0
-            
+
             frontend_ori = self._get_frontend_ori(m.piece_id, m.orientation)
             legal_moves_out.append({
                 "piece_id": m.piece_id,
@@ -141,14 +147,14 @@ class WebWorkerGameBridge:
                 "anchor_col": m.anchor_col,
                 "positions": positions
             })
-        
+
         pieces_used_current = list(game.board.player_pieces_used[current_player])
         mobility = compute_player_mobility_metrics(current_player_moves, pieces_used_current)
         center_control = game._calculate_center_bonus(current_player) // 2
         frontier_size = len(game.board.get_frontier(current_player))
-        
+
         piece_lock_risk = {}
-        
+
         mobility_metrics = {
             "totalPlacements": mobility.totalPlacements,
             "totalOrientationNormalized": mobility.totalOrientationNormalized,
@@ -157,7 +163,7 @@ class WebWorkerGameBridge:
             "centerControl": center_control,
             "frontierSize": frontier_size,
         }
-        
+
         all_frontier_metrics = {}
         all_frontier_clusters = {}
 
@@ -170,7 +176,7 @@ class WebWorkerGameBridge:
                 if m.piece_id in p_has_move:
                     p_has_move[m.piece_id] = True
             piece_lock_risk[p.name] = sum(1 for can_place in p_has_move.values() if not can_place)
-            
+
             block_pressure_map = [[False]*20 for _ in range(20)]
             for opp in EnginePlayer:
                 if opp == p: continue
@@ -181,14 +187,14 @@ class WebWorkerGameBridge:
                         for pt in pts:
                             if 0 <= pt.row < 20 and 0 <= pt.col < 20:
                                 block_pressure_map[pt.row][pt.col] = True
-            
+
             p_metrics = {
                 "utility": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells},
                 "block_pressure": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells},
                 "urgency": {f"{fr},{fc}": 0 for fr, fc in p_frontier_cells}
             }
             p_support_sets = {f"{fr},{fc}": set() for fr, fc in p_frontier_cells}
-            
+
             for move_idx, m in enumerate(p_moves):
                 cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
                 if cached_ops:
@@ -198,19 +204,19 @@ class WebWorkerGameBridge:
                         if (fr, fc) in pts_set:
                             p_metrics["utility"][f"{fr},{fc}"] += 1
                             p_support_sets[f"{fr},{fc}"].add(move_idx)
-            
+
             for fr, fc in p_frontier_cells:
                 key = f"{fr},{fc}"
                 if block_pressure_map[fr][fc]: p_metrics["block_pressure"][key] = 1
                 u, bp = p_metrics["utility"][key], p_metrics["block_pressure"][key]
                 p_metrics["urgency"][key] = u * bp
-            
+
             all_frontier_metrics[p.name] = p_metrics
-            
+
             p_top_frontiers = sorted(p_frontier_cells, key=lambda f: len(p_support_sets[f"{f[0]},{f[1]}"]), reverse=True)[:60]
             p_adjacency = {f"{fr},{fc}": [] for fr, fc in p_top_frontiers}
             overlap_threshold = 0.35
-            
+
             for i in range(len(p_top_frontiers)):
                 f1 = p_top_frontiers[i]
                 k1, s1 = f"{f1[0]},{f1[1]}", p_support_sets[f"{f1[0]},{f1[1]}"]
@@ -225,7 +231,7 @@ class WebWorkerGameBridge:
                         if overlap >= overlap_threshold:
                             p_adjacency[k1].append(k2)
                             p_adjacency[k2].append(k1)
-            
+
             p_visited = set()
             p_clusters = {"cluster_id": {}, "cluster_sizes": [], "num_clusters": 0}
             p_cluster_id = 0
@@ -244,7 +250,7 @@ class WebWorkerGameBridge:
                     if size > 0:
                         p_clusters["cluster_sizes"].append(size)
                         p_cluster_id += 1
-            
+
             p_clusters["num_clusters"] = p_cluster_id
             for fr, fc in p_frontier_cells:
                 k = f"{fr},{fc}"
@@ -256,7 +262,7 @@ class WebWorkerGameBridge:
                         p_clusters["num_clusters"] = p_cluster_id
                     else:
                         p_clusters["cluster_id"][k] = -1
-            
+
             all_frontier_clusters[p.name] = p_clusters
 
         self_block_risk_moves = []
@@ -268,7 +274,7 @@ class WebWorkerGameBridge:
                 pts_set = set((pt.row, pt.col) for pt in pts)
                 for fr, fc in game.board.get_frontier(current_player):
                     if (fr, fc) in pts_set: curr_support[f"{fr},{fc}"].add(move_idx)
-        
+
         curr_clusters = all_frontier_clusters[current_player.name]
         for move_idx, m in enumerate(current_player_moves):
             used_f = [k for k, s in curr_support.items() if move_idx in s]
@@ -288,11 +294,11 @@ class WebWorkerGameBridge:
         if game.is_game_over():
             w = game.board.get_winner()
             if w: winner_name = w.name
-                
+
         status = "finished" if game.is_game_over() else "in_progress"
         influence_map, territory_ratios = compute_territory_control(game.board)
         dead_zones = compute_dead_zones(game.board)
-        
+
         advanced_metrics_out = {}
         for p in EnginePlayer:
             advanced_metrics_out[p.name] = {
@@ -302,7 +308,7 @@ class WebWorkerGameBridge:
                 "center_proximity": float(compute_center_proximity(game.board, p)),
                 "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
             }
-        
+
         seat_index_map = {"RED": 0, "BLUE": 1, "YELLOW": 2, "GREEN": 3}
         for idx, hist_entry in enumerate(game.game_history):
             if "move_index" not in hist_entry:
@@ -321,7 +327,7 @@ class WebWorkerGameBridge:
                 action_copy = dict(action)
                 action_copy["orientation"] = self._get_frontend_ori(action_copy["piece_id"], action_copy["orientation"])
                 entry_copy["action"] = action_copy
-                
+
             history_out.append(entry_copy)
 
         return {
@@ -329,7 +335,7 @@ class WebWorkerGameBridge:
             "board": board_list, "scores": scores, "pieces_used": pieces_used,
             "move_count": game.get_move_count(), "game_over": game.is_game_over(), "winner": winner_name,
             "legal_moves": legal_moves_out, "created_at": "", "updated_at": "", "players": self.players_config,
-            "heatmap": heatmap, "mobility_metrics": mobility_metrics, 
+            "heatmap": heatmap, "mobility_metrics": mobility_metrics,
             "mcts_top_moves": self.mcts_top_moves, "mcts_stats": self.mcts_stats,
             "influence_map": influence_map, "dead_zones": dead_zones, "advanced_metrics": advanced_metrics_out,
             "frontier_metrics": all_frontier_metrics, "frontier_clusters": all_frontier_clusters,
@@ -357,7 +363,7 @@ class WebWorkerGameBridge:
         success = self.game.make_move(engine_move, player)
         if not success: return {"success": False, "message": "Invalid move", "game_state": self.get_state()}
         return {"success": True, "message": "Move made", "game_state": self.get_state()}
-        
+
     def pass_turn(self):
         self.game.board._update_current_player()
         self.game._check_game_over()

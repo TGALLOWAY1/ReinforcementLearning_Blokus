@@ -1,9 +1,9 @@
 """Aggregate multiple tuning_summary.json files into a single view."""
 
 import json
-import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict
+
 
 def wilson_score_interval(wins: float, trials: float, z: float = 1.96) -> Dict[str, float]:
     """Calculate the Wilson score interval for a binomial proportion."""
@@ -23,7 +23,7 @@ def wilson_score_interval(wins: float, trials: float, z: float = 1.96) -> Dict[s
 def main():
     arena_runs = Path("arena_runs")
     summary_files = list(arena_runs.glob("*/tuning_summary.json"))
-    
+
     if not summary_files:
         print("No tuning_summary.json files found.")
         return
@@ -31,12 +31,12 @@ def main():
     # Aggregate stats by tuning name
     aggregated = {}
     total_files = 0
-    
+
     for f in summary_files:
         try:
             with f.open() as p:
                 data = json.load(p)
-                
+
             rankings = data.get("rankings", [])
             for r in rankings:
                 name = r["name"]
@@ -49,41 +49,41 @@ def main():
                         "sims_sum": 0.0,
                         "time_calls": 0,
                     }
-                
+
                 # Reverse engineer wins from win_rate and games_played
                 wins = r["win_rate"] * r["games_played"]
-                
+
                 aggregated[name]["wins"] += wins
                 aggregated[name]["games_played"] += r["games_played"]
                 aggregated[name]["total_score"] += r["mean_score"] * r["games_played"]
-                
+
                 if r.get("avg_time_ms") is not None and r.get("avg_sims") is not None:
                     aggregated[name]["time_ms_sum"] += r.get("avg_time_ms")
                     aggregated[name]["sims_sum"] += r.get("avg_sims")
                     aggregated[name]["time_calls"] += 1
             total_files += 1
-            
+
         except Exception as e:
             print(f"Error reading {f}: {e}")
 
     print(f"Aggregated {total_files} tournament instances.\\n")
-    
+
     final_ranks = []
-    
+
     for name, stats in aggregated.items():
         if stats["games_played"] == 0:
             continue
-            
+
         win_rate = stats["wins"] / stats["games_played"]
         ci = wilson_score_interval(stats["wins"], stats["games_played"])
         mean_score = stats["total_score"] / stats["games_played"]
-        
+
         avg_time = stats["time_ms_sum"] / stats["time_calls"] if stats["time_calls"] > 0 else 0
         avg_sims = stats["sims_sum"] / stats["time_calls"] if stats["time_calls"] > 0 else 0
-        
+
         # explicit best tuning metric
         rank_score = (win_rate * 100.0) + (mean_score * 0.5)
-        
+
         final_ranks.append({
             "name": name,
             "win_rate": win_rate,
@@ -95,7 +95,7 @@ def main():
             "avg_sims": avg_sims,
             "rank_score": rank_score
         })
-        
+
     final_ranks.sort(key=lambda t: t["rank_score"], reverse=True)
 
     print("## Overall Aggregated Rankings")

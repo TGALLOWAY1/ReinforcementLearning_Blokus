@@ -30,7 +30,7 @@ class GameConfig(BaseModel):
     max_moves: int = Field(default=1000, ge=1, le=10000)
     time_limit_per_move: Optional[float] = Field(default=None, ge=0.1, le=300.0)
     auto_play: bool = Field(default=True, description="Whether agents play automatically")
-    
+
     class Config:
         json_schema_extra = {
             "example": {

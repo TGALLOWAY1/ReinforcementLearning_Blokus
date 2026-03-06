@@ -11,21 +11,21 @@ class StepLog(BaseModel):
     seed: Optional[int]
     turn_index: int
     player_id: int
-    
+
     # Action details
     action: Dict[str, Any]
-    
+
     # Board state (optional/minimal)
     board_hash: Optional[str] = None
-    
+
     # Basic counts
     pieces_remaining: Optional[List[int]] = None # List of pieces remaining for this player
     legal_moves_before: int
     legal_moves_after: int
-    
+
     # Derived metrics
     metrics: Dict[str, Any]
-    
+
     # Round alignment (additive/optional)
     round_index: Optional[int] = None
     position_in_round: Optional[int] = None

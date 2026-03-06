@@ -56,17 +56,17 @@ async def connect_to_mongo() -> None:
         ServerSelectionTimeoutError: If MongoDB server is not reachable
     """
     global _client, _database, client, db
-    
+
     if _client is not None:
         logger.warning("MongoDB client already initialized, skipping connection")
         return
-    
+
     try:
         logger.info(f"Connecting to MongoDB: {MONGODB_URI.split('@')[-1] if '@' in MONGODB_URI else MONGODB_URI}")
         logger.info(f"Using database: {MONGODB_DB_NAME}")
-        
+
         _client = AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-        
+
         # Test connection with server_info()
         try:
             await _client.server_info()
@@ -74,15 +74,15 @@ async def connect_to_mongo() -> None:
         except Exception as e:
             logger.error(f"❌ MongoDB connection failed: {e}")
             raise
-        
+
         _database = _client[MONGODB_DB_NAME]
-        
+
         # Set module-level client and db for direct access
         client = _client
         db = _database
-        
+
         logger.info(f"Successfully connected to MongoDB database: {MONGODB_DB_NAME}")
-        
+
     except (ConnectionFailure, ServerSelectionTimeoutError) as e:
         logger.error(f"❌ MongoDB connection failed: {e}")
         logger.error("Please ensure MongoDB is running and MONGODB_URI is correct")
@@ -107,7 +107,7 @@ async def close_mongo_connection() -> None:
     This should be called during FastAPI lifespan shutdown.
     """
     global _client, _database, client, db
-    
+
     if _client is not None:
         logger.info("Closing MongoDB connection...")
         _client.close()
@@ -133,13 +133,13 @@ async def get_database() -> AsyncIOMotorDatabase:
         RuntimeError: If database connection fails and cannot be re-established
     """
     global _client, _database, client, db
-    
+
     if _client is None or _database is None:
         try:
             await connect_to_mongo()
         except Exception as e:
             raise RuntimeError(f"MongoDB database not initialized and auto-connect failed: {e}")
-            
+
     try:
         # Ping to check if connection is still alive (essential for Vercel frozen containers)
         await _client.admin.command('ping')
@@ -150,20 +150,20 @@ async def get_database() -> AsyncIOMotorDatabase:
             _client.close()
         except:
             pass
-            
+
         _client = None
         _database = None
         client = None
         db = None
-        
+
         try:
             await connect_to_mongo()
         except Exception as reconnect_e:
             raise RuntimeError(f"MongoDB database re-initialization failed: {reconnect_e}")
-            
+
     if _database is None:
         raise RuntimeError("MongoDB database not initialized after reconnection attempt.")
-        
+
     return _database
 
 

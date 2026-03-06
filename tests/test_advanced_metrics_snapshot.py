@@ -1,18 +1,19 @@
 import json
 import os
+
 import pytest
 
-from engine.game import BlokusGame
-from engine.board import Player
-from engine.move_generator import Move
 from engine.advanced_metrics import (
-    compute_corner_differential,
-    compute_territory_control,
-    compute_piece_penalty,
     compute_center_proximity,
+    compute_corner_differential,
+    compute_dead_zones,
     compute_opponent_adjacency,
-    compute_dead_zones
+    compute_piece_penalty,
+    compute_territory_control,
 )
+from engine.board import Player
+from engine.game import BlokusGame
+from engine.move_generator import Move
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "advanced_metrics_snapshot.json")
 
@@ -20,12 +21,12 @@ def generate_snapshot():
     import random
     random.seed(42)
     game = BlokusGame()
-    
+
     snapshot_data = {
         "history": [],
         "snapshots": {}
     }
-    
+
     move_count = 0
     while not game.is_game_over() and move_count < 20:
         player = game.get_current_player()
@@ -33,17 +34,17 @@ def generate_snapshot():
         if not legal_moves:
             game.board._update_current_player()
             continue
-            
+
         move = random.choice(legal_moves)
         success = game.make_move(move, player)
         if success:
             move_count += 1
-            
+
             # Save snapshots at move 10 and 20
             if move_count in [10, 20]:
                 influence_map, territory_ratios = compute_territory_control(game.board)
                 dead_zones = compute_dead_zones(game.board)
-                
+
                 advanced_metrics_out = {}
                 for p in Player:
                     advanced_metrics_out[p.name] = {
@@ -53,12 +54,12 @@ def generate_snapshot():
                         "center_proximity": float(compute_center_proximity(game.board, p)),
                         "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
                     }
-                
+
                 snapshot_data["snapshots"][str(move_count)] = {
                     "advanced_metrics": advanced_metrics_out,
                     "dead_zones": dead_zones
                 }
-                
+
     # Extract history in a serializable format
     history_serializable = []
     for entry in game.game_history:
@@ -74,9 +75,9 @@ def generate_snapshot():
                 "anchor_col": entry["action"]["anchor_col"]
             }
         history_serializable.append(h)
-        
+
     snapshot_data["history"] = history_serializable
-    
+
     os.makedirs(os.path.dirname(FIXTURE_PATH), exist_ok=True)
     with open(FIXTURE_PATH, "w") as f:
         json.dump(snapshot_data, f, indent=2)
@@ -89,20 +90,20 @@ def test_advanced_metrics_snapshot():
     """
     if not os.path.exists(FIXTURE_PATH):
         generate_snapshot()
-    
-    with open(FIXTURE_PATH, "r") as f:
+
+    with open(FIXTURE_PATH) as f:
         data = json.load(f)
-        
+
     history = data["history"]
     expected_snapshots = data["snapshots"]
-    
+
     game = BlokusGame()
     move_count = 0
-    
+
     for entry in history:
         player = Player[entry["player"]]
         action = entry["action"]
-        
+
         if action:
             move = Move(
                 piece_id=action["piece_id"],
@@ -115,17 +116,17 @@ def test_advanced_metrics_snapshot():
             move_count += 1
         else:
             game.board._update_current_player()
-            
+
         # Check against snapshots if we hit a milestone
         if str(move_count) in expected_snapshots:
             snapshot = expected_snapshots[str(move_count)]
             expected_adv_metrics = snapshot["advanced_metrics"]
             expected_dead_zones = snapshot["dead_zones"]
-            
+
             # Recompute current actual metrics
             influence_map, territory_ratios = compute_territory_control(game.board)
             actual_dead_zones = compute_dead_zones(game.board)
-            
+
             actual_adv_metrics = {}
             for p in Player:
                 actual_adv_metrics[p.name] = {
@@ -135,10 +136,10 @@ def test_advanced_metrics_snapshot():
                     "center_proximity": float(compute_center_proximity(game.board, p)),
                     "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
                 }
-                
+
             # Assertions
             assert actual_dead_zones == expected_dead_zones, f"Dead zones mismatch at move {move_count}"
-            
+
             for p_name in expected_adv_metrics:
                 for metric_name, expected_val in expected_adv_metrics[p_name].items():
                     actual_val = actual_adv_metrics[p_name][metric_name]

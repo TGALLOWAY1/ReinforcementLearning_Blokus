@@ -12,8 +12,6 @@ import os
 import random
 import sys
 
-import pytest
-
 # Ensure project root is on path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BROWSER_PYTHON = os.path.join(PROJECT_ROOT, "browser_python")
@@ -23,7 +21,6 @@ sys.path.insert(0, BROWSER_PYTHON)
 sys.path.insert(1, PROJECT_ROOT)
 
 from worker_bridge import WebWorkerGameBridge
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -85,7 +82,7 @@ class TestSaveFormat:
         for i, entry in enumerate(self.history):
             missing = required - set(entry.keys())
             assert not missing, f"Turn {i+1} missing indices: {missing}"
-            
+
             # Basic logic checks
             assert entry["move_index"] == i
             assert entry["round_index"] == i // 4
