@@ -92,7 +92,7 @@ ctx.addEventListener('message', async (e) => {
                 break;
             }
             case 'advance_turn': {
-                const pyResp = bridge.advance_turn();
+                const pyResp = bridge.advance_turn(data.enableDiagnostics || false);
                 const response = pyResp.toJs({ dict_converter: Object.fromEntries });
                 pyResp.destroy();
                 ctx.postMessage({ type: 'move_response', response });

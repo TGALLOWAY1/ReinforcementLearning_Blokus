@@ -369,7 +369,7 @@ class WebWorkerGameBridge:
         self.game._check_game_over()
         return {"success": True, "message": "Turn passed", "game_state": self.get_state()}
 
-    def advance_turn(self) -> Dict[str, Any]:
+    def advance_turn(self, enable_diagnostics: bool = False) -> Dict[str, Any]:
         if self.game.is_game_over(): return {"success": False, "message": "Game over", "game_state": self.get_state()}
         current_player = self.game.get_current_player()
         agent = self.agents.get(current_player)
@@ -385,6 +385,11 @@ class WebWorkerGameBridge:
                 ac = pc.get("agent_config", {})
                 budget_ms = int(ac.get("time_budget_ms", 1000))
                 break
+                
+        # Toggle diagnostics based on request
+        if hasattr(agent, 'enable_diagnostics'):
+            agent.enable_diagnostics = enable_diagnostics
+            
         result = agent.think(self.game.board, current_player, legal_moves, budget_ms)
         move = result.get("move")
         if move is None: move = agent.select_action(self.game.board, current_player, legal_moves)
