@@ -410,6 +410,8 @@ class WebWorkerGameBridge:
                 self.mcts_diagnostics = None
         if move:
             success = self.game.make_move(move, current_player)
+            if success and self.mcts_diagnostics and len(self.game.game_history) > 0:
+                self.game.game_history[-1]["mcts_diagnostics"] = self.mcts_diagnostics
             return {"success": success, "message": "Agent moved", "game_state": self.get_state()}
         else:
             self.game.board._update_current_player()
