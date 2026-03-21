@@ -128,7 +128,8 @@ class MCTSNode:
         success = new_board.place_piece(
             self._get_move_positions(move),
             self.player,
-            move.piece_id
+            move.piece_id,
+            validate=False
         )
 
         if not success:
@@ -509,7 +510,7 @@ class MCTSAgent:
 
             # Make move
             move_positions = self._get_move_positions(move)
-            success = sim_board.place_piece(move_positions, current_player, move.piece_id)
+            success = sim_board.place_piece(move_positions, current_player, move.piece_id, validate=False)
 
             if not success:
                 break

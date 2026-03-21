@@ -101,9 +101,9 @@ class BlokusGame:
             # Fallback to original method
             piece_positions = move.get_positions(orientations)
 
-        # Place the piece (this does validation again, but it's fast now with optimized can_place_piece)
+        # Place the piece (skip validation since is_move_legal already checked above)
         start_place = time.perf_counter()
-        success = self.board.place_piece(piece_positions, player, move.piece_id)
+        success = self.board.place_piece(piece_positions, player, move.piece_id, validate=False)
         end_place = time.perf_counter()
 
         if success:

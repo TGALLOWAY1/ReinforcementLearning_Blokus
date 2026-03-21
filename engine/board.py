@@ -512,15 +512,20 @@ class Board:
 
         return True
 
-    def place_piece(self, piece_positions: List[Position], player: Player, piece_id: int) -> bool:
+    def place_piece(self, piece_positions: List[Position], player: Player, piece_id: int,
+                     validate: bool = True) -> bool:
         """
         Place a piece on the board.
-        
+
         OPTIMIZED: Uses direct grid access for faster placement.
-        
+
+        Args:
+            validate: If False, skip can_place_piece() check. Use only when the
+                      caller has already validated the move (e.g. via is_move_legal).
+
         Returns True if placement was successful, False otherwise.
         """
-        if not self.can_place_piece(piece_positions, player):
+        if validate and not self.can_place_piece(piece_positions, player):
             return False
 
         # Place the piece using direct grid access (faster than set_cell)
