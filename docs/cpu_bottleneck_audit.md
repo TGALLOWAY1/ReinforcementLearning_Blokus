@@ -16,7 +16,13 @@ The irony: the "bitboard" legality path is **2-3x slower** than the grid-based p
 
 The fix is straightforward: use the precomputed masks from `PieceOrientation` with a single `shift_mask()` call instead of rebuilding masks from coordinates. This alone should deliver a **3-5x speedup** to the default move generation path.
 
-Secondary bottlenecks (board copy cost in MCTS, `LegalMoveGenerator` reinstantiation, `list(Player)` allocations) are real but lower priority until the primary legality check is fixed.
+The second major bottleneck is **redundant full legal-move recomputation after every move**. `BlokusGame.make_move()` calls `_check_game_over()`, which loops through players calling `has_legal_moves()`, implemented as `len(get_legal_moves(...)) > 0`. A single successful move can trigger 1-4 additional full move-generation passes just to answer a boolean. In a sampled `make_move()` profile, ~97% of time went into `_check_game_over()` rather than placement.
+
+The third finding is that the **frontier generator emits duplicate moves**. In a sampled early-game state, the frontier path returned 170 moves while the unique set was 169. The same `(piece_id, orientation_idx, anchor_row, anchor_col)` can be reached from multiple frontier cells, and nothing deduplicates before appending.
+
+At the system level, **checked-in Stage 3 benchmark data confirms environment stepping dominates inference**: `predict_ms_mean ≈ 5ms` while `env_step_ms_mean ≈ 316ms` in the subproc/4-env/CPU-opponent configuration. The optimization target should remain on engine/env-side CPU work, not the neural net.
+
+Other bottlenecks (board copy cost in MCTS, `LegalMoveGenerator` reinstantiation, double validation in `make_move()`, `list(Player)` allocations) are real but lower priority until the primary issues are fixed.
 
 ---
 
@@ -34,17 +40,30 @@ Secondary bottlenecks (board copy cost in MCTS, `LegalMoveGenerator` reinstantia
 | `benchmarks/scan_stage3_envs.py` | Sweep | VecEnv config optimization | Good |
 | `tests/performance_test.py` | End-to-end | Full game move timing | **Yes** - real game context |
 
+### What's Trustworthy Now
+
+1. `benchmarks/results/stage3_env_scan_20260204_222556.json` — end-to-end throughput and inference-vs-env split (predict ~5ms, env step ~316ms)
+2. `benchmarks/results/selfplay_league_bench_20260204_175434.json` — Stage 2 vs Stage 3 rollout-level latency
+3. `benchmarks/benchmark_move_generation.py` — engine microbench trends
+
+### What's Misleading or Incomplete
+
+1. **Broken imports**: `bench_selfplay_league.py`, `profile_stage3.py`, and `scripts/benchmark_env.py` import from `rl.train`, `envs.blokus_v0`, or `training.*` — modules archived to a separate branch. The checked-in JSON outputs are useful, but these benchmarks cannot be re-run from this checkout.
+2. **`tests/performance_test.py`** is not training-representative. It measures random-agent gameplay and predates the current optimization stage.
+3. **No duplicate move detection**: `benchmark_move_generation.py` reports list lengths and timings but not unique move counts, masking the frontier duplication issue.
+
 ### What's Missing
 
-1. **Legality check micro-benchmark**: No isolated benchmark for `is_placement_legal_bitboard_coords` vs `is_placement_legal_bitboard` vs grid-based. This is the #1 bottleneck but has no dedicated benchmark.
-2. **Board.copy() benchmark**: No measurement of copy cost in isolation, critical for MCTS.
-3. **MCTS iteration throughput**: No benchmark for nodes/second in MCTS search.
-4. **Action encoding/decoding**: No benchmark for move↔action_index conversion (relevant for RL env).
-5. **Frontier update benchmark**: No measurement of `update_frontier_after_move` cost.
+1. **Boolean "any legal move?" benchmark**: Benchmark `has_legal_moves()` vs an early-exit version. Critical because `_check_game_over()` pays full enumeration cost for a yes/no query.
+2. **Movegen candidate pipeline counters**: Track frontier cells, candidate anchors tested, legality checks invoked, duplicates emitted, unique moves returned. Currently only elapsed time is measured.
+3. **`make_move()` decomposition benchmark**: Time separately: `is_move_legal`, `board.place_piece`, `_check_game_over`, history/serialization, telemetry. Profile suggests `_check_game_over()` dominates.
+4. **Board.copy() benchmark**: No measurement of copy cost in isolation.
+5. **MCTS iteration throughput**: No benchmark for nodes/second in MCTS search.
 
-### Key Observation
+### Key Observations
 
-The existing `benchmark_move_generation.py` already reveals the critical finding (bitboard path is slower) but the codebase defaults to `USE_BITBOARD_LEGALITY=True`. **The default configuration is using the slower path.**
+- The existing `benchmark_move_generation.py` reveals the critical finding (bitboard path is slower) but the codebase defaults to `USE_BITBOARD_LEGALITY=True`. **The default configuration is using the slower path.**
+- Stage 3 benchmark data shows env stepping dominates inference by ~63x, confirming engine optimization is the right focus area.
 
 ---
 
@@ -61,10 +80,14 @@ run_single_game() [arena_runner.py:578]
       │   └─ FastMCTSAgent.think()
       │       └─ expand() → sim_board.place_piece() → get_legal_moves() again
       └─ game.make_move(move)
-          └─ board.place_piece()
-              ├─ can_place_piece() → _check_adjacency_rules_fast()
-              ├─ coords_to_mask() → bitboard update
-              └─ update_frontier_after_move()
+          ├─ is_move_legal()                       ← RE-VALIDATES (double check)
+          ├─ board.place_piece()
+          │   ├─ can_place_piece()                 ← VALIDATES AGAIN
+          │   ├─ coords_to_mask() → bitboard update
+          │   └─ update_frontier_after_move()
+          └─ _check_game_over()                    ← DOMINANT COST IN make_move()
+              └─ for each player: has_legal_moves()
+                  └─ len(get_legal_moves()) > 0    ← FULL ENUMERATION for boolean
 ```
 
 ### MCTS Hot Path (per `think()` call)
@@ -186,7 +209,84 @@ BIT_TABLE = [[1 << (r * 20 + c) for c in range(20)] for r in range(20)]
 
 ---
 
-### Finding 5: `placement_coords` List Comprehension in Inner Loop (MEDIUM)
+### Finding 5: `_check_game_over()` Recomputes Full Move Lists for Boolean Check (CRITICAL)
+
+**File**: `engine/game.py:199`, `engine/move_generator.py:882-893, 869-880`
+**Evidence**: In a sampled `make_move()` profile, ~97% of time was in `_check_game_over()` → `has_legal_moves()` → `get_legal_moves()`
+
+The call chain:
+```python
+# game.py:199 - called after every move
+_check_game_over()
+  └─ for each player:
+      has_legal_moves(board, player)         # move_generator.py:882
+        └─ get_move_count(board, player)     # move_generator.py:869
+            └─ len(get_legal_moves(board, player))  # FULL enumeration!
+```
+
+After every successful move, the engine enumerates **all** legal moves for 1-4 players just to check if any exist. This means a single `make_move()` can trigger up to 4 additional full move-generation passes.
+
+**The fix**: Add `find_any_legal_move()` or `has_legal_moves_fast()` that stops at the first legal candidate:
+```python
+def has_legal_moves_fast(self, board, player):
+    # Same frontier iteration as get_legal_moves, but return True on first hit
+    for piece in available_pieces:
+        for orientation in orientations:
+            for frontier_cell in frontier:
+                if is_placement_legal(...):
+                    return True
+    return False
+```
+
+**Expected impact**: Very high for step latency; low implementation risk.
+
+---
+
+### Finding 6: Frontier Generator Emits Duplicate Moves (MEDIUM)
+
+**File**: `engine/move_generator.py:395, 439, 491, 528`
+**Evidence**: Sampled early-game state returned 170 raw moves vs 169 unique moves
+
+The frontier generator iterates (piece × orientation × frontier_cell × anchor_index) and appends `Move(...)` directly at lines 395, 439, 491, 528 without tracking whether the same `(piece_id, orientation_idx, anchor_row, anchor_col)` was already emitted. The same anchor can be discovered from multiple frontier cells.
+
+**The fix**: Maintain a `seen_moves` set and only append if unseen:
+```python
+move_key = (piece_id, orientation_idx, anchor_row, anchor_col)
+if move_key not in seen_moves:
+    seen_moves.add(move_key)
+    legal_moves.append(Move(...))
+```
+
+**Expected impact**: Small-to-moderate. Reduces downstream work in masking, search, and policy selection. Low risk.
+
+---
+
+### Finding 7: Stage 3 Benchmark Evidence — Env CPU Dominates, Not Inference (CONTEXT)
+
+**File**: `benchmarks/results/stage3_env_scan_20260204_222556.json`
+
+| Configuration | predict_ms_mean | env_step_ms_mean | Ratio |
+|---|---|---|---|
+| subproc, 4 envs, CPU opponent | 4.95 ms | 315.63 ms | 63.8x |
+| Stage 3 overall | 5.09 ms | 338.03 ms | 66.4x |
+
+**Implication**: Do not prioritize model-side batching or inference optimization. The next optimization target should stay on engine/env-side CPU work.
+
+---
+
+### Finding 8: `make_move()` Does Redundant Double Validation (MEDIUM)
+
+**File**: `engine/game.py:85-88`, `engine/board.py:510-519`
+
+`make_move()` calls `is_move_legal()` (game.py:85), which calls `board.can_place_piece()` (move_generator.py:867). Then `board.place_piece()` (game.py:106) calls `can_place_piece()` again (board.py:518). The same placement is validated twice.
+
+**The fix**: Add `board.place_piece_unchecked()` or `board.place_piece(..., validate=False)` for moves already validated by `is_move_legal()`.
+
+**Expected impact**: Moderate on per-step latency after fixing the `_check_game_over()` issue.
+
+---
+
+### Finding 9: `placement_coords` List Comprehension in Inner Loop (LOW)
 
 **File**: `engine/move_generator.py:382-385`
 
@@ -203,7 +303,7 @@ This creates a new list of tuples for every (frontier_cell × anchor_index) comb
 
 ---
 
-### Finding 6: Board.copy() Cost in MCTS (MEDIUM)
+### Finding 10: Board.copy() Cost in MCTS (MEDIUM)
 
 **File**: `engine/board.py:634-648`
 
@@ -222,7 +322,7 @@ Each copy allocates a new Board (which runs `__init__`, creating fresh dicts, nu
 
 ---
 
-### Finding 7: `LegalMoveGenerator` Reinstantiation (MEDIUM)
+### Finding 11: `LegalMoveGenerator` Reinstantiation (MEDIUM)
 
 **File**: `mcts/mcts_agent.py:57, 148`; `analytics/tournament/arena_runner.py:611`
 
@@ -232,7 +332,7 @@ Each copy allocates a new Board (which runs `__init__`, creating fresh dicts, nu
 
 ---
 
-### Finding 8: `list(Player)` Created on Every Player Rotation (LOW)
+### Finding 12: `list(Player)` Created on Every Player Rotation (LOW)
 
 **File**: `engine/board.py:549-551`
 
@@ -251,7 +351,7 @@ Same pattern in `mcts/mcts_agent.py:165-168, 519-521`.
 
 ---
 
-### Finding 9: `get_frontier()` Returns a Copy (LOW)
+### Finding 13: `get_frontier()` Returns a Copy (LOW)
 
 **File**: `engine/board.py:254`
 
@@ -266,7 +366,7 @@ Called once per `_get_legal_moves_frontier` call. The copy is O(frontier_size) a
 
 ---
 
-### Finding 10: `time.perf_counter()` Calls in Move Generation (LOW)
+### Finding 14: `time.perf_counter()` Calls in Move Generation (LOW)
 
 **File**: `engine/move_generator.py:272, 297, 531-532`
 
@@ -278,18 +378,21 @@ Every call to `_get_legal_moves_frontier` makes 2 + (2 × num_pieces) calls to `
 
 ## 5. Prioritized Recommendations
 
-| Priority | Area | Bottleneck | Evidence | Recommendation | Expected Impact | Complexity | How to Benchmark |
+| Priority | Area | Bottleneck | Finding | Recommendation | Expected Impact | Complexity | How to Benchmark |
 |---|---|---|---|---|---|---|---|
-| **P0** | Move Gen | `is_placement_legal_bitboard_coords` rebuilds masks from coords | 82% of movegen time, 2.66M function calls per 100 calls | Use precomputed `PieceOrientation` masks + fast bit-shift instead of coord→mask conversion | **3-5x movegen speedup** | Medium - need correct shift with row-wrap guards | `benchmark_move_generation.py` - compare frontier+bitboard before/after |
-| **P0-quick** | Move Gen | Default uses slower bitboard path | Benchmark shows grid is 2-3x faster | Set `USE_BITBOARD_LEGALITY=False` as immediate fix | **2-3x movegen speedup** (instant, zero risk) | Trivial - one line change | `benchmark_move_generation.py` |
-| **P1** | Bitboard | `shift_mask()` round-trips through coords | Called in `is_placement_legal_bitboard` path | Implement pure bitwise shift with row-boundary guard mask | **Enables P0 fix to work at full speed** | Medium - need row-wrapping correctness | New: `benchmark_shift_mask.py` |
-| **P1** | Bitboard | `coords_to_mask`/`coord_to_bit` function call overhead | 0.849s + 0.268s = 1.1s out of 3.8s | Precompute `BIT_TABLE[r][c]` lookup, inline mask building | **30% reduction in legality check time** | Low | Profile: count of coord_to_bit calls should → 0 |
-| **P2** | Board | `Board.copy()` does wasted `__init__` work | Every MCTS copy creates/discards fresh dicts | Use `__new__` + direct attribute assignment | **15-25% MCTS speedup** | Low | New: `benchmark_board_copy.py` |
-| **P2** | MCTS | `LegalMoveGenerator()` reinstantiation | Each creates piece caches from scratch | Module-level singleton or dependency injection | **Removes redundant startup cost** | Low | Profile: check _cache_piece_orientations calls |
-| **P3** | Move Gen | `placement_coords` list comprehension per anchor | 136K temporary list allocations | Eliminated by P0 fix (use precomputed masks) | Subsumed by P0 | N/A | N/A |
-| **P3** | Board | `get_frontier()` returns defensive copy | Unnecessary copy per movegen call | Return set directly, document read-only contract | **1-2% movegen speedup** | Trivial | `benchmark_move_generation.py` |
-| **P3** | Move Gen | `time.perf_counter()` in non-debug path | ~40 syscalls per movegen call | Guard timing with `if MOVEGEN_DEBUG:` | **1-3% movegen speedup** | Trivial | `benchmark_move_generation.py` |
-| **P3** | Board | `list(Player)` allocation per move | New list creation per player rotation | Module-level constant | **<1% overall** | Trivial | Not worth benchmarking alone |
+| **P0** | Move Gen | `is_placement_legal_bitboard_coords` rebuilds masks from coords | F1: 82% of movegen time, 2.66M function calls per 100 calls | Use precomputed `PieceOrientation` masks + fast bit-shift instead of coord→mask conversion | **3-5x movegen speedup** | Medium | `benchmark_move_generation.py` before/after |
+| **P0-quick** | Move Gen | Default uses slower bitboard path | F4: Benchmark shows grid is 2-3x faster | Set `USE_BITBOARD_LEGALITY=False` as immediate fix | **2-3x movegen speedup** (instant, zero risk) | Trivial | `benchmark_move_generation.py` |
+| **P0** | Game Step | `_check_game_over()` does full move enumeration for boolean | F5: ~97% of `make_move()` time; up to 4 full movegen passes per step | Add `has_legal_moves_fast()` with early exit; use in `_check_game_over()` | **Very high step latency reduction** | Low | New: `bench_has_legal_moves.py` |
+| **P1** | Bitboard | `shift_mask()` round-trips through coords | F2 | Implement pure bitwise shift with row-boundary guard mask | **Enables P0 fix to work at full speed** | Medium | New: `benchmark_shift_mask.py` |
+| **P1** | Bitboard | `coords_to_mask`/`coord_to_bit` function call overhead | F3: 1.1s out of 3.8s | Precompute `BIT_TABLE[r][c]` lookup, inline mask building | **30% reduction in legality check time** | Low | Profile: coord_to_bit calls should → 0 |
+| **P1** | Move Gen | Frontier generator emits duplicate moves | F6: 170 raw vs 169 unique in sampled state | Maintain `seen_moves` set, deduplicate at append time | **Small-moderate**, reduces downstream work | Low | Track raw vs unique count in benchmarks |
+| **P2** | Game Step | Double validation in `make_move()` | F8: `is_move_legal()` + `can_place_piece()` both validate | Add `place_piece_unchecked()` for pre-validated moves | **Moderate** (visible after P0 game-over fix) | Low | New: `bench_make_move_breakdown.py` |
+| **P2** | Board | `Board.copy()` does wasted `__init__` work | F10 | Use `__new__` + direct attribute assignment | **15-25% MCTS speedup** | Low | New: `benchmark_board_copy.py` |
+| **P2** | MCTS | `LegalMoveGenerator()` reinstantiation | F11 | Module-level singleton or dependency injection | **Removes redundant startup cost** | Low | Profile: _cache_piece_orientations calls |
+| **P3** | Move Gen | `placement_coords` list comprehension per anchor | F9: 136K temporary lists | Eliminated by P0 fix (use precomputed masks) | Subsumed by P0 | N/A | N/A |
+| **P3** | Board | `get_frontier()` returns defensive copy | F13 | Return set directly, document read-only contract | **1-2% movegen speedup** | Trivial | `benchmark_move_generation.py` |
+| **P3** | Move Gen | `time.perf_counter()` in non-debug path | F14: ~40 syscalls per movegen call | Guard timing with `if MOVEGEN_DEBUG:` | **1-3% movegen speedup** | Trivial | `benchmark_move_generation.py` |
+| **P3** | Board | `list(Player)` allocation per move | F12 | Module-level constant | **<1% overall** | Trivial | Not worth benchmarking alone |
 
 ---
 
@@ -312,11 +415,27 @@ Every call to `_get_legal_moves_frontier` makes 2 + (2 × num_pieces) calls to `
   - Target: <1µs per call (currently ~23µs)
 - **Correctness**: Run existing test suite to verify no regressions. Also run equivalence test comparing grid vs bitboard results.
 
+### For P0 (`_check_game_over` Early Exit)
+
+- **New benchmark**: `benchmarks/bench_has_legal_moves.py`
+  - Compare current `has_legal_moves()` vs early-exit version across early/mid/late states and all players
+  - Include players with and without available moves, and near-terminal states
+  - **Metric**: Mean and p95 latency per boolean query; `make_move()` breakdown before/after
+  - **Correctness**: Confirm same boolean answer as full enumeration
+- **New benchmark**: `benchmarks/bench_make_move_breakdown.py`
+  - Time separately: `is_move_legal`, `board.place_piece`, `_check_game_over`, history/serialization, telemetry (on/off)
+
 ### For P1 (Fast `shift_mask`)
 
 - **New benchmark**: `benchmarks/benchmark_bitboard_ops.py`
   - Measure `shift_mask` vs `shift_mask_fast` for various piece sizes and shifts
   - Target: 10x speedup (eliminate coord round-trip)
+
+### For P1 (Deduplicate Frontier Output)
+
+- Augment `benchmark_move_generation.py` with raw vs unique move counts
+- **Metric**: duplicates / raw moves ratio; elapsed time for movegen and downstream consumers
+- Measure on multiple seeds and game phases to check whether dedup cost outweighs savings
 
 ### For P2 (Board.copy)
 
@@ -327,9 +446,12 @@ Every call to `_get_legal_moves_frontier` makes 2 + (2 × num_pieces) calls to `
 
 ### New Benchmarks to Add
 
-1. **`benchmarks/benchmark_legality_check.py`**: Isolated legality check throughput
-2. **`benchmarks/benchmark_board_copy.py`**: Board copy cost at various game stages
-3. **`benchmarks/benchmark_mcts_throughput.py`**: MCTS nodes/second with fixed time budget
+1. **`benchmarks/bench_has_legal_moves.py`**: Boolean "any legal move?" vs full enumeration
+2. **`benchmarks/bench_make_move_breakdown.py`**: `make_move()` component decomposition
+3. **`benchmarks/bench_movegen_candidates.py`**: Frontier cells, anchors tested, legality calls, duplicates, unique moves
+4. **`benchmarks/benchmark_legality_check.py`**: Isolated legality check throughput
+5. **`benchmarks/benchmark_board_copy.py`**: Board copy cost at various game stages
+6. **`benchmarks/benchmark_mcts_throughput.py`**: MCTS nodes/second with fixed time budget
 
 ---
 
@@ -337,30 +459,31 @@ Every call to `_get_legal_moves_frontier` makes 2 + (2 × num_pieces) calls to `
 
 ### Top 3 Next Actions
 
-1. **Immediate (5 min)**: Change `USE_BITBOARD_LEGALITY` default to `False` in `move_generator.py:69`. This is a one-line change that delivers 2-3x movegen speedup with zero risk. The grid path is the original, well-tested implementation. Run `benchmark_move_generation.py` to confirm.
+1. **Rework frontier legality** to use precomputed shifted masks instead of coords-based mask rebuilding. Refactor `_get_legal_moves_frontier()` so each candidate uses precomputed orientation masks from `ALL_PIECE_ORIENTATIONS`, a cheap anchor-to-shift transform, overlap/orth/diag checks with bit operations only, and no per-candidate Python `set()` construction. As an immediate stopgap, set `USE_BITBOARD_LEGALITY=False` for a 2-3x movegen speedup with zero risk.
 
-2. **Short-term (1-2 days)**: Rewrite `is_placement_legal_bitboard_coords` to use precomputed masks from `PieceOrientation`. Change the caller in `_get_legal_moves_frontier` to pass the `PieceOrientation` object and compute the shift once: `d_row = anchor_row, d_col = anchor_col` (since offsets are normalized from (0,0)). Implement `shift_mask_fast` using pure bit operations with row-boundary guards. Target: bitboard path faster than grid path.
+2. **Add early-exit `has_legal_moves_fast()`** and use it in `_check_game_over()`. This is the clearest next win for step latency — `make_move()` currently spends ~97% of its time in `_check_game_over()` doing full move enumeration for a boolean answer.
 
-3. **Medium-term (1 day)**: Optimize `Board.copy()` by using `__new__` to skip `__init__`, and make `LegalMoveGenerator` a singleton. These compound with the movegen fix for MCTS workloads.
+3. **Deduplicate frontier-generated moves** at append time and start reporting raw vs unique move counts in benchmarks. Maintain a `seen_moves` set of `(piece_id, orientation_idx, anchor_row, anchor_col)` and only append if unseen.
 
 ### Top 3 Benchmarks to Trust
 
-1. `benchmarks/benchmark_move_generation.py` — directly measures the #1 bottleneck
-2. `tests/performance_test.py` — end-to-end game-level timing
-3. `benchmarks/bench_selfplay_league.py` — realistic training throughput (when infra available)
+1. `benchmarks/results/stage3_env_scan_20260204_222556.json` — end-to-end throughput, confirms env step (~316ms) dominates inference (~5ms) by 63x
+2. `benchmarks/results/selfplay_league_bench_20260204_175434.json` — Stage 2 vs Stage 3 rollout-level latency
+3. `benchmarks/benchmark_move_generation.py` — engine microbench, reveals bitboard regression
 
 ### Top 3 New Benchmarks to Add
 
-1. **Legality check microbenchmark** — isolate `is_placement_legal_*` functions
-2. **Board copy benchmark** — measure copy cost at various game stages
-3. **MCTS node throughput** — measure iterations/second in realistic search
+1. **`bench_has_legal_moves.py`** — boolean "any legal move?" vs full enumeration (validates `_check_game_over` fix)
+2. **`bench_make_move_breakdown.py`** — `make_move()` component decomposition (validates step latency claims)
+3. **`bench_movegen_candidates.py`** — frontier cells, anchors, legality calls, duplicates, unique moves (validates movegen pipeline changes)
 
 ### Code Areas NOT to Touch Yet
 
+- **Model inference / policy batching**: Stage 3 benchmark evidence shows env work dominates (~316ms) vs inference (~5ms)
+- **Classic MCTS architecture** (`mcts_agent.py`): Only optimize if confirmed to matter in active workloads; engine/env work is higher leverage
+- **Broad parallelization rewrites**: Tighten inner engine loop first
 - **Frontier computation** (`update_frontier_after_move`): Already incremental, not the bottleneck
 - **Piece orientation generation** (`pieces.py`): One-time cost, not in hot path
-- **Arena runner** (`arena_runner.py`): Orchestration overhead is negligible vs movegen
-- **Agent decision logic** (`fast_mcts_agent.py`): Optimize after movegen is fixed
 - **Training pipeline** (`envs/`, `training/`): Archived to separate branch (see Appendix B)
 
 ---
