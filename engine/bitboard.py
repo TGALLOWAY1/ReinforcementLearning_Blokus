@@ -14,6 +14,31 @@ BOARD_WIDTH = 20
 BOARD_HEIGHT = 20
 NUM_CELLS = BOARD_WIDTH * BOARD_HEIGHT
 
+# Precomputed lookup table: BIT_TABLE[row][col] = 1 << (row * BOARD_WIDTH + col)
+# Eliminates function call overhead for coord_to_bit in hot loops.
+BIT_TABLE = [[1 << (r * BOARD_WIDTH + c) for c in range(BOARD_WIDTH)] for r in range(BOARD_HEIGHT)]
+
+# Mask of all valid board bits (bits 0..399)
+VALID_BOARD_MASK = (1 << NUM_CELLS) - 1
+
+# Row masks: ROW_MASK[r] has bits set for all cells in row r
+_ROW_MASKS = [((1 << BOARD_WIDTH) - 1) << (r * BOARD_WIDTH) for r in range(BOARD_HEIGHT)]
+
+# Column exclusion masks for shift_mask_fast column-wrapping prevention.
+# _LEFT_COL_MASKS[n] = mask of leftmost n columns across all rows (columns 0..n-1)
+# _RIGHT_COL_MASKS[n] = mask of rightmost n columns across all rows (columns W-n..W-1)
+def _build_col_masks():
+    left = [0] * (BOARD_WIDTH + 1)
+    right = [0] * (BOARD_WIDTH + 1)
+    for n in range(1, BOARD_WIDTH + 1):
+        for r in range(BOARD_HEIGHT):
+            for c in range(n):
+                left[n] |= 1 << (r * BOARD_WIDTH + c)
+                right[n] |= 1 << (r * BOARD_WIDTH + (BOARD_WIDTH - 1 - c))
+    return left, right
+
+_LEFT_COL_MASKS, _RIGHT_COL_MASKS = _build_col_masks()
+
 
 def coord_to_index(row: int, col: int) -> int:
     """
@@ -47,31 +72,31 @@ def index_to_coord(index: int) -> Tuple[int, int]:
 def coord_to_bit(row: int, col: int) -> int:
     """
     Convert board coordinates to a bit mask with a single bit set.
-    
+
     Args:
         row: Row coordinate (0-based)
         col: Column coordinate (0-based)
-        
+
     Returns:
         Integer with bit set at position corresponding to (row, col)
     """
-    index = coord_to_index(row, col)
-    return 1 << index
+    return BIT_TABLE[row][col]
 
 
 def coords_to_mask(coords: Iterable[Tuple[int, int]]) -> int:
     """
     Convert a collection of coordinates to a bitmask.
-    
+
     Args:
         coords: Iterable of (row, col) tuples
-        
+
     Returns:
         Bitmask with bits set for each coordinate
     """
     mask = 0
+    _bt = BIT_TABLE  # Local reference for speed
     for row, col in coords:
-        mask |= coord_to_bit(row, col)
+        mask |= _bt[row][col]
     return mask
 
 
@@ -143,4 +168,39 @@ def shift_mask(mask: int, d_row: int, d_col: int, strict: bool = True) -> Option
         shifted_coords.append((new_row, new_col))
 
     return coords_to_mask(shifted_coords) if shifted_coords else 0
+
+
+def shift_mask_fast(mask: int, d_row: int, d_col: int) -> Optional[int]:
+    """
+    Shift all bits in a mask by (d_row, d_col) using pure bit operations.
+
+    Non-strict mode: bits that shift off-board are silently dropped.
+    Returns the shifted mask (may be 0 if all bits go off-board).
+
+    This avoids the mask->coords->shift->coords->mask round-trip of shift_mask().
+    """
+    if mask == 0:
+        return 0
+
+    # Before shifting, mask out bits that would wrap across column boundaries.
+    # For d_col > 0 (shift right within row), the rightmost d_col columns
+    # would wrap into the next row, so exclude them from the source.
+    # For d_col < 0 (shift left), the leftmost |d_col| columns would wrap.
+    if d_col > 0:
+        mask &= ~_RIGHT_COL_MASKS[min(d_col, BOARD_WIDTH)]
+    elif d_col < 0:
+        mask &= ~_LEFT_COL_MASKS[min(-d_col, BOARD_WIDTH)]
+
+    if mask == 0:
+        return 0
+
+    bit_shift = d_row * BOARD_WIDTH + d_col
+
+    if bit_shift >= 0:
+        shifted = mask << bit_shift
+    else:
+        shifted = mask >> (-bit_shift)
+
+    # Clip to valid board area (handles row overflow/underflow)
+    return shifted & VALID_BOARD_MASK
 
