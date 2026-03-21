@@ -42,6 +42,9 @@ class PieceOrientation:
     diag_mask: int  # Bitmask for diagonal neighbors (not including shape cells)
     orth_mask: int  # Bitmask for orthogonal neighbors (not including shape cells)
     anchor_indices: List[int]  # Indices into offsets for anchor points (placeholder for now)
+    # Full neighbor offset lists (including negative coords, for shift-based legality)
+    diag_offsets: List[Tuple[int, int]] = None  # All diagonal neighbor offsets relative to anchor
+    orth_offsets: List[Tuple[int, int]] = None  # All orthogonal neighbor offsets relative to anchor
 
 
 def shape_to_offsets(shape: np.ndarray) -> List[Tuple[int, int]]:
@@ -239,7 +242,9 @@ def generate_orientations_for_piece(piece_id: int, base_shape: np.ndarray) -> Li
             shape_mask=shape_mask,
             diag_mask=diag_mask,
             orth_mask=orth_mask,
-            anchor_indices=anchor_indices
+            anchor_indices=anchor_indices,
+            diag_offsets=sorted(diag_coords),
+            orth_offsets=sorted(orth_coords),
         )
 
         orientations.append(orientation)
