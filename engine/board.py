@@ -249,9 +249,10 @@ class Board:
         - NOT orthogonally adjacent to any cell occupied by the player
         
         Returns:
-            Set of (row, col) tuples representing frontier cells
+            Set of (row, col) tuples representing frontier cells.
+            Callers must not mutate the returned set.
         """
-        return self.player_frontiers[player].copy()
+        return self.player_frontiers[player]
 
     def _compute_full_frontier(self, player: Player) -> Set[Tuple[int, int]]:
         """
