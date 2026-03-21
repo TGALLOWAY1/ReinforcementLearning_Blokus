@@ -361,11 +361,11 @@ Every call to `_get_legal_moves_frontier` makes 2 + (2 × num_pieces) calls to `
 - **Piece orientation generation** (`pieces.py`): One-time cost, not in hot path
 - **Arena runner** (`arena_runner.py`): Orchestration overhead is negligible vs movegen
 - **Agent decision logic** (`fast_mcts_agent.py`): Optimize after movegen is fixed
-- **Training pipeline** (`envs/`, `training/`): Missing from repo, can't audit
+- **Training pipeline** (`envs/`, `training/`): Archived to separate branch (see Appendix B)
 
 ---
 
-## Appendix: Profile Data
+## Appendix A: Profile Data
 
 ### cProfile Output (100 calls to `get_legal_moves`, mid-game state)
 
@@ -395,3 +395,43 @@ Late game (40 moves)   12.19ms    3.44ms          11.29ms            1.08x
 ```
 
 The "Speedup" column is frontier+grid vs naive. Note that frontier+bitboard is consistently slower than frontier+grid.
+
+---
+
+## Appendix B: Training Pipeline Bottlenecks (Archived Code)
+
+The RL training code (`envs/blokus_v0.py`, `training/`) was archived to a separate git branch (commit `cc106db`). While not in the current working tree, these bottlenecks will matter when training is re-enabled.
+
+### Observation Generation (CRITICAL when training)
+
+`BlokusEnv._get_observation()` allocates a `(30, 20, 20)` float32 array (48KB) **every step** and populates it with cell-by-cell Python loops:
+
+```python
+# Current: O(400) Position object allocations + grid lookups
+for row in range(20):
+    for col in range(20):
+        cell_value = board.get_cell(Position(row, col))
+        obs[cell_value if cell_value != 0 else 0, row, col] = 1
+```
+
+**Fix**: Vectorize with NumPy: `obs[0] = (grid == 0).astype(np.float32)` etc. Eliminates 400 Position allocations and method calls per step.
+
+Additionally, unused piece channels fill entire `(20,20)` planes:
+```python
+for i, piece_id in enumerate(range(1, 22)):
+    if piece_id not in used_pieces:
+        obs[5+i, :, :] = 1  # 400 float writes per unused piece
+```
+
+### Action Masking (SIGNIFICANT when training)
+
+- Action space: `Discrete(36400)` — maps `(piece_id × orientations × row × col)`
+- Mask: `np.zeros(36400, dtype=bool)` allocated every step (36KB)
+- Legal moves mapped to action IDs via dict lookup per move
+- When no legal moves exist, a fallback sets `mask[0] = True` which is semantically wrong
+
+### VecEnv Overhead
+
+- `ActionMasker` applied at single-env level, not vectorized across environments
+- Each of N environments generates observations and masks independently
+- No batched observation construction across environments
