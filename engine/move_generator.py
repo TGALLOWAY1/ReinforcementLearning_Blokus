@@ -64,9 +64,10 @@ MOVEGEN_DEBUG = _env_flag("BLOKUS_MOVEGEN_DEBUG", False)
 USE_FRONTIER_MOVEGEN = _env_flag("BLOKUS_USE_FRONTIER_MOVEGEN", True)
 
 # Feature flag to toggle between grid-based and bitboard-based legality checks
-# Default: True (bitboard legality is the default)
+# Default: False (grid legality is faster until bitboard path is optimized to use
+# precomputed PieceOrientation masks — see docs/cpu_bottleneck_audit.md F1/F4)
 # When True, frontier-based move generation uses bitboard legality instead of cell-based checks
-USE_BITBOARD_LEGALITY = _env_flag("BLOKUS_USE_BITBOARD_LEGALITY", True)
+USE_BITBOARD_LEGALITY = _env_flag("BLOKUS_USE_BITBOARD_LEGALITY", False)
 
 # Debug flag for equivalence checking (guarded, samples 5% of calls)
 # When enabled, randomly samples calls to verify bitboard and grid legality match
