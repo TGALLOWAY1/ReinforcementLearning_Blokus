@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from agents.heuristic_agent import HeuristicAgent
-from engine.board import Board, Player, Position
+from engine.board import Board, Player, Position, _PLAYERS
 from engine.move_generator import LegalMoveGenerator, Move
 from engine.pieces import PieceGenerator
 
@@ -162,10 +162,9 @@ class MCTSNode:
 
     def _get_next_player(self) -> Player:
         """Get next player in turn order."""
-        players = list(Player)
-        current_idx = players.index(self.player)
-        next_idx = (current_idx + 1) % len(players)
-        return players[next_idx]
+        current_idx = _PLAYERS.index(self.player)
+        next_idx = (current_idx + 1) % len(_PLAYERS)
+        return _PLAYERS[next_idx]
 
     def update(self, reward: float):
         """
@@ -516,9 +515,8 @@ class MCTSAgent:
                 break
 
             # Move to next player
-            players = list(Player)
-            current_idx = players.index(current_player)
-            current_player = players[(current_idx + 1) % len(players)]
+            current_idx = _PLAYERS.index(current_player)
+            current_player = _PLAYERS[(current_idx + 1) % len(_PLAYERS)]
             moves_made += 1
 
         # Calculate reward

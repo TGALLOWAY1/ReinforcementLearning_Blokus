@@ -23,6 +23,10 @@ class Player(Enum):
     GREEN = 4
 
 
+# Pre-computed player list to avoid repeated list(Player) allocations
+_PLAYERS = list(Player)
+
+
 @dataclass
 class Position:
     """Represents a position on the board."""
@@ -547,9 +551,8 @@ class Board:
 
     def _update_current_player(self) -> None:
         """Update the current player for the next turn."""
-        players = list(Player)
-        current_index = players.index(self.current_player)
-        self.current_player = players[(current_index + 1) % len(players)]
+        current_index = _PLAYERS.index(self.current_player)
+        self.current_player = _PLAYERS[(current_index + 1) % len(_PLAYERS)]
 
     def get_score(self, player: Player) -> int:
         """
