@@ -5,10 +5,11 @@
 
 ``clone``: the gen140 champion config against a byte-identical copy under a
 different name, plus the deterministic greedy baseline and a random agent.
-PASS when |mean paired score difference| < 3 points and the sign-flip
-permutation p > 0.30 over >= 100 games. A FAIL means the harness itself
-manufactures differences (seat, seed or bookkeeping bias) and must be fixed
-before any strength claim.
+PASS when the 90% confidence interval of the paired score difference lies
+within +/-4 points, the difference is not significant (p > 0.05), no game
+errored, and n >= 240 (10 cycles of the 24 seat permutations). A FAIL means
+the harness itself manufactures differences (seat, seed or bookkeeping bias)
+and must be fixed before any strength claim.
 
 ``pentobi``: EXP-016 calibration table [gen140, d016_250, pentobi_l3, pentobi_l7];
 report only (where do the repo's configurations sit against Pentobi levels?).
@@ -16,7 +17,10 @@ report only (where do the repo's configurations sit against Pentobi levels?).
 ``discrimination``: gen140, the served registry-v2 configuration and the
 D-016 configuration, all pinned to 250 iterations, plus greedy. PASS when the
 pre-registered pairs (gen140 > serving_v2, d016_250 > serving_v2) separate at
-p < 0.01 over >= 100 games.
+p < 0.01 over >= 120 games. Note: serving_v2 here is pinned to 250 iterations
+in ONE worker; in production the registry runs 2 root workers x 125
+iterations (same total budget, split trees), so this is the v2 search
+settings at equal budget, not a replay of the served process.
 
 Seeds are fresh per run (derived from the label and the launch time) unless
 ``--seed`` is given; the seed is recorded in the report so any run can be
@@ -102,7 +106,8 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("gate", choices=["clone", "discrimination", "pentobi"],
                     help="pentobi = EXP-016 calibration table (report only, no pass/fail)")
-    ap.add_argument("--games", type=int, default=p3.GATE_MIN_GAMES)
+    ap.add_argument("--games", type=int, default=None,
+                    help="default: the gate's pre-registered n (clone 240, discrimination/pentobi 120)")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--seed", type=int, default=None, help="replay a recorded run seed")
     ap.add_argument("--label", default=None)
@@ -111,6 +116,14 @@ def main(argv=None) -> int:
     ap.add_argument("--stat-seed", type=int, default=20260907)
     args = ap.parse_args(argv)
 
+    floors = {"clone": p3.CLONE_MIN_GAMES, "discrimination": p3.DISCRIMINATION_MIN_GAMES,
+              "pentobi": p3.DISCRIMINATION_MIN_GAMES}
+    if args.games is None:
+        args.games = floors[args.gate]
+    if args.games < floors[args.gate]:
+        print(f"[{p3.PROTOCOL_VERSION}] WARNING: {args.games} games is below the pre-registered "
+              f"floor of {floors[args.gate]} for '{args.gate}': exploratory run, the gate cannot pass",
+              file=sys.stderr, flush=True)
     label = args.label or f"{args.gate}_{p3.fresh_salt().replace(':', '').replace('-', '')}"
     seed = args.seed if args.seed is not None else p3.derive_run_seed(label, p3.fresh_salt())
     agents = {"clone": clone_table, "discrimination": discrimination_table,
@@ -124,9 +137,9 @@ def main(argv=None) -> int:
     report = p3.analyze(games, agents, label=label, seed=seed, stat_seed=args.stat_seed,
                         out_dir=out_dir)
     if args.gate == "clone":
-        gate = p3.clone_gate(report, "champion", "champion_clone", min_games=args.games)
+        gate = p3.clone_gate(report, "champion", "champion_clone")
     elif args.gate == "discrimination":
-        gate = p3.discrimination_gate(report, DISCRIMINATION_PAIRS, min_games=args.games)
+        gate = p3.discrimination_gate(report, DISCRIMINATION_PAIRS)
     else:
         gate = {"passed": True, "note": "calibration table — report only, no pass/fail"}
     report["gate"] = {"name": args.gate, **gate}

@@ -32,14 +32,14 @@ Artifacts:
 - **Hypothesis / question:** where do the gen140 champion config and the D-016 config (both
   250 pinned iterations, one worker) sit relative to Pentobi levels 3 and 7 (no book, one
   thread, seeded per game)? This calibrates the external yardstick; there is no pass/fail.
-- **Table:** [gen140, d016_250, pentobi_l3, pentobi_l7]; protocol v3; 100 games; 8 workers;
-  fresh recorded seed.
+- **Table:** [gen140, d016_250, pentobi_l3, pentobi_l7]; protocol v3; 120 games (5 permutation
+  cycles); 8 workers; fresh recorded seed.
 - **Pre-registered reading:** report first-place rate, average rank, mean score and every
   paired score difference with p-values. The Pentobi level that the current best config beats
   at p < 0.01 (if any) becomes the M3 baseline anchor; the first level it loses to at p < 0.01
   becomes the M3 target anchor. If gen140 loses to level 3 decisively, M3's gate is re-stated
   against level 3 rather than level 3-5.
-- **Reproduce:** `python -m mcts_lab.calibrate pentobi --games 100 --workers 8 --seed <seed from report.json>`
+- **Reproduce:** `python -m mcts_lab.calibrate pentobi --games 120 --workers 8 --seed <seed from report.json>`
 - **Result:** _pending_
 
 ## M0 closure note — Pentobi rules cross-check (2026-09-07)
@@ -62,19 +62,46 @@ independent implementations of the rules. Test: `tests/test_pentobi_agent.py::te
   per-game score.
 - **Independent variable:** agent configuration (4-seat table: gen140, serving_v2,
   d016_250, greedy).
-- **Controlled variables:** protocol v3 (fresh run seed recorded in the report,
-  round_robin seats, standard scoring, iteration-pinned single-worker search, paired
-  sign-flip permutation test with stat seed 20260907), 100 games, 8 worker processes.
+- **Controlled variables:** protocol v3 (fresh run seed recorded in the report, all 24 seat
+  permutations, standard scoring, iteration-pinned single-worker search, paired sign-flip
+  permutation test with stat seed 20260907), 120 games (5 permutation cycles), 8 worker
+  processes. Note: `serving_v2` is the registry-v2 search settings at 250 iterations in ONE
+  worker; production runs 2 root workers × 125 iterations (same total, split trees).
 - **Pre-registered decision rule:** PASS iff both pairs (gen140 > serving_v2) and
   (d016_250 > serving_v2) show a positive mean paired score difference with p < 0.01 over
-  ≥ 100 games. gen140 vs d016_250 is reported but NOT part of the gate (they may be equal).
-  FAIL → the harness cannot see known differences at n = 100; investigate seat/seed
-  handling before any strength work (assessment §4 stop-loss).
-- **Reproduce:** `python -m mcts_lab.calibrate discrimination --games 100 --workers 8
+  ≥ 120 games and no game errored. gen140 vs d016_250 is reported but NOT part of the gate
+  (they may be equal). FAIL → the harness cannot see known differences at n = 120;
+  investigate before any strength work (assessment §4 stop-loss).
+- **Reproduce:** `python -m mcts_lab.calibrate discrimination --games 120 --workers 8
   --seed <seed from report.json>`
 - **Result:** _pending_
 
-## EXP-014 — M1 clone-calibration gate (protocol v3)
+## EXP-014b — M1 clone-calibration gate (protocol v3, all-permutation schedule)
+
+- **Experiment ID:** EXP-014b
+- **Date:** 2026-09-07 (pre-registered after the harness review; launched when EXP-014a finished)
+- **Commit:** branch `feat/m1-measurement` (post-review harness: 24-permutation seat schedule,
+  equivalence gate, incremental game records)
+- **Hypothesis:** with seats AND successor relations balanced, a byte-identical clone of the
+  champion is statistically equivalent to it.
+- **Table:** [champion, champion_clone, greedy, random]; all MCTS at 250 pinned iterations, one
+  worker; 240 games (10 cycles of the 24 permutations); 8 worker processes; fresh recorded seed.
+- **Pre-registered decision rule:** PASS iff the 90% CI of the champion − clone paired score
+  difference lies within ±4 points AND p > 0.05 AND no game errored/truncated AND n ≥ 240.
+  Expected under an unbiased harness (sd ≈ 15-18): pass probability ≥ 93%; a 4-point bias passes
+  ≤ 5%. FAIL → the harness still manufactures differences; diagnose with the per-permutation
+  breakdown before any strength claim (assessment §4 stop-loss).
+- **Reproduce:** `python -m mcts_lab.calibrate clone --games 240 --workers 8 --seed <seed>`
+- **Result:** _pending_
+
+## EXP-014a — clone contrast under the cyclic round-robin schedule (harness-bias measurement)
+
+_Originally pre-registered as EXP-014 with the cyclic `round_robin` seat policy and a
+"|Δ| < 3, p > 0.30" rule. The harness review (2026-09-07) showed that schedule keeps every
+successor relation fixed (champion always followed by the clone, always preceded by random)
+and that the rule fails an unbiased harness 30% of the time. The run was allowed to finish and
+is recorded as a measurement of that confound; it is NOT the M1 gate._
+
 
 - **Experiment ID:** EXP-014
 - **Date:** 2026-09-07 (pre-registered before launch)
@@ -85,13 +112,26 @@ independent implementations of the rules. Test: `tests/test_pentobi_agent.py::te
   −82 Elo / 9-10 head-to-head (assessment B5); this is the calibration test of the harness.
 - **Independent variable:** none (champion vs its clone); 4-seat table
   [champion, champion_clone, greedy, random], all MCTS at 250 pinned iterations, one worker.
-- **Controlled variables:** as EXP-015; 100 games; fresh run seed recorded in the report.
-- **Pre-registered decision rule:** PASS iff |mean paired score difference| < 3 points AND
-  sign-flip permutation p > 0.30 over ≥ 100 games (assessment §4, M1). FAIL → fix the
-  harness before anything else; no strength claims until it passes.
-- **Reproduce:** `python -m mcts_lab.calibrate clone --games 100 --workers 8
-  --seed <seed from report.json>`
-- **Result:** _pending_
+- **Controlled variables:** 100 games; cyclic round_robin seats; fresh run seed 1886604495.
+- **Original decision rule (superseded, see above):** |mean paired score difference| < 3 AND
+  p > 0.30 over ≥ 100 games.
+- **Reproduce:** commit c12c73c, `python -m mcts_lab.calibrate clone --games 100 --workers 8
+  --seed 1886604495`
+- **Result (100/100 games, 8 workers, 61 min):** champion − clone = **+0.78 points, p = 0.68**
+  (old rule: PASS). First place: champion 49.0%, clone 39.5%, greedy 11.5%, random 0%; mean
+  rank 1.65 / 1.74 / 2.40 / 3.76. Champion vs greedy +10.24 (p < 0.0001); greedy vs random
+  +19.6 (p < 0.0001). Champion at 250 pinned iterations: 6.1 s per move mean under 8-way
+  contention. Paired-difference sd (for sizing EXP-014b): champion − clone **19.4** (se 1.94 at
+  n = 100); champion − greedy 19.0; greedy − random 12.7; per-agent score sd 13.4 / 11.8 / 10.2 /
+  7.0. Seat effect is real: champion mean score by seat 1→4 = 85.2 / 85.3 / 82.5 / 81.5. With
+  sd 19.4 the EXP-014b design (n = 240, band ±4, 90% CI) passes an unbiased harness ≈ 88% of
+  the time and a 4-point bias ≈ 5%. An early read at 22 games had shown the clone +7 points
+  ahead — it regressed to +0.8 at 100, a reminder that n = 20 reads mean nothing.
+- **Interpretation:** under the cyclic schedule no confound larger than ~3 points is visible at
+  n = 100 (SE ≈ 1.5). That does not rescue the schedule — its successor relations are fixed by
+  construction — but it bounds the effect. The M1 gate proper is EXP-014b (all permutations,
+  equivalence rule, n = 240).
+- **Artifacts:** `training/reports/protocol_v3/clone_exp014/{report.json,games.jsonl,run_config.json}`
 
 ## EXP-013 — Phase 6: prior-calibration fix (flattened MLP prior) vs baseline
 

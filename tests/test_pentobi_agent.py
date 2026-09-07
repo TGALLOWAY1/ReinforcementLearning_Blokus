@@ -128,3 +128,53 @@ def test_engine_legal_moves_match_pentobi_all_legal():
     assert positions >= 200, positions
     assert zero >= 10, zero
     assert disagreements == 0, examples
+
+
+# --- review round 1 (pentobi-adapter) ----------------------------------------
+class _FakeEngine:
+    """Stands in for PentobiGtp: accepts every play, answers genmove with a fixed move."""
+
+    def __init__(self, answer):
+        self.answer = answer
+        self.played = []
+
+    def send_raw(self, command):
+        self.played.append(command)
+        return True, ""
+
+    def play(self, colour, points):
+        self.played.append(f"play {colour} {points}")
+
+    def genmove(self, colour):
+        return self.answer
+
+    def set_game_classic(self):
+        pass
+
+    def quit(self):
+        pass
+
+
+def test_mismatch_between_pentobi_and_engine_raises(monkeypatch):
+    agent = pa.PentobiAgent(level=1, seed=1)
+    monkeypatch.setattr(agent, "_ensure_engine", lambda: _FakeEngine("k10,k11"))  # not a RED opening move
+    board = Board()
+    moves = GEN.get_legal_moves(board, Player.RED)
+    with pytest.raises(pa.GtpError):
+        agent.select_action(board, Player.RED, moves)
+    monkeypatch.setattr(agent, "_ensure_engine", lambda: _FakeEngine("pass"))
+    with pytest.raises(pa.GtpError):
+        agent.select_action(board, Player.RED, moves)
+
+
+@needs_binary
+def test_agent_recovers_when_the_board_goes_backwards():
+    agent = pa.PentobiAgent(level=1, seed=3)
+    board = Board()
+    mv = agent.select_action(board, Player.RED, GEN.get_legal_moves(board, Player.RED))
+    board.place_piece(mv.get_positions(GEN.piece_orientations_cache[mv.piece_id]), Player.RED, mv.piece_id)
+    fresh = Board()  # a new game handed to the same instance without reset()
+    mv2 = agent.select_action(fresh, Player.RED, GEN.get_legal_moves(fresh, Player.RED))
+    assert mv2 is not None
+    assert agent.get_action_info()["stats"]["resets"] == 1
+    agent.close()

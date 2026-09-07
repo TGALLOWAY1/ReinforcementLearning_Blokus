@@ -13,7 +13,15 @@ _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 
   `test_greedy_agent.py`, `test_pentobi_agent.py`, `test_calibrate_tables.py`).
 - **M0 closed:** the Pentobi rules cross-check ran — engine legal-move sets equal Pentobi
   `all_legal` on every ply of 12 seeded games (see EXP-014 session notes for counts).
-- **Gates:** EXP-014 (clone calibration, 100 games) and EXP-015 (discrimination, 100 games)
+- **Harness review (2 reviewers) → fixes landed:** the cyclic round-robin seat policy kept every
+  successor relation fixed (clone always followed the champion) → protocol v3 now cycles all 24
+  seat permutations; the clone rule "p > 0.30" would fail an unbiased harness 30% of the time →
+  replaced by an equivalence test (90% CI within ±4, p > 0.05, n ≥ 240); games are written as
+  they finish with error records for worker failures; errored/truncated games are excluded and
+  fail gates; game-count floors cannot be lowered; Pentobi mismatches raise instead of silently
+  substituting a move; adapters are closed explicitly. The first clone run (cyclic schedule)
+  was allowed to finish as a harness-bias measurement (EXP-014a).
+- **Gates:** EXP-014b (clone calibration, 240 games) and EXP-015 (discrimination, 120 games)
   pre-registered in `EXPERIMENT_LOG.md`; results recorded there when the runs finish.
 - **Next:** EXP-016 — where do gen140 and D-016 sit against Pentobi levels 1/3/5/7 under
   protocol v3 (calibrates the yardstick before M2/M3 work).

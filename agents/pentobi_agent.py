@@ -211,6 +211,10 @@ class PentobiGtp:
             self.proc.wait(timeout=5)
         except Exception:
             self.proc.kill()
+            try:
+                self.proc.wait(timeout=5)
+            except Exception:
+                pass
 
     def __enter__(self) -> "PentobiGtp":
         return self
@@ -232,7 +236,7 @@ class PentobiAgent:
         self._engine: Optional[PentobiGtp] = None
         self._mirror: Dict[Player, Set[Cells]] = {p: set() for p in Player}
         self._generator = get_shared_generator()
-        self.stats: Dict[str, Any] = {"moves": 0, "mismatches": 0, "passes": 0,
+        self.stats: Dict[str, Any] = {"moves": 0, "mismatches": 0, "passes": 0, "resets": 0,
                                       "total_time_ms": 0.0, "level": self.level}
 
     # lifecycle
@@ -258,9 +262,16 @@ class PentobiAgent:
     # board sync
     def _sync(self, board: Board) -> None:
         eng = self._ensure_engine()
+        on_board = {player: set(pieces_on_grid(board.grid, player)) for player in Player}
+        if any(self._mirror[p] - on_board[p] for p in Player):
+            # A mirrored piece is no longer on the board: this is a different
+            # (or restarted) game. Start a fresh engine and replay from scratch.
+            self.stats["resets"] += 1
+            self.close()
+            eng = self._ensure_engine()
         pending: List[Tuple[Player, Cells]] = []
         for player in Player:
-            for piece in pieces_on_grid(board.grid, player):
+            for piece in on_board[player]:
                 if piece not in self._mirror[player]:
                     pending.append((player, piece))
         # Replay new pieces; a piece can only be illegal-at-replay if it rests
@@ -287,23 +298,16 @@ class PentobiAgent:
         eng = self._ensure_engine()
         answer = eng.genmove(player_to_colour(player))
         cells = gtp_move_to_cells(answer)
-        chosen: Optional[Move] = None
-        if cells:
-            chosen = match_move(legal_moves, cells, self._generator)
-            if chosen is None:
-                # Pentobi played something the engine does not list: count it,
-                # undo it in Pentobi and fall back to the first legal move.
-                self.stats["mismatches"] += 1
-                eng.send_raw("undo")
-                chosen = legal_moves[0]
-                eng.play(player_to_colour(player), cells_to_gtp(move_cells(chosen, self._generator)))
-            self._mirror[player].add(move_cells(chosen, self._generator))
-        else:
+        if not cells:
             self.stats["passes"] += 1
-            chosen = legal_moves[0]  # Pentobi passed where the engine has moves: play anyway
+            raise GtpError(f"pentobi passed for {player.name} while the engine lists "
+                           f"{len(legal_moves)} legal moves (rules disagreement)")
+        chosen = match_move(legal_moves, cells, self._generator)
+        if chosen is None:
             self.stats["mismatches"] += 1
-            eng.play(player_to_colour(player), cells_to_gtp(move_cells(chosen, self._generator)))
-            self._mirror[player].add(move_cells(chosen, self._generator))
+            raise GtpError(f"pentobi played {answer!r} for {player.name}, which is not in the "
+                           f"engine's legal-move list (rules disagreement)")
+        self._mirror[player].add(cells)
         self.stats["moves"] += 1
         self.stats["total_time_ms"] += (time.perf_counter() - start) * 1000.0
         return chosen

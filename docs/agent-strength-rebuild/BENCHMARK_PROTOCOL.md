@@ -11,12 +11,18 @@ Raw match outcomes and matchup matrices are the primary evidence; every rating i
   (derived from label + launch time, recorded in `report.json`; pass `--seed` to replay) instead
   of two fixed seeds replayed every run (B5); **iteration-pinned single-worker search at the
   serving budget** (250 iterations for the champion) instead of a 100 ms override (B4);
-  **round-robin seats** always; **paired per-game score difference with a sign-flip permutation
+  **all 24 seat permutations** (game index mod 24; a cyclic round-robin keeps who-moves-after-whom fixed and was measured to bias a champion-vs-clone contrast — see EXP-014a) so seats AND successor relations balance over any multiple of 24 games; **paired per-game score difference with a sign-flip permutation
   test and pre-registered n** as the primary statistic; fixed external anchors (deterministic
   `greedy`, `random`, Pentobi levels — see `PENTOBI.md`) instead of a pool that copied the
   champion (M8); games played in a process pool (results independent of worker count).
-  Harness gates before any strength claim: clone calibration (|Δ| < 3 pts and p > 0.30 over
-  ≥ 100 games) and discrimination (known-different configs separate at p < 0.01).
+  Harness gates before any strength claim: **clone calibration** (equivalence test: the 90% CI
+  of the champion-vs-clone paired difference within ±4 points, p > 0.05, no errored games,
+  n ≥ 240 = 10 cycles of the permutations; with a paired-difference sd of 15-18 points this
+  passes an unbiased harness ≥ 93% of the time and passes a 4-point bias ≤ 5%) and
+  **discrimination** (pre-registered known-different pairs separate at p < 0.01, n ≥ 120;
+  power ≈ 0.99 for a 10-point gap, ≈ 0.6 for 5 points). Floors are hard-coded; a smaller
+  `--games` is an exploratory run and the CLI says so. Games that error or truncate are
+  excluded from statistics and any exclusion fails a gate (`excluded_games` in report.json).
 - `rescue_v2` (2026-07-12) — scoring mode is **`SCORING_MODE_STANDARD`** (coverage + 15
   all-pieces + 5 monomino-last), now the engine/arena default (D-002 implemented). All
   pre-`rescue_v2` results — including every rating in `training/state/ratings.sqlite` and the

@@ -38,6 +38,8 @@ Opening books are disabled (`--nobook`) so play depends only on the seed.
 | Level | CLI `--level 1..9` (max simulations ≈ 3, 30, 90, 181, 667, 5028, 69809, 349044, 1745221, scaled by move number) |
 | Seed | CLI `--seed N` (fresh process per game is reproducible with `--threads 1`) |
 | Score | `final_score` → four scores in colour order |
+| Turn order | `genmove <colour>` and `play <colour> …` are accepted for any colour regardless of Pentobi's internal colour-to-move; the adapter relies on this (it replays pieces in colour order when syncing) — re-verify on any Pentobi upgrade |
+| Rules disagreement | the adapter raises `GtpError` if Pentobi's move is not in the engine's legal list or Pentobi passes while the engine has moves; the game is then recorded as errored and excluded, and any gate fails |
 
 Per-move latency (single thread, no book, this Mac): levels 1–5 ≈ 15–35 ms;
 level 7 ≈ 0.6 s (opening) to 1.9 s (midgame); level 9 ≈ 11–40 s.
