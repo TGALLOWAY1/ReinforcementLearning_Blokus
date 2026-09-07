@@ -167,6 +167,8 @@ Milestones with pre-registered gates. Every gate uses protocol v3: fresh seeds p
 
 Estimated calendar: M0 one session, M1 one week, M2 two-three weeks, M3 three-four weeks, M4 one week, M5 one week of play.
 
+> **M1 status (2026-09-07, branch `feat/m1-measurement`, PR stacked on #209):** protocol v3 built and both harness gates passed under pre-registered rules — clone calibration (240 games, +1.76 points, 90% CI [−0.35, +3.87]) and discrimination (120 games; gen140 and D-016 beat the served v2 settings by 8.2 and 14.7 points, p < 0.0001). Pentobi 30.3 is wired in as the external anchor (its rules agree with the engine on 130,000 placements). **Calibration result that changes the plan:** Pentobi level 3, at 10 ms per move, beats the repo's best configuration (D-016, 250 iterations, 8 s per move) by 7.6 points and the champion by 16; level 7 (1.2 s per move) beats them by 28-36. Per the pre-registered rule the M3 target anchor is level 3. The gap is not only speed: level 3 uses roughly 90 simulations. This is the M2 stop-loss evidence arriving early. Decision now required (DECISIONS.md D-023): adopt Pentobi's GPL engine as the search core behind this repo's harness, UI and human protocol (shortest path to the goal), continue the home-grown core as research measured against Pentobi levels, or both. Recommendation: both.
+
 ---
 
 ## 5. What to stop doing
