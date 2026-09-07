@@ -2,6 +2,39 @@
 
 _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 / master prompt §3)._
 
+## Session 2026-09-06/07 (diagnostic assessment + milestone M0: standard piece set)
+
+- **Assessment delivered:** `DIAGNOSTIC_ASSESSMENT_2026-09-06.md` — 8 blockers, 10 majors;
+  root cause: no measurement that could see strength (25-50 iteration evaluations, replayed
+  fixed seeds, Elo carried across eras) around an agent whose config changed once; the served
+  agent is a different, unvalidated config on a stale bundle; the engine was not Blokus.
+  Recommendation: path (b) — strong hand-crafted MCTS + endgame search at ≥ 2,000 sims/s,
+  Pentobi as yardstick, logged human protocol. User decisions recorded as D-019/D-020.
+- **M0 (standard game) — catalogue part DONE on this branch, one item outstanding:**
+  piece 10 → Pentomino Z (engine + frontend); `STATE_SCHEMA_VERSION`/`ACTION_SCHEMA_VERSION`
+  bumped to `board_state_v2`/`move_v2` and the teacher-dataset validator now reports the
+  mismatch explicitly; `compute_piece_penalty` derives tiers from piece size (it charged id 10
+  as a tetromino); the advanced-metrics fixture regenerated. New tests:
+  `test_piece_set_standard.py` (incl. penalty tiers), `test_reference_movegen.py` (independent
+  rules-based generator that also recovers inventories from the grid; 519 positions / 89
+  zero-move positions at the default setting, 0 disagreements), `test_frontend_piece_catalogue.py`,
+  `test_teacher_dataset_validator.py`; `mcts_lab.checks` gained a catalogue check (8/8).
+  Bundle: `frontend/public/blokus_core.zip` rebuilt from this commit — note it also carries every
+  engine/MCTS change since the previous build (2026-07-01): standard scoring default, monomino
+  bonus, D-014 root reward baseline, `sample_legal_moves`, and the value-model/policy modules.
+  Pyodide smoke (`node scripts/pyodide_smoke.cjs`, this session): catalogue 21/89/91 inside the
+  bundle, all 8 frontend orientations of piece 10 mapped, 4 seeded games completed (57-61
+  placements), Z-pentomino placed by RED 2× / BLUE 2× / YELLOW 2× / GREEN 1×, bridge scoring
+  mode `standard`, 3 bridge turns advanced. **Outstanding for M0:** the Pentobi rules
+  cross-check (needs Pentobi installed; folded into M1 setup). All prior data and artifacts
+  declared invalid (`DATA_LINEAGE.md`, D-018). Note: `training/rich_features.py` had documented
+  the non-standard 1/1/2/6/11 set as a normaliser footnote since July — the defect was visible
+  and treated as a property of "this engine" rather than a bug.
+- **Nightly loop:** remains frozen. Do not resume before milestone M1 (a measurement that passes
+  the clone-calibration and discrimination gates in the assessment §4).
+- **Next:** M1 — protocol v3 harness (fresh seeds per run, round-robin, serving-budget iteration
+  pins, Pentobi GTP anchors, greedy deterministic baseline) with the calibration test as its gate.
+
 ## Session 2026-07-16 (session 19 — EXP-011: FIRST PHASE 6 CANDIDATE CLEARS THE TRAINING BARS)
 
 - **Current phase:** Phase 6. EXP-011 (shape-aware MLP move scorer, `move_encoding_v1`:

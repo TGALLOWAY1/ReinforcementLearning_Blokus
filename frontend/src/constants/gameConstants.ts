@@ -65,7 +65,7 @@ export const PIECE_SHAPES: { [key: number]: number[][] } = {
   7: [[1, 1, 1], [0, 1, 0]], // Tetromino T
   8: [[1, 0], [1, 0], [1, 1]], // Tetromino L
   9: [[0, 1, 1], [1, 1, 0]], // Tetromino S
-  10: [[1, 1, 0], [0, 1, 1]], // Tetromino Z
+  10: [[1, 1, 0], [0, 1, 0], [0, 1, 1]], // Pentomino Z
   11: [[0, 1, 1], [1, 1, 0], [0, 1, 0]], // Pentomino F
   12: [[1, 1, 1, 1, 1]], // Pentomino I
   13: [[1, 0], [1, 0], [1, 0], [1, 1]], // Pentomino L
@@ -89,7 +89,7 @@ export const PIECE_NAMES: { [key: number]: string } = {
   7: 'Tetromino T',
   8: 'Tetromino L',
   9: 'Tetromino S',
-  10: 'Tetromino Z',
+  10: 'Pentomino Z',
   11: 'Pentomino F',
   12: 'Pentomino I',
   13: 'Pentomino L',

@@ -258,7 +258,11 @@ ALL_PIECE_ORIENTATIONS: Dict[int, List[PieceOrientation]] = {}
 
 
 class PieceType(Enum):
-    """Enumeration of all Blokus piece types."""
+    """Enumeration of all Blokus piece types.
+
+    Ids are historical and do NOT group by size (id 10 is a pentomino);
+    always read a piece's size from ``Piece.size``, never from an id range.
+    """
     MONOMINO = 1      # 1 square
     DOMINO = 2        # 2 squares
     TROMINO_I = 3     # 3 squares in line
@@ -268,7 +272,7 @@ class PieceType(Enum):
     TETROMINO_T = 7   # T shape
     TETROMINO_L = 8   # L shape
     TETROMINO_S = 9   # S shape
-    TETROMINO_Z = 10  # Z shape
+    PENTOMINO_Z = 10  # Z shape (5 squares)
     PENTOMINO_F = 11  # F shape
     PENTOMINO_I = 12  # 5 squares in line
     PENTOMINO_L = 13  # L shape
@@ -314,11 +318,12 @@ class PieceGenerator:
         # Tetromino L (L shape)
         pieces.append(Piece(8, "Tetromino L", np.array([[1, 0], [1, 0], [1, 1]]), 4))
 
-        # Tetromino S (S shape)
+        # Tetromino S (S/Z shape; pieces are free polyominoes, so the mirror
+        # image is the same piece and is reached through orientations)
         pieces.append(Piece(9, "Tetromino S", np.array([[0, 1, 1], [1, 1, 0]]), 4))
 
-        # Tetromino Z (Z shape)
-        pieces.append(Piece(10, "Tetromino Z", np.array([[1, 1, 0], [0, 1, 1]]), 4))
+        # Pentomino Z (Z shape) — the 12th pentomino of the standard set
+        pieces.append(Piece(10, "Pentomino Z", np.array([[1, 1, 0], [0, 1, 0], [0, 1, 1]]), 5))
 
         # Pentomino F (F shape)
         pieces.append(Piece(11, "Pentomino F", np.array([[0, 1, 1], [1, 1, 0], [0, 1, 0]]), 5))

@@ -11,6 +11,9 @@ docs.
 > verdicts, pre-July-2026 champion narratives) predate the maxⁿ reward fix and
 > are **not valid** as evidence about which MCTS features help.
 
+- **agent-strength-rebuild/DIAGNOSTIC_ASSESSMENT_2026-09-06.md** — the September 2026
+  diagnostic assessment (findings, root cause, recommended path, milestones); read before
+  any agent-strength work.
 - **agent-strength-rebuild/** — **governing plan for all agent-strength work
   (July 2026 rescue): start at
   [`agent-strength-rebuild/MASTER_PLAN.md`](agent-strength-rebuild/MASTER_PLAN.md)**;

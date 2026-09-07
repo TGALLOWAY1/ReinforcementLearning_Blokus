@@ -14,7 +14,8 @@ Example:
         --out data/value_dataset_v1
 """
 
-from __future__ import annotations
+from __future__ from engine.board import STATE_SCHEMA_VERSION
+import annotations
 
 import argparse
 import json
@@ -83,7 +84,7 @@ def main(argv: Optional[list] = None) -> int:
         "generating_commit": commit,
         "run_id": run_id,
         "scoring_mode": "standard",
-        "engine_state_schema": "board_state_v1",
+        "engine_state_schema": STATE_SCHEMA_VERSION,
         "feature_set_version": FEATURE_SET_VERSION,
         "agent_version": AGENT_VERSION_TAG,
         "teacher_agents": agents,

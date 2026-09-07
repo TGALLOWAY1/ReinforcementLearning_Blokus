@@ -53,15 +53,32 @@ def compute_territory_control(board: Board) -> Tuple[List[List[int]], Dict[str, 
     return influence_map, ratios
 
 
+# Pieces that are awkward to place late in the game (U, W, X pentominoes).
+_AWKWARD_PIECE_IDS = frozenset({17, 19, 20})
+_PIECE_SIZE_BY_ID: Dict[int, int] = {}
+
+
+def _piece_size(pid: int) -> int:
+    if not _PIECE_SIZE_BY_ID:
+        from engine.pieces import PieceGenerator
+
+        for piece in PieceGenerator.get_all_pieces():
+            _PIECE_SIZE_BY_ID[piece.id] = int(piece.size)
+    return _PIECE_SIZE_BY_ID[pid]
+
+
 def compute_piece_penalty(pieces_used: Set[int]) -> int:
+    """Penalty for pieces still in hand: awkward pentominoes 5, other
+    pentominoes 2, tetrominoes 1, smaller pieces 0. Tiers are derived from
+    piece size, never from id ranges (piece ids are historical)."""
     penalty = 0
     for pid in range(1, 22):
         if pid not in pieces_used:
-            if pid in [17, 19, 20]:
+            if pid in _AWKWARD_PIECE_IDS:
                 penalty += 5
-            elif pid >= 11:
+            elif _piece_size(pid) == 5:
                 penalty += 2
-            elif pid >= 5 and pid <= 10:
+            elif _piece_size(pid) == 4:
                 penalty += 1
     return penalty
 

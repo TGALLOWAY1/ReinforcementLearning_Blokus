@@ -508,3 +508,17 @@ promotion on this evidence.
 5. **Layer-experiment verdicts (RAVE, minimax, NST, opponent modeling) are
    invalid again** — they were measured on the greedy-selection,
    zero-signal-eval search. Re-measure before re-enabling anything.
+
+---
+
+## 9. 2026-09 diagnostic assessment (supersedes the conclusions above where they conflict)
+
+An independent diagnostic assessment against the goal "reliably beat a competent human" is in
+`docs/agent-strength-rebuild/DIAGNOSTIC_ASSESSMENT_2026-09-06.md`. Headline corrections to this
+report: the engine catalogue was not the Blokus set (duplicate S/Z tetromino, no Z-pentomino —
+fixed 2026-09-06, every prior dataset/artifact/rating invalid); every promotion decision was
+made at 25-50 simulations per move where search collapses to the move-ordering heuristic; nightly
+runs replayed identical seeded games; Elo was carried across the maxⁿ-fix boundary; the served
+champion is the gen0 configuration; no human has ever played any agent. The §3.8 "non-bugs
+verified" claims about scoring and rules are withdrawn.
+

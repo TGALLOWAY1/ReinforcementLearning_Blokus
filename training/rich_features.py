@@ -90,9 +90,10 @@ def total_piece_area() -> int:
 def _count_of_size(size: int) -> int:
     """How many distinct pieces of a given cell-count exist in the piece set.
 
-    Derived from the engine's actual piece generator (this engine ships a
-    non-standard set: 1/1/2/6/11 pieces of sizes 1–5), so feature normalisation
-    divisors stay correct if the piece set ever changes.
+    Derived from the engine's actual piece generator (standard Blokus set:
+    1/1/2/5/12 pieces of sizes 1–5 since 2026-09; earlier builds shipped a
+    non-standard 1/1/2/6/11 set), so feature normalisation divisors stay
+    correct if the piece set ever changes.
     """
     _piece_sizes()
     return max(_PIECE_COUNT_BY_SIZE.get(size, 0), 1)

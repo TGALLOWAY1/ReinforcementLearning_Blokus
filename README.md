@@ -23,7 +23,9 @@ workflow. Everything below reflects the post-audit state.
 - **Training pipeline** (`training/`, driven by `mcts_lab` CLIs) — self-play
   data generation, evaluation-weight fitting (regression + TD), a fixed
   benchmark pool, and a two-stage statistically-gated champion promotion.
-  Runs nightly via GitHub Actions (`.github/workflows/nightly-mcts-training.yml`).
+  The GitHub Actions workflow (`.github/workflows/nightly-mcts-training.yml`)
+  is **frozen** (manual dispatch only) until the measurement gates in
+  `docs/agent-strength-rebuild/DIAGNOSTIC_ASSESSMENT_2026-09-06.md` pass.
 - **Web demo** (`frontend/` + `webapi/`) — React UI playing against the
   champion in-browser via Pyodide (`scripts/build_browser_core.sh` bundles the
   Python core), plus a FastAPI backend for research/analysis views.
@@ -105,10 +107,11 @@ current champion ──(mcts_lab.self_play)──> snapshot corpus
   a no-op candidate is rejected fast, and a candidate promotes only if the SPRT
   accepts *and* it clears the conservative gate on those games
   (`training/evaluation/sequential.py`; see AUDIT_REPORT.md §7).
-- **Nightly automation:** the GitHub Actions workflow resumes from committed
-  state every 6 hours, runs the same loop (`training.nightly_run`), commits
-  results, and emails a summary. Reports land in `training/status.md` and
-  `training/reports/`.
+- **Nightly automation (frozen since 2026-07-12):** the GitHub Actions workflow
+  can be dispatched manually to resume from committed state, run the same loop
+  (`training.nightly_run`), commit results, and email a summary. Reports land in
+  `training/status.md` and `training/reports/`. It is not scheduled: see the
+  2026-09 assessment for why its measurements could not detect improvement.
 
 ## Reproducing benchmark results
 
@@ -124,6 +127,14 @@ JSONL + pooled summary) are written under `training/state/selfplay_runs/` and
 historical gauntlet runs live in `arena_runs/`.
 
 ## Current best agent status
+
+> **2026-09-06 assessment** (`docs/agent-strength-rebuild/DIAGNOSTIC_ASSESSMENT_2026-09-06.md`):
+> until that date the engine's piece set was not the Blokus set (duplicate S/Z
+> tetromino, no Z-pentomino). It is now the standard 21-piece set, pinned by
+> `tests/test_piece_set_standard.py` and an independent rules-based cross-check
+> (`tests/test_reference_movegen.py`). **All datasets, weight files, candidate
+> artifacts, ratings and experiment results produced before this fix are
+> invalid for the standard game.** The bullets below are historical.
 
 - The long-standing `gen0` champion (random rollouts, depth-5 cutoff, RAVE on
   a broken reward scheme) was diagnosed as *weaker than the no-search

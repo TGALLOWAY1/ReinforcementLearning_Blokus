@@ -252,6 +252,57 @@ Format per governing master prompt §21. Statuses: Proposed / Accepted / Superse
 
 ---
 
+## D-018 — Standard 21-piece Blokus set; all prior artifacts invalidated
+
+- **Date:** 2026-09-06
+- **Status:** Accepted
+- **Context:** `DIAGNOSTIC_ASSESSMENT_2026-09-06.md` B1: the engine catalogue had two copies of
+  the S/Z tetromino (ids 9, 10) and no Z-pentomino; 88 squares, not 89. The frontend shipped the
+  same set. Internal sanity numbers (91 orientations, 58 openings/corner) matched by coincidence.
+- **Decision:** piece id 10 = Pentomino Z `[[1,1,0],[0,1,0],[0,1,1]]`; ids 1-9 and 11-21 unchanged.
+  The catalogue is pinned by `tests/test_piece_set_standard.py` (21 distinct free polyominoes,
+  89 squares, 91 orientations), `tests/test_reference_movegen.py` (independent rules-based
+  generator; 0 disagreements on every ply of seeded games + 58 openings per corner with exactly
+  2 Z-pentomino placements) and `tests/test_frontend_piece_catalogue.py` (frontend == engine).
+- **Consequences:** every dataset, weight file, candidate, rating and experiment predating this
+  commit is invalid for the standard game (see `DATA_LINEAGE.md` notice). The state/action
+  schema versions are bumped (`board_state_v2`, `move_v2`) so new records are machine-
+  distinguishable from invalidated ones, and `teacher_selfplay --validate` reports the mismatch
+  explicitly. `engine/advanced_metrics.compute_piece_penalty` now derives tiers from piece size.
+  The browser bundle is rebuilt from this commit; because the previous bundle dated from
+  2026-07-01, the rebuild also ships every engine/MCTS change since then (standard scoring
+  default, monomino bonus, D-014, `sample_legal_moves`, value-model/policy modules) — verified
+  with `scripts/pyodide_smoke.cjs`. No champion is promoted or demoted by this change.
+- **Related:** master plan §4 Phase 2; `DIAGNOSTIC_ASSESSMENT_2026-09-06.md` §6 (first step).
+
+## D-019 — Human-match parameters (user decisions)
+
+- **Date:** 2026-09-06 (answers given as comments on the assessment artifact, timestamped
+  2026-09-07 01:51–01:53 UTC)
+- **Status:** Accepted
+- **Variant / seats:** Classic 4-player 20×20; the human plays exactly one colour; agents play the
+  other three.
+- **Human strength reference:** the user has played roughly 50 games; treat "competent" as an
+  experienced casual player, to be calibrated against Pentobi levels before the 20-game match.
+- **Time control:** hard cap 10 s per AI move; preferred: a dynamic allocation (short on trivial
+  moves, longer on critical ones) under an overall per-game budget. Search budgets for milestone
+  M3+ are sized to this.
+- **Interface:** not yet decided (deferred to milestone M4; judgment call: web frontend with a
+  natively served agent, since the Pyodide path cannot deliver the budget).
+
+## D-020 — Native search core and Pentobi are permitted
+
+- **Date:** 2026-09-06 (user answer "Yes" as a comment on the assessment artifact,
+  2026-09-07 01:53 UTC)
+- **Status:** Accepted
+- **Decision:** the search core may be rewritten in C++/Rust or compiled with numba, and
+  Pentobi's GPL engine may be used as the external yardstick, rules cross-check, and (if the
+  M2 stop-loss triggers) as the search core under a GPL fork.
+- **Consequence:** milestone M2 (≥ 2,000 sims/s) is unblocked; licence review is only needed if
+  Pentobi code is vendored rather than run as a separate GTP process.
+
+---
+
 ## Open decisions (required before their phases)
 
 | ID (reserved) | Topic | Needed by | Notes |

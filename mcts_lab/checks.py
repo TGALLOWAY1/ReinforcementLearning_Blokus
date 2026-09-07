@@ -55,6 +55,28 @@ def _scoring():
     assert b.get_score(Player.RED) >= 1
 
 
+@check("engine: standard 21-piece catalogue (distinct shapes, 89 squares, 91 orientations)")
+def _piece_catalogue():
+    import numpy as np
+
+    from engine.pieces import ALL_PIECE_ORIENTATIONS, PieceGenerator
+
+    def canonical(shape):
+        forms = []
+        for k in range(4):
+            r = np.rot90(shape, k)
+            for f in (r, np.fliplr(r)):
+                t = f[np.ix_(np.any(f, axis=1), np.any(f, axis=0))]
+                forms.append(tuple(map(tuple, t.tolist())))
+        return min(forms)
+
+    pieces = PieceGenerator.get_all_pieces()
+    assert len(pieces) == 21
+    assert len({canonical(p.shape) for p in pieces}) == 21, "duplicate free polyomino"
+    assert sum(int(p.shape.sum()) for p in pieces) == 89
+    assert sum(len(v) for v in ALL_PIECE_ORIENTATIONS.values()) == 91
+
+
 def _play_probe(seed: int, max_moves: int = 30) -> list:
     """Play a short seeded random-vs-random game; return the move sequence."""
     from engine.game import BlokusGame

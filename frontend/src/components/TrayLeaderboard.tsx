@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { calculateDashboardMetrics, calculateWinProbability } from '../utils/dashboardMetrics';
+import { getPieceSize } from '../utils/mobilityMetrics';
 
 const PLAYER_COLORS: Record<string, string> = {
     RED: '#ef4444',
@@ -11,14 +12,6 @@ const PLAYER_COLORS: Record<string, string> = {
 
 const PLAYER_NAMES_BY_ID: Record<number, string> = { 1: 'RED', 2: 'BLUE', 3: 'YELLOW', 4: 'GREEN' };
 
-const getPieceSize = (id: number) => {
-    if (!id) return 0;
-    if (id === 1) return 1;
-    if (id === 2) return 2;
-    if (id <= 4) return 3;
-    if (id <= 9) return 4;
-    return 5;
-};
 
 /**
  * Compact player leaderboard rendered at the bottom of the piece tray.

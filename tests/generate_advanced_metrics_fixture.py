@@ -65,15 +65,15 @@ def generate_fixture():
     history_serializable = []
     for entry in game.game_history:
         h = {
-            "player": entry["player"].name,
+            "player": entry["player_to_move"],
             "action": None
         }
         if entry["action"]:
             h["action"] = {
-                "piece_id": entry["action"].piece_id,
-                "orientation": entry["action"].orientation,
-                "anchor_row": entry["action"].anchor_row,
-                "anchor_col": entry["action"].anchor_col
+                "piece_id": entry["action"]["piece_id"],
+                "orientation": entry["action"]["orientation"],
+                "anchor_row": entry["action"]["anchor_row"],
+                "anchor_col": entry["action"]["anchor_col"]
             }
         history_serializable.append(h)
 
