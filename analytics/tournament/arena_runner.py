@@ -457,6 +457,25 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             agent.set_weights(dict(weights))
         return _SelectActionAdapter(agent)
 
+    if agent_type == "greedy":
+        # Deterministic argmax of the fixed heuristic (protocol v3 yardstick).
+        from agents.greedy_agent import GreedyAgent
+
+        agent = GreedyAgent(seed=seed)
+        weights = params.get("weights")
+        if isinstance(weights, Mapping):
+            agent.set_weights(dict(weights))
+        return _SelectActionAdapter(agent)
+
+    if agent_type == "pentobi":
+        # External Pentobi GTP engine (anchor opponent / rules cross-check).
+        from agents.pentobi_agent import PentobiAgent
+
+        return _SelectActionAdapter(PentobiAgent(
+            level=int(params.get("level", 5)), seed=seed,
+            binary=params.get("binary"), use_book=bool(params.get("use_book", False)),
+        ))
+
     if agent_type == "challenge_champion_gameplay":
         profile_name = str(params.get("profile", CHALLENGE_CHAMPION_PROFILE))
         if profile_name != CHALLENGE_CHAMPION_PROFILE:

@@ -1,10 +1,22 @@
 # Benchmark Protocol
 
-**Protocol version:** `rescue_v2` (2026-07-12). Any change to pool, seeds, budgets, seat policy,
+**Protocol version:** `protocol_v3` (2026-09-07) for all M1+ work; `rescue_v2` (2026-07-12) is retained below for reading the July experiments. Any change to pool, seeds, budgets, seat policy,
 or scoring mode requires a version bump recorded here and referenced in every experiment entry.
 Raw match outcomes and matchup matrices are the primary evidence; every rating is a summary.
 
 **Version history:**
+- `protocol_v3` (2026-09-07) — implemented in `training/evaluation/protocol_v3.py`; CLI
+  `python -m mcts_lab.calibrate {clone,discrimination}`. Differences from `rescue_v2`, each
+  motivated by a finding of `DIAGNOSTIC_ASSESSMENT_2026-09-06.md`: **fresh run seed per run**
+  (derived from label + launch time, recorded in `report.json`; pass `--seed` to replay) instead
+  of two fixed seeds replayed every run (B5); **iteration-pinned single-worker search at the
+  serving budget** (250 iterations for the champion) instead of a 100 ms override (B4);
+  **round-robin seats** always; **paired per-game score difference with a sign-flip permutation
+  test and pre-registered n** as the primary statistic; fixed external anchors (deterministic
+  `greedy`, `random`, Pentobi levels — see `PENTOBI.md`) instead of a pool that copied the
+  champion (M8); games played in a process pool (results independent of worker count).
+  Harness gates before any strength claim: clone calibration (|Δ| < 3 pts and p > 0.30 over
+  ≥ 100 games) and discrimination (known-different configs separate at p < 0.01).
 - `rescue_v2` (2026-07-12) — scoring mode is **`SCORING_MODE_STANDARD`** (coverage + 15
   all-pieces + 5 monomino-last), now the engine/arena default (D-002 implemented). All
   pre-`rescue_v2` results — including every rating in `training/state/ratings.sqlite` and the

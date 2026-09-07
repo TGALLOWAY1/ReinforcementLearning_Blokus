@@ -303,6 +303,32 @@ Format per governing master prompt §21. Statuses: Proposed / Accepted / Superse
 
 ---
 
+## D-021 — Protocol v3 is the only evaluation protocol for strength claims
+
+- **Date:** 2026-09-07
+- **Status:** Accepted
+- **Context:** assessment findings B4–B8, M7, M8: evaluations at 25–50 iterations, replayed
+  fixed seeds, moving anchors, Elo carried across eras, decisions on 4–24 games.
+- **Decision:** `training/evaluation/protocol_v3.py` (fresh recorded seed per run, round-robin
+  seats, iteration-pinned single-worker search at serving budgets, paired sign-flip permutation
+  statistics, pre-registered n) is the only protocol for strength claims from M1 on. Two
+  harness gates must pass before any strength claim: clone calibration (EXP-014) and
+  discrimination (EXP-015). The nightly workflow stays frozen until they pass and is rebuilt
+  on this protocol if it ever returns.
+- **Related:** `BENCHMARK_PROTOCOL.md` (v3 entry), `mcts_lab/calibrate.py`.
+
+## D-022 — Pentobi levels are the external strength anchors
+
+- **Date:** 2026-09-07
+- **Status:** Accepted (permitted by D-020)
+- **Decision:** `pentobi-gtp` 30.3 (GTP-only build, no book, one thread, seeded per game) is
+  the fixed external yardstick, via arena agent type `pentobi` at explicit levels; the
+  engine's legal-move generator is cross-checked against `all_legal` in the test suite.
+  Level-to-strength calibration against the repo's agents is measured (EXP-016), never assumed.
+  Build recipe and protocol facts: `PENTOBI.md`.
+
+---
+
 ## Open decisions (required before their phases)
 
 | ID (reserved) | Topic | Needed by | Notes |

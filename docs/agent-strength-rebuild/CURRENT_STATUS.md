@@ -2,6 +2,22 @@
 
 _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 / master prompt §3)._
 
+## Session 2026-09-07 (milestone M1: a measurement that can see — in progress)
+
+- **Built (branch `feat/m1-measurement`, on top of M0):** `training/evaluation/protocol_v3.py`
+  (fresh recorded seed per run, round-robin seats, iteration-pinned single-worker search,
+  process-pool games, paired statistics, clone/discrimination gates) + CLI
+  `python -m mcts_lab.calibrate`; deterministic `greedy` baseline (`agents/greedy_agent.py`);
+  Pentobi 30.3 GTP engine built GUI-free and wired as arena agent type `pentobi`
+  (`agents/pentobi_agent.py`, `PENTOBI.md`); tests for all of it (`test_protocol_v3.py`,
+  `test_greedy_agent.py`, `test_pentobi_agent.py`, `test_calibrate_tables.py`).
+- **M0 closed:** the Pentobi rules cross-check ran — engine legal-move sets equal Pentobi
+  `all_legal` on every ply of 12 seeded games (see EXP-014 session notes for counts).
+- **Gates:** EXP-014 (clone calibration, 100 games) and EXP-015 (discrimination, 100 games)
+  pre-registered in `EXPERIMENT_LOG.md`; results recorded there when the runs finish.
+- **Next:** EXP-016 — where do gen140 and D-016 sit against Pentobi levels 1/3/5/7 under
+  protocol v3 (calibrates the yardstick before M2/M3 work).
+
 ## Session 2026-09-06/07 (diagnostic assessment + milestone M0: standard piece set)
 
 - **Assessment delivered:** `DIAGNOSTIC_ASSESSMENT_2026-09-06.md` — 8 blockers, 10 majors;

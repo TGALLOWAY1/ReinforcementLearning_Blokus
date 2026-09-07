@@ -24,6 +24,75 @@ Artifacts:
 
 ---
 
+## EXP-016 — Pentobi level calibration under protocol v3
+
+- **Experiment ID:** EXP-016
+- **Date:** 2026-09-07 (pre-registered; launched after EXP-014/015)
+- **Commit:** branch `feat/m1-measurement`
+- **Hypothesis / question:** where do the gen140 champion config and the D-016 config (both
+  250 pinned iterations, one worker) sit relative to Pentobi levels 3 and 7 (no book, one
+  thread, seeded per game)? This calibrates the external yardstick; there is no pass/fail.
+- **Table:** [gen140, d016_250, pentobi_l3, pentobi_l7]; protocol v3; 100 games; 8 workers;
+  fresh recorded seed.
+- **Pre-registered reading:** report first-place rate, average rank, mean score and every
+  paired score difference with p-values. The Pentobi level that the current best config beats
+  at p < 0.01 (if any) becomes the M3 baseline anchor; the first level it loses to at p < 0.01
+  becomes the M3 target anchor. If gen140 loses to level 3 decisively, M3's gate is re-stated
+  against level 3 rather than level 3-5.
+- **Reproduce:** `python -m mcts_lab.calibrate pentobi --games 100 --workers 8 --seed <seed from report.json>`
+- **Result:** _pending_
+
+## M0 closure note — Pentobi rules cross-check (2026-09-07)
+
+Engine legal-move sets vs Pentobi 30.3 `all_legal` on every ply of 12 seeded games (6 random-agent,
+6 heuristic-agent): **860 positions (100 with no legal move), 130,000 placements compared, 0
+disagreements** (19 s). Together with the in-repo independent reference (519 positions) and
+the earlier auditor references (1,103 positions), the corrected engine agrees with three
+independent implementations of the rules. Test: `tests/test_pentobi_agent.py::test_engine_legal_moves_match_pentobi_all_legal`
+(default 3 games; `BLOKUS_PENTOBI_GAMES=12` reproduces the numbers above).
+
+## EXP-015 — M1 discrimination gate (protocol v3)
+
+- **Experiment ID:** EXP-015
+- **Date:** 2026-09-07 (pre-registered; launched after EXP-014 reports)
+- **Commit:** branch `feat/m1-measurement` (on top of `fix/standard-piece-set`, standard piece set)
+- **Hypothesis:** under protocol v3 the harness separates agents known to differ:
+  the gen140 champion config and the D-016 config (both pinned to 250 iterations, one
+  worker) beat the served registry-v2 config (250 iterations, one worker) on paired
+  per-game score.
+- **Independent variable:** agent configuration (4-seat table: gen140, serving_v2,
+  d016_250, greedy).
+- **Controlled variables:** protocol v3 (fresh run seed recorded in the report,
+  round_robin seats, standard scoring, iteration-pinned single-worker search, paired
+  sign-flip permutation test with stat seed 20260907), 100 games, 8 worker processes.
+- **Pre-registered decision rule:** PASS iff both pairs (gen140 > serving_v2) and
+  (d016_250 > serving_v2) show a positive mean paired score difference with p < 0.01 over
+  ≥ 100 games. gen140 vs d016_250 is reported but NOT part of the gate (they may be equal).
+  FAIL → the harness cannot see known differences at n = 100; investigate seat/seed
+  handling before any strength work (assessment §4 stop-loss).
+- **Reproduce:** `python -m mcts_lab.calibrate discrimination --games 100 --workers 8
+  --seed <seed from report.json>`
+- **Result:** _pending_
+
+## EXP-014 — M1 clone-calibration gate (protocol v3)
+
+- **Experiment ID:** EXP-014
+- **Date:** 2026-09-07 (pre-registered before launch)
+- **Commit:** branch `feat/m1-measurement` (on top of `fix/standard-piece-set`)
+- **Hypothesis:** under protocol v3 an agent byte-identical to the champion, differing
+  only in name (hence RNG stream and seat rotation phase), is statistically
+  indistinguishable from the champion. The pre-rescue screen measured such a clone at
+  −82 Elo / 9-10 head-to-head (assessment B5); this is the calibration test of the harness.
+- **Independent variable:** none (champion vs its clone); 4-seat table
+  [champion, champion_clone, greedy, random], all MCTS at 250 pinned iterations, one worker.
+- **Controlled variables:** as EXP-015; 100 games; fresh run seed recorded in the report.
+- **Pre-registered decision rule:** PASS iff |mean paired score difference| < 3 points AND
+  sign-flip permutation p > 0.30 over ≥ 100 games (assessment §4, M1). FAIL → fix the
+  harness before anything else; no strength claims until it passes.
+- **Reproduce:** `python -m mcts_lab.calibrate clone --games 100 --workers 8
+  --seed <seed from report.json>`
+- **Result:** _pending_
+
 ## EXP-013 — Phase 6: prior-calibration fix (flattened MLP prior) vs baseline
 
 - **Experiment ID:** EXP-013
