@@ -39,8 +39,41 @@ Artifacts:
   at p < 0.01 (if any) becomes the M3 baseline anchor; the first level it loses to at p < 0.01
   becomes the M3 target anchor. If gen140 loses to level 3 decisively, M3's gate is re-stated
   against level 3 rather than level 3-5.
-- **Reproduce:** `python -m mcts_lab.calibrate pentobi --games 120 --workers 8 --seed <seed from report.json>`
+- **Reproduce:** commit 6356c3e, `python -m mcts_lab.calibrate pentobi --games 120 --workers 8
+  --seed 1732817614 --label pentobi_exp016`
+- **Result (120/120 games, 0 errors, 0 Pentobi mismatches):**
+  | agent | 1st% | avg rank | mean score | s/move |
+  |---|---|---|---|---|
+  | pentobi_l7 | 91.2% | 1.07 | 99.0 | 1.20 |
+  | pentobi_l3 | 7.5% | 2.16 | 78.8 | 0.01 |
+  | d016_250 | 1.2% | 2.99 | 71.2 | 8.35 |
+  | gen140 | 0.0% | 3.57 | 62.7 | 5.67 |
+  Paired: gen140 − pentobi_l3 = **−16.1** [−18.0, −14.2]; d016_250 − pentobi_l3 = **−7.6**
+  [−9.3, −5.9]; gen140 − pentobi_l7 = −36.3; d016_250 − pentobi_l7 = −27.8; d016_250 − gen140
+  = +8.5 [+6.5, +10.4]; all p < 0.0001.
+- **Reading (pre-registered rule applied):** the current best config loses decisively to the
+  weakest level tested, so the **M3 target anchor is Pentobi level 3** (as pre-registered for
+  this outcome) and the M3 baseline anchor is not yet located (levels 1-2 untested → EXP-016b).
+  Pentobi level 3 spends ~10 ms per move (≈ 90 simulations scaled by move number) and still
+  beats an 8-second, 250-iteration Python search by 7.6 points per game; level 7 (1.2 s/move)
+  beats it by 28. The repo's search is not merely slow — per simulation it is far weaker than
+  Pentobi's. This is the strongest evidence yet for the assessment's M2 stop-loss branch
+  (adopt Pentobi's engine core) and it is a strategic decision for the user (see D-023).
+- **Artifacts:** `training/reports/protocol_v3/pentobi_exp016/{report.json,games.jsonl,run_config.json}`
+
+## EXP-016b — Pentobi levels 1 and 2 (locating the baseline anchor)
+
+- **Experiment ID:** EXP-016b
+- **Date:** 2026-09-07 (pre-registered; launched immediately after EXP-016)
+- **Commit:** branch `feat/m1-measurement`
+- **Question:** does the repo's best config (d016_250) or the champion (gen140) beat Pentobi at
+  level 1 (~3 simulations) or level 2 (~30 simulations) at p < 0.01? Whichever level is beaten
+  becomes the M3 baseline anchor; if neither, the baseline anchor is the deterministic greedy
+  agent and M3 is measured purely against Pentobi levels from above.
+- **Table:** [gen140, d016_250, pentobi_l1, pentobi_l2]; protocol v3; 120 games; 8 workers.
+- **Reproduce:** `python -m mcts_lab.calibrate pentobi-low --games 120 --workers 8 --seed <seed>`
 - **Result:** _pending_
+
 
 ## M0 closure note — Pentobi rules cross-check (2026-09-07)
 

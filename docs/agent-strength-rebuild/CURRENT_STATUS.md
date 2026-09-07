@@ -31,8 +31,11 @@ _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 
   (p < 0.0001), d016_250 − serving_v2 +14.7 (p < 0.0001). Extras: D-016 beats gen140 by 6.5 at
   equal 250 iterations (p = 0.0002); the served v2 settings tie the deterministic greedy baseline
   (+1.7, p = 0.12). **M1 gates met — protocol v3 is the measurement from here on.**
-- **EXP-016 (Pentobi calibration): running** — where gen140 and D-016 sit against Pentobi
-  levels 3 and 7.
+- **EXP-016 (Pentobi calibration): done.** Pentobi L3 (10 ms/move) beats D-016@250 by 7.6 and
+  gen140 by 16 points; L7 (1.2 s/move) by 28-36; all p < 0.0001, 120 games, 0 errors. M3 target
+  anchor = Pentobi level 3 (pre-registered rule). Strategic decision for the user recorded as
+  D-023 (adopt Pentobi's core vs build our own vs both). EXP-016b (levels 1-2) running to locate
+  the baseline anchor.
 - **Next:** EXP-016 — where do gen140 and D-016 sit against Pentobi levels 1/3/5/7 under
   protocol v3 (calibrates the yardstick before M2/M3 work).
 

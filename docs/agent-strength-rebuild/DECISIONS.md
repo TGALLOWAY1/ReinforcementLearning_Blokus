@@ -329,6 +329,28 @@ Format per governing master prompt §21. Statuses: Proposed / Accepted / Superse
 
 ---
 
+## D-023 — M3 anchors after EXP-016, and the search-core question (PROPOSED — user decision)
+
+- **Date:** 2026-09-07
+- **Status:** Proposed
+- **Context:** under protocol v3 (both gates passed) Pentobi level 3 at ~10 ms/move beats the
+  repo's best configuration (D-016, 250 iterations, ~8 s/move) by 7.6 points per game and the
+  gen140 champion by 16; level 7 (1.2 s/move) beats them by 28-36 (EXP-016). Per the
+  pre-registered reading, Pentobi level 3 is the M3 target anchor.
+- **Options:**
+  (a) **Adopt Pentobi's engine as the search core** (GPL-3, permitted by D-020): the repo keeps
+  its rules engine, harness, UI and human protocol; "the agent" becomes a Pentobi level chosen by
+  the human protocol (M5) plus the dynamic time budget the user asked for. Shortest path to the
+  goal; the home-grown MCTS becomes a research track measured against Pentobi levels.
+  (b) **Build the native core (M2) and heuristics (M3) as planned**, with Pentobi level 3 as the
+  first target: honest but long — the gap is not only speed (level 3 uses ~90 simulations).
+  (c) Both: ship (a) for the human goal now; continue (b) as research with (a) as the yardstick.
+- **Recommendation:** (c), unless the user's goal is specifically a self-built engine, in which
+  case (b) with realistic timelines.
+- **Related:** EXP-016, EXP-016b, assessment §4 M2 stop-loss.
+
+---
+
 ## Open decisions (required before their phases)
 
 | ID (reserved) | Topic | Needed by | Notes |

@@ -96,6 +96,12 @@ def pentobi_agent(name: str, level: int) -> Dict[str, Any]:
             "params": {"level": int(level), "use_book": False}}
 
 
+def pentobi_low_table() -> List[Dict[str, Any]]:
+    """EXP-016b: does anything in the repo beat Pentobi levels 1 and 2?"""
+    return [pinned_mcts("gen140", champion_params()), pinned_mcts("d016_250", d016_params()),
+            pentobi_agent("pentobi_l1", 1), pentobi_agent("pentobi_l2", 2)]
+
+
 def pentobi_table() -> List[Dict[str, Any]]:
     """EXP-016: where do gen140 and D-016 sit against Pentobi levels 3 and 7?"""
     return [pinned_mcts("gen140", champion_params()), pinned_mcts("d016_250", d016_params()),
@@ -104,7 +110,7 @@ def pentobi_table() -> List[Dict[str, Any]]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("gate", choices=["clone", "discrimination", "pentobi"],
+    ap.add_argument("gate", choices=["clone", "discrimination", "pentobi", "pentobi-low"],
                     help="pentobi = EXP-016 calibration table (report only, no pass/fail)")
     ap.add_argument("--games", type=int, default=None,
                     help="default: the gate's pre-registered n (clone 240, discrimination/pentobi 120)")
@@ -117,7 +123,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     floors = {"clone": p3.CLONE_MIN_GAMES, "discrimination": p3.DISCRIMINATION_MIN_GAMES,
-              "pentobi": p3.DISCRIMINATION_MIN_GAMES}
+              "pentobi": p3.DISCRIMINATION_MIN_GAMES, "pentobi-low": p3.DISCRIMINATION_MIN_GAMES}
     if args.games is None:
         args.games = floors[args.gate]
     if args.games < floors[args.gate]:
@@ -127,7 +133,7 @@ def main(argv=None) -> int:
     label = args.label or f"{args.gate}_{p3.fresh_salt().replace(':', '').replace('-', '')}"
     seed = args.seed if args.seed is not None else p3.derive_run_seed(label, p3.fresh_salt())
     agents = {"clone": clone_table, "discrimination": discrimination_table,
-              "pentobi": pentobi_table}[args.gate]()
+              "pentobi": pentobi_table, "pentobi-low": pentobi_low_table}[args.gate]()
     out_dir = Path(args.out_root) / label
     print(f"[{p3.PROTOCOL_VERSION}] gate={args.gate} label={label} seed={seed} "
           f"games={args.games} workers={args.workers}", file=sys.stderr, flush=True)
