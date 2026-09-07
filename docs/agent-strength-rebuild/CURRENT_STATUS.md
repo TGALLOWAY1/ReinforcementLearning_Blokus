@@ -27,7 +27,12 @@ _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 
   so claims that hinge on ≤ 2 points per game are not supported; real effects must clear
   p < 0.01 with a comfortable margin. Measured seat effect: seat 1 scores ≈ +6 points over seat 4
   for every agent (champion 87.4 → 81.5), confirming why seat balance is mandatory.
-- **Gate 2 — discrimination (EXP-015): running** (120 games; result recorded in `EXPERIMENT_LOG.md`).
+- **Gate 2 — discrimination (EXP-015): PASS.** 120 games, 0 errors: gen140 − serving_v2 +8.2
+  (p < 0.0001), d016_250 − serving_v2 +14.7 (p < 0.0001). Extras: D-016 beats gen140 by 6.5 at
+  equal 250 iterations (p = 0.0002); the served v2 settings tie the deterministic greedy baseline
+  (+1.7, p = 0.12). **M1 gates met — protocol v3 is the measurement from here on.**
+- **EXP-016 (Pentobi calibration): running** — where gen140 and D-016 sit against Pentobi
+  levels 3 and 7.
 - **Next:** EXP-016 — where do gen140 and D-016 sit against Pentobi levels 1/3/5/7 under
   protocol v3 (calibrates the yardstick before M2/M3 work).
 

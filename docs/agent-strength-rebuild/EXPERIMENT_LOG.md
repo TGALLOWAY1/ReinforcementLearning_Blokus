@@ -72,9 +72,23 @@ independent implementations of the rules. Test: `tests/test_pentobi_agent.py::te
   ≥ 120 games and no game errored. gen140 vs d016_250 is reported but NOT part of the gate
   (they may be equal). FAIL → the harness cannot see known differences at n = 120;
   investigate before any strength work (assessment §4 stop-loss).
-- **Reproduce:** `python -m mcts_lab.calibrate discrimination --games 120 --workers 8
-  --seed <seed from report.json>`
-- **Result:** _pending_
+- **Reproduce:** commit a394a79, `python -m mcts_lab.calibrate discrimination --games 120
+  --workers 8 --seed 1712991924 --label discrimination_exp015`
+- **Result (120/120 games, 0 errors): PASS.** Pre-registered pairs: gen140 − serving_v2 =
+  +8.17 [90% CI +5.5, +10.8], p=0.0000; d016_250 − serving_v2 = +14.67 [90% CI +12.1, +17.3], p=0.0000.
+  First place: d016_250 50.4%, gen140 35.4%, serving_v2 11.7%, greedy 2.5%; mean rank 1.68 /
+  2.02 / 2.75 / 3.06. Per-move cost at 250 iterations under 8-way contention: d016 7.0 s,
+  gen140 5.6 s, serving_v2 5.8 s.
+- **Informative (not part of the gate):** at an EQUAL 250-iteration budget the D-016 config
+  beats gen140 by 6.50 points (p = 0.0002; 90% CI +3.6 to +9.4) — the first
+  sound-protocol evidence that the value-model leaf is stronger than rollouts at equal
+  iterations (EXP-006a had parity at n = 20). And the served registry-v2 search settings are
+  indistinguishable from the deterministic greedy baseline (+1.71 [90% CI -0.1, +3.5], p=0.1243):
+  the configuration a human currently faces plays at one-ply-greedy level.
+- **Interpretation:** the harness separates known-different agents by 8-15 points at p < 0.0001
+  with n = 120; together with EXP-014b the M1 gates are met and protocol v3 is the measurement
+  for all further work. D-016's edge over gen140 is a strength finding to carry into M3.
+- **Artifacts:** `training/reports/protocol_v3/discrimination_exp015/{report.json,games.jsonl,run_config.json}`
 
 ## EXP-014b — M1 clone-calibration gate (protocol v3, all-permutation schedule)
 
