@@ -71,8 +71,21 @@ Artifacts:
   becomes the M3 baseline anchor; if neither, the baseline anchor is the deterministic greedy
   agent and M3 is measured purely against Pentobi levels from above.
 - **Table:** [gen140, d016_250, pentobi_l1, pentobi_l2]; protocol v3; 120 games; 8 workers.
-- **Reproduce:** `python -m mcts_lab.calibrate pentobi-low --games 120 --workers 8 --seed <seed>`
-- **Result:** _pending_
+- **Reproduce:** commit dab8bd4, `python -m mcts_lab.calibrate pentobi-low --games 120 --workers 8
+  --seed 1209255502 --label pentobi_exp016b`
+- **Result (120/120 games, 0 errors):** first place pentobi_l2 39.2%, pentobi_l1 29.6%, d016_250
+  20.8%, gen140 10.4%; mean rank 1.82 / 2.21 / 2.44 / 3.13. Paired: d016_250 − pentobi_l1 =
+  **−2.1** [−4.2, +0.1], p = 0.12 (parity); d016_250 − pentobi_l2 = **−4.2** [−6.2, −2.2],
+  p = 0.0009; gen140 − pentobi_l1 = −10.4, gen140 − pentobi_l2 = −12.6 (p < 0.0001);
+  d016_250 − gen140 = +8.4 (p < 0.0001, replicating EXP-015/016). Pentobi levels 1-2 spend
+  8 ms per move (about 3 and 30 simulations).
+- **Reading (pre-registered rule applied):** no Pentobi level is beaten at p < 0.01, so the M3
+  baseline anchor is the deterministic `greedy` agent and M3 is measured against Pentobi levels
+  from above (target: level 3, per EXP-016). The repo's best search at 250 iterations and 8 s per
+  move is at parity with Pentobi's 3-simulation level 1, i.e. roughly with Pentobi's move prior
+  alone; the champion is 10 points below it. Pentobi level ordering is monotone as expected
+  (L1 < L2 by 2.2, p = 0.09; L2 < L3 and L3 < L7 decisively in EXP-016).
+- **Artifacts:** `training/reports/protocol_v3/pentobi_exp016b/{report.json,games.jsonl,run_config.json}`
 
 
 ## M0 closure note — Pentobi rules cross-check (2026-09-07)

@@ -33,9 +33,14 @@ _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 
   (+1.7, p = 0.12). **M1 gates met — protocol v3 is the measurement from here on.**
 - **EXP-016 (Pentobi calibration): done.** Pentobi L3 (10 ms/move) beats D-016@250 by 7.6 and
   gen140 by 16 points; L7 (1.2 s/move) by 28-36; all p < 0.0001, 120 games, 0 errors. M3 target
-  anchor = Pentobi level 3 (pre-registered rule). Strategic decision for the user recorded as
-  D-023 (adopt Pentobi's core vs build our own vs both). EXP-016b (levels 1-2) running to locate
-  the baseline anchor.
+  anchor = Pentobi level 3 (pre-registered rule). **EXP-016b: levels 1-2 are not beaten either** —
+  D-016@250 ties level 1 (−2.1, p = 0.12; level 1 = ~3 simulations, 8 ms/move) and loses to level 2
+  (−4.2, p = 0.0009); gen140 loses to both by 10-13. M3 baseline anchor = `greedy`; M3 is
+  measured against Pentobi from above. Strategic decision for the user: D-023 (adopt Pentobi's
+  core vs build our own vs both). **M1 complete** (PR #210, stacked on #209).
+- **Next (after D-023):** option (a)/(c): M4 — serve a Pentobi-backed agent natively through the
+  web UI with game logging and the dynamic time budget, then M5 human protocol to pick the level
+  that meets ≥ 70%. Option (b): M2 native core with Pentobi level 3 as the first M3 target.
 - **Next:** EXP-016 — where do gen140 and D-016 sit against Pentobi levels 1/3/5/7 under
   protocol v3 (calibrates the yardstick before M2/M3 work).
 

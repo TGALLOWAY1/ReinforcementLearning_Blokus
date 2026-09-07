@@ -335,8 +335,9 @@ Format per governing master prompt §21. Statuses: Proposed / Accepted / Superse
 - **Status:** Proposed
 - **Context:** under protocol v3 (both gates passed) Pentobi level 3 at ~10 ms/move beats the
   repo's best configuration (D-016, 250 iterations, ~8 s/move) by 7.6 points per game and the
-  gen140 champion by 16; level 7 (1.2 s/move) beats them by 28-36 (EXP-016). Per the
-  pre-registered reading, Pentobi level 3 is the M3 target anchor.
+  gen140 champion by 16; level 7 (1.2 s/move) beats them by 28-36 (EXP-016). Levels 1-2 (8 ms/move,
+  ~3 and ~30 simulations) are not beaten either: D-016 ties level 1 and loses to level 2 (EXP-016b).
+  Per the pre-registered reading, Pentobi level 3 is the M3 target anchor and `greedy` the baseline.
 - **Options:**
   (a) **Adopt Pentobi's engine as the search core** (GPL-3, permitted by D-020): the repo keeps
   its rules engine, harness, UI and human protocol; "the agent" becomes a Pentobi level chosen by
