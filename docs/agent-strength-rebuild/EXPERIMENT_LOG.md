@@ -91,8 +91,21 @@ independent implementations of the rules. Test: `tests/test_pentobi_agent.py::te
   Expected under an unbiased harness (sd ≈ 15-18): pass probability ≥ 93%; a 4-point bias passes
   ≤ 5%. FAIL → the harness still manufactures differences; diagnose with the per-permutation
   breakdown before any strength claim (assessment §4 stop-loss).
-- **Reproduce:** `python -m mcts_lab.calibrate clone --games 240 --workers 8 --seed <seed>`
-- **Result:** _pending_
+- **Reproduce:** commit fcbbf01, `python -m mcts_lab.calibrate clone --games 240 --workers 8
+  --seed 707726340 --label clone_exp014b`
+- **Result (240/240 games, 0 errors, 8 workers): PASS.** champion − clone = **+1.76 points**,
+  90% CI **[−0.35, +3.87]**, p = 0.165. First place 46.5% / 38.8% / greedy 14.8% / random 0%;
+  mean rank 1.73 / 1.82 / 2.28 / 3.80. Champion vs greedy +8.27 (p < 0.0001), clone vs greedy
+  +6.51 (p < 0.0001), greedy vs random +22.1. Champion 5.9 s per move mean at 250 iterations
+  under 8-way contention.
+- **Caveat recorded:** the band was met with little margin (upper bound 3.87 vs 4.0), and the
+  agent listed first scored higher in both clone runs (EXP-014a +0.78, EXP-014b +1.76; pooled
+  340 games ≈ +1.5 ± 1.05). Not significant, but a residual bias of 1-2 points cannot be
+  excluded. Consequence: any future strength claim that hinges on ≤ 2 points per game is not
+  supported by this protocol; claims must clear the discrimination threshold (p < 0.01) with
+  effects well above that band. If a later result sits in the 1-3 point range, re-run the clone
+  gate with the agent order swapped before believing it.
+- **Artifacts:** `training/reports/protocol_v3/clone_exp014b/{report.json,games.jsonl,run_config.json}`
 
 ## EXP-014a — clone contrast under the cyclic round-robin schedule (harness-bias measurement)
 

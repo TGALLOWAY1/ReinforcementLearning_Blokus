@@ -15,6 +15,9 @@ Raw match outcomes and matchup matrices are the primary evidence; every rating i
   test and pre-registered n** as the primary statistic; fixed external anchors (deterministic
   `greedy`, `random`, Pentobi levels — see `PENTOBI.md`) instead of a pool that copied the
   champion (M8); games played in a process pool (results independent of worker count).
+  Measured under this protocol (EXP-014b, 240 games): paired per-game score-difference sd ≈ 19-20
+  points between two 250-iteration MCTS agents (se ≈ 1.3 at n = 240, ≈ 1.8 at n = 120); seat 1
+  scores ≈ 6 points more than seat 4 for every agent, so unbalanced seats bias any contrast.
   Harness gates before any strength claim: **clone calibration** (equivalence test: the 90% CI
   of the champion-vs-clone paired difference within ±4 points, p > 0.05, no errored games,
   n ≥ 240 = 10 cycles of the permutations; with a paired-difference sd of 15-18 points this

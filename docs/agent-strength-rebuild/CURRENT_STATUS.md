@@ -21,8 +21,13 @@ _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 
   fail gates; game-count floors cannot be lowered; Pentobi mismatches raise instead of silently
   substituting a move; adapters are closed explicitly. The first clone run (cyclic schedule)
   was allowed to finish as a harness-bias measurement (EXP-014a).
-- **Gates:** EXP-014b (clone calibration, 240 games) and EXP-015 (discrimination, 120 games)
-  pre-registered in `EXPERIMENT_LOG.md`; results recorded there when the runs finish.
+- **Gate 1 — clone calibration (EXP-014b): PASS.** 240 games, 0 errors: champion − byte-identical
+  clone = +1.76 points, 90% CI [−0.35, +3.87], p = 0.17 (band ±4). Recorded caveat: the margin
+  was small and the first-listed agent led in both clone runs (pooled +1.5 ± 1.1 over 340 games),
+  so claims that hinge on ≤ 2 points per game are not supported; real effects must clear
+  p < 0.01 with a comfortable margin. Measured seat effect: seat 1 scores ≈ +6 points over seat 4
+  for every agent (champion 87.4 → 81.5), confirming why seat balance is mandatory.
+- **Gate 2 — discrimination (EXP-015): running** (120 games; result recorded in `EXPERIMENT_LOG.md`).
 - **Next:** EXP-016 — where do gen140 and D-016 sit against Pentobi levels 1/3/5/7 under
   protocol v3 (calibrates the yardstick before M2/M3 work).
 
