@@ -329,10 +329,13 @@ Format per governing master prompt §21. Statuses: Proposed / Accepted / Superse
 
 ---
 
-## D-023 — M3 anchors after EXP-016, and the search-core question (PROPOSED — user decision)
+## D-023 — M3 anchors after EXP-016, and the search-core question
 
-- **Date:** 2026-09-07
-- **Status:** Proposed
+- **Date:** 2026-09-07; answered 2026-09-08
+- **Status:** Accepted as option (c). The options and the recommendation (c) were put to the user
+  in the M1 hand-off; the user's reply was "proceed with the next milestone" after merging M1,
+  which is taken as accepting the recommendation (the next milestone under (c) being M4). If a
+  different option was intended, D-024 is the record to revisit.
 - **Context:** under protocol v3 (both gates passed) Pentobi level 3 at ~10 ms/move beats the
   repo's best configuration (D-016, 250 iterations, ~8 s/move) by 7.6 points per game and the
   gen140 champion by 16; level 7 (1.2 s/move) beats them by 28-36 (EXP-016). Levels 1-2 (8 ms/move,
@@ -349,6 +352,75 @@ Format per governing master prompt §21. Statuses: Proposed / Accepted / Superse
 - **Recommendation:** (c), unless the user's goal is specifically a self-built engine, in which
   case (b) with realistic timelines.
 - **Related:** EXP-016, EXP-016b, assessment §4 M2 stop-loss.
+
+---
+
+## D-024 — M4: the human-facing agent is Pentobi served natively; what "dynamic time budget" means
+
+- **Date:** 2026-09-08
+- **Status:** Accepted (implements the serving half of D-023 option (c), accepted 2026-09-08; the
+  home-grown core stays a research track measured against Pentobi levels)
+- **Context:** the M1 calibration (EXP-016/016b) showed Pentobi level 3 already beats the repo's
+  best search; the human goal (≥ 70% first place over 20 games) needs an agent that can be served
+  under the D-019 time control today. The Pyodide path cannot run Pentobi (native binary) and
+  cannot deliver the budget, so the web UI now has a second transport.
+- **Decision:**
+  1. **Agent type `pentobi`** is served by the FastAPI backend (`webapi/gameplay_agent_factory.py`,
+     `PentobiGameplayAdapter`) and wraps the *same* `agents.pentobi_agent.PentobiAgent` the arena
+     builds, with the same level and seed. Served-vs-arena parity is a test
+     (`tests/test_pentobi_gameplay_adapter.py`, 50 positions) and a gate report
+     (`scripts/m4_serving_gate.py` → `training/reports/m4_serving_gate/report.json`). What parity
+     checks: the same `PentobiAgent` class with the same seed, one engine process driving all four
+     seats, produces identical moves through the serving wrapper (watchdog thread, budget, legal-move
+     list, orientation plumbing); it is not a check against an independent engine. Human-protocol
+     games use fresh random per-seat seeds, which are logged.
+  2. **Time control.** Pentobi's strength knob is its level (a fixed simulation count per move;
+     classic counts 3 / 30 / 90 / 181 / 667 / 5,028 / 69,809 / 349,044 / 1,745,221 for levels
+     1-9, weighted by move number and with early abort when the best move cannot change). Wall
+     time is therefore an outcome of the level, not an input. The D-019 controls are implemented
+     around it (`agents/time_budget.py`): a **hard 10 s per-move cap** enforced by a watchdog that
+     kills the search and plays the deterministic greedy move (recorded as `fallback: timeout`);
+     **no search when one legal move exists**; an **optional per-game budget** (not used by the
+     UI) that steps the level down to a floor level as soon as the remaining budget can no longer
+     fund one full-cap move (the cap itself is never shrunk, so the boundary never forces a
+     timeout). The cap and level are validated server-side in both profiles
+     (`webapi/deploy_validation.py::normalize_pentobi_agent_config`); the engine binary is never
+     taken from a request. "Dynamic allocation" beyond that (Pentobi's own weighting by move
+     number and early abort) is Pentobi's; the repo does not add a criticality model, because it
+     would add an uncalibrated variable to the level that M5 must choose.
+  3. **Measured per-move wall time** (this Mac, one thread; `training/reports/m4_serving_gate/
+     level_timings.json`), mean / max: L1 8 / 57 ms, L2 8 / 72 ms, L3 10 / 86 ms and L7 1.2 / 4.9 s
+     from the protocol-v3 runs EXP-016b/016 (2,100-2,500 moves each, MCTS opponents); L4 5 / 19 ms,
+     L5 10 / 30 ms, L6 63 / 240 ms, L8 1.9 / 8.6 s and L9 9.4 s mean / 27 s p90 / 54 s max from
+     one 4-seat self-play game each (71-73 moves, `scripts/pentobi_level_timings.py`). Reading:
+     levels 3 and 7 pass the M4 latency gate (whole turn ≤ 8 s, gate report); levels 1-6 are far
+     below it; **level 8 stayed under the 10 s cap in its one game but its maximum (8.6 s search,
+     plus 0.1-1.0 s for move application/telemetry) exceeds the 8 s gate and it has not been
+     gated**; level 9 does not fit the cap. If level 8 becomes an M5 candidate, run
+     `scripts/m4_serving_gate.py --levels 8` first.
+  4. **Every backend-served game is logged** (`webapi/game_log.py`, one JSON per game, rewritten
+     atomically after every event) with seat → player type, each AI seat's level/seed/cap, every
+     move with its wall time and any fallback, passes (an AI turn forfeited to the server's
+     timeout or an exception is recorded as an attributable event), final scores/ranks/winner,
+     and the repo commit and schema versions. Games played in the Pyodide worker (the default
+     Play page) are not logged. Research profile logs to `data/human_games/` by default
+     (`GAME_LOG_DIR` overrides; blank disables); deploy logs only when `GAME_LOG_DIR` is set.
+     `python -m mcts_lab.human_games` scores the logs against the M5 gate from the agent's side
+     (Pentobi first place ≥ 70%; a human tie for first counts against the agent; no agent loss
+     with a fallback or forfeited turn).
+  5. **Orientation indices.** The backend can speak the frontend's 0-7 rotation/flip indices
+     (`GameConfig.orientation_space = "frontend"`, `engine/orientation_map.py`), translated
+     exactly as the Pyodide bridge does; the browser transport uses this so human moves land on
+     the intended cells.
+  6. **Registry (D-009) stays open:** the human-facing opponent is the Pentobi level chosen by
+     M5, recorded in the game logs and DECISIONS rather than in either champion registry. The
+     repo's own champions remain research artefacts measured under protocol v3.
+- **Consequences:** M5 can start: pick a level (the card in the game-setup modal), play with seats
+  rotated, and read `python -m mcts_lab.human_games`. Level 9 is not a candidate under a 10 s cap
+  on one thread; level 8 needs its own gate run first; multi-threaded search would break
+  served-vs-arena determinism and is not enabled. The assessment's M4 wording "one registry" is
+  superseded by §6 (the human-facing opponent is a logged Pentobi level, not a registry entry).
+- **Related:** D-019, D-020, D-023, assessment §4 M4/M5.
 
 ---
 

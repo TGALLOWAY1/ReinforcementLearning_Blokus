@@ -1,0 +1,3069 @@
+{
+ "log_version": "human_game_log_v1",
+ "game_id": "m4_latency_l7",
+ "status": "finished",
+ "started_at": "2026-09-08T05:29:03.688982+00:00",
+ "finished_at": "2026-09-08T05:31:14.178276+00:00",
+ "scoring_mode": "standard",
+ "players": [
+  {
+   "player": "RED",
+   "agent_type": "pentobi",
+   "agent_config": {
+    "level": 7,
+    "seed": 20260908,
+    "time_budget_ms": 10000
+   }
+  },
+  {
+   "player": "BLUE",
+   "agent_type": "pentobi",
+   "agent_config": {
+    "level": 7,
+    "seed": 20260909,
+    "time_budget_ms": 10000
+   }
+  },
+  {
+   "player": "GREEN",
+   "agent_type": "pentobi",
+   "agent_config": {
+    "level": 7,
+    "seed": 20260910,
+    "time_budget_ms": 10000
+   }
+  },
+  {
+   "player": "YELLOW",
+   "agent_type": "pentobi",
+   "agent_config": {
+    "level": 7,
+    "seed": 20260911,
+    "time_budget_ms": 10000
+   }
+  }
+ ],
+ "seats": {
+  "RED": "pentobi",
+  "BLUE": "pentobi",
+  "GREEN": "pentobi",
+  "YELLOW": "pentobi"
+ },
+ "has_human": false,
+ "human_seats": [],
+ "meta": {
+  "app_profile": "research",
+  "orientation_space": "engine"
+ },
+ "versions": {
+  "repo_commit": "13dc4207224d5856d1a78b50a66a25591c271b34",
+  "state_schema_version": "board_state_v2",
+  "action_schema_version": "move_v2"
+ },
+ "moves": [
+  {
+   "index": 0,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 18,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 0,
+    "anchor_col": 0
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 699,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 698,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:04.494380+00:00"
+  },
+  {
+   "index": 1,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 18,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 0,
+    "anchor_col": 17
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 788,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 788,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:05.427346+00:00"
+  },
+  {
+   "index": 2,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 18,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 17,
+    "anchor_col": 17
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 952,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 951,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:06.558055+00:00"
+  },
+  {
+   "index": 3,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 18,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 17,
+    "anchor_col": 0
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 651,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 651,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:07.414217+00:00"
+  },
+  {
+   "index": 4,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 10,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 3,
+    "anchor_col": 3
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 622,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 1320,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:08.310958+00:00"
+  },
+  {
+   "index": 5,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 19,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 3,
+    "anchor_col": 14
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 544,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 1332,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:09.218406+00:00"
+  },
+  {
+   "index": 6,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 19,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 14,
+    "anchor_col": 14
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 755,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 1706,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:10.468658+00:00"
+  },
+  {
+   "index": 7,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 19,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 14,
+    "anchor_col": 3
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 518,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 1168,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:11.571721+00:00"
+  },
+  {
+   "index": 8,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 19,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 6,
+    "anchor_col": 6
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1233,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 2552,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:13.516236+00:00"
+  },
+  {
+   "index": 9,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 10,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 6,
+    "anchor_col": 11
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 670,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 2001,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:15.012050+00:00"
+  },
+  {
+   "index": 10,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 10,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 11,
+    "anchor_col": 11
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 658,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 2364,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:16.547329+00:00"
+  },
+  {
+   "index": 11,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 10,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 11,
+    "anchor_col": 6
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 678,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 1845,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:18.164762+00:00"
+  },
+  {
+   "index": 12,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 21,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 9,
+    "anchor_col": 9
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2014,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 4566,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:21.162090+00:00"
+  },
+  {
+   "index": 13,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 20,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 9,
+    "anchor_col": 12
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2841,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 4842,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:24.971762+00:00"
+  },
+  {
+   "index": 14,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 14,
+    "orientation": 5,
+    "engine_orientation": 5,
+    "anchor_row": 9,
+    "anchor_col": 7
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2830,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 5194,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:28.786449+00:00"
+  },
+  {
+   "index": 15,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 14,
+    "orientation": 6,
+    "engine_orientation": 6,
+    "anchor_row": 8,
+    "anchor_col": 5
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 3251,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 5096,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:33.020451+00:00"
+  },
+  {
+   "index": 16,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 12,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 5,
+    "anchor_col": 2
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2946,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 7512,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:36.965282+00:00"
+  },
+  {
+   "index": 17,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 14,
+    "orientation": 7,
+    "engine_orientation": 7,
+    "anchor_row": 6,
+    "anchor_col": 7
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 4385,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 9227,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:42.296921+00:00"
+  },
+  {
+   "index": 18,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 21,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 13,
+    "anchor_col": 9
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 3596,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 8790,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:46.828085+00:00"
+  },
+  {
+   "index": 19,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 21,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 16,
+    "anchor_col": 6
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2626,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 7722,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:50.375859+00:00"
+  },
+  {
+   "index": 20,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 11,
+    "orientation": 5,
+    "engine_orientation": 5,
+    "anchor_row": 6,
+    "anchor_col": 13
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2904,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 10416,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:54.182574+00:00"
+  },
+  {
+   "index": 21,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 11,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 12,
+    "anchor_col": 14
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2786,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 12013,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:29:57.887094+00:00"
+  },
+  {
+   "index": 22,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 20,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 17,
+    "anchor_col": 8
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2647,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 11437,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:01.457170+00:00"
+  },
+  {
+   "index": 23,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 13,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 16,
+    "anchor_col": 10
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1907,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 9628,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:04.246175+00:00"
+  },
+  {
+   "index": 24,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 20,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 4,
+    "anchor_col": 15
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2350,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 12766,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:07.483883+00:00"
+  },
+  {
+   "index": 25,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 21,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 11,
+    "anchor_col": 15
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2395,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 14408,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:10.729810+00:00"
+  },
+  {
+   "index": 26,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 12,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 17,
+    "anchor_col": 3
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2360,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 13797,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:14.059851+00:00"
+  },
+  {
+   "index": 27,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 17,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 13,
+    "anchor_col": 1
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2601,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 12229,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:17.464813+00:00"
+  },
+  {
+   "index": 28,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 16,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 10,
+    "anchor_col": 0
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2239,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 15005,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:20.509159+00:00"
+  },
+  {
+   "index": 29,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 7,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 14,
+    "anchor_col": 16
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1697,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 16105,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:22.957303+00:00"
+  },
+  {
+   "index": 30,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 11,
+    "orientation": 7,
+    "engine_orientation": 7,
+    "anchor_row": 13,
+    "anchor_col": 6
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2076,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 15873,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:25.755638+00:00"
+  },
+  {
+   "index": 31,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 9,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 6,
+    "anchor_col": 4
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2065,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 14293,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:28.512432+00:00"
+  },
+  {
+   "index": 32,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 14,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 10,
+    "anchor_col": 3
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1953,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 16958,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:31.154916+00:00"
+  },
+  {
+   "index": 33,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 13,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 2,
+    "anchor_col": 5
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1771,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 17876,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:33.554249+00:00"
+  },
+  {
+   "index": 34,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 15,
+    "orientation": 7,
+    "engine_orientation": 7,
+    "anchor_row": 18,
+    "anchor_col": 14
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1552,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 17424,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:35.703709+00:00"
+  },
+  {
+   "index": 35,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 4,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 5,
+    "anchor_col": 3
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1532,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 15825,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:37.790941+00:00"
+  },
+  {
+   "index": 36,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 7,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 2,
+    "anchor_col": 0
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1737,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 18694,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:40.094025+00:00"
+  },
+  {
+   "index": 37,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 16,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 16,
+    "anchor_col": 14
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2017,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 19893,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:42.972333+00:00"
+  },
+  {
+   "index": 38,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 5,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 19,
+    "anchor_col": 4
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1526,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 18950,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:45.018758+00:00"
+  },
+  {
+   "index": 39,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 20,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 13,
+    "anchor_col": 11
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1440,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 17265,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:46.955303+00:00"
+  },
+  {
+   "index": 40,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 13,
+    "orientation": 4,
+    "engine_orientation": 4,
+    "anchor_row": 2,
+    "anchor_col": 12
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 2058,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 20752,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:49.505499+00:00"
+  },
+  {
+   "index": 41,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 12,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 1,
+    "anchor_col": 12
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1440,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 21333,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:51.420365+00:00"
+  },
+  {
+   "index": 42,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 1,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 14,
+    "anchor_col": 16
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1000,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 19949,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:52.883039+00:00"
+  },
+  {
+   "index": 43,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 2,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 3,
+    "anchor_col": 2
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1399,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 18664,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:54.744990+00:00"
+  },
+  {
+   "index": 44,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 15,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 2,
+    "anchor_col": 10
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1544,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 22296,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:56.759290+00:00"
+  },
+  {
+   "index": 45,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 15,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 0,
+    "anchor_col": 3
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1419,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 22751,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:58.596808+00:00"
+  },
+  {
+   "index": 46,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 7,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 12,
+    "anchor_col": 17
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 742,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 20691,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:30:59.729789+00:00"
+  },
+  {
+   "index": 47,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 15,
+    "orientation": 4,
+    "engine_orientation": 4,
+    "anchor_row": 5,
+    "anchor_col": 0
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 1057,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 19721,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:01.176233+00:00"
+  },
+  {
+   "index": 48,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 9,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 0,
+    "anchor_col": 8
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 654,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 22950,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:02.211967+00:00"
+  },
+  {
+   "index": 49,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 17,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 8,
+    "anchor_col": 15
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 713,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 23463,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:03.273291+00:00"
+  },
+  {
+   "index": 50,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 13,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 8,
+    "anchor_col": 18
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 583,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 21274,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:04.192460+00:00"
+  },
+  {
+   "index": 51,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 1,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 13,
+    "anchor_col": 9
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 872,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 20593,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:05.366234+00:00"
+  },
+  {
+   "index": 52,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 8,
+    "orientation": 7,
+    "engine_orientation": 7,
+    "anchor_row": 0,
+    "anchor_col": 5
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 469,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 23419,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:06.119517+00:00"
+  },
+  {
+   "index": 53,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 5,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 19,
+    "anchor_col": 10
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 442,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 23905,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:06.822804+00:00"
+  },
+  {
+   "index": 54,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 8,
+    "orientation": 3,
+    "engine_orientation": 3,
+    "anchor_row": 6,
+    "anchor_col": 17
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 386,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 21660,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:07.453332+00:00"
+  },
+  {
+   "index": 55,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 3,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 18,
+    "anchor_col": 3
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 624,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 21217,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:08.300455+00:00"
+  },
+  {
+   "index": 56,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 5,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 0,
+    "anchor_col": 11
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 378,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 23796,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:08.883881+00:00"
+  },
+  {
+   "index": 57,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 2,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 5,
+    "anchor_col": 10
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 395,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24300,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:09.481691+00:00"
+  },
+  {
+   "index": 58,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 2,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 8,
+    "anchor_col": 9
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 343,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 22003,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:10.026356+00:00"
+  },
+  {
+   "index": 59,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 7,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 8,
+    "anchor_col": 0
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 456,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 21673,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:10.652081+00:00"
+  },
+  {
+   "index": 60,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 17,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 3,
+    "anchor_col": 7
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 232,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24027,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:11.013749+00:00"
+  },
+  {
+   "index": 61,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 1,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 15,
+    "anchor_col": 13
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 291,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24590,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:11.426203+00:00"
+  },
+  {
+   "index": 62,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 9,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 15,
+    "anchor_col": 1
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 241,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 22244,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:11.784844+00:00"
+  },
+  {
+   "index": 63,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": true,
+   "reason": "no_moves",
+   "move": null,
+   "stats": {},
+   "at": "2026-09-08T05:31:11.794843+00:00"
+  },
+  {
+   "index": 64,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 6,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 11,
+    "anchor_col": 9
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 166,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24193,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:12.071750+00:00"
+  },
+  {
+   "index": 65,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 4,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 15,
+    "anchor_col": 11
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 273,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24862,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:12.452164+00:00"
+  },
+  {
+   "index": 66,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 4,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 6,
+    "anchor_col": 10
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 134,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 22377,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:12.687865+00:00"
+  },
+  {
+   "index": 67,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": true,
+   "reason": "no_moves",
+   "move": null,
+   "stats": {},
+   "at": "2026-09-08T05:31:12.697457+00:00"
+  },
+  {
+   "index": 68,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 3,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 3,
+    "anchor_col": 17
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 131,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24323,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:12.921882+00:00"
+  },
+  {
+   "index": 69,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 8,
+    "orientation": 6,
+    "engine_orientation": 6,
+    "anchor_row": 2,
+    "anchor_col": 9
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 149,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 25011,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:13.158618+00:00"
+  },
+  {
+   "index": 70,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 6,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 18,
+    "anchor_col": 1
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 119,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 22496,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:13.355561+00:00"
+  },
+  {
+   "index": 71,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": true,
+   "reason": "no_moves",
+   "move": null,
+   "stats": {},
+   "at": "2026-09-08T05:31:13.364141+00:00"
+  },
+  {
+   "index": 72,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 2,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 2,
+    "anchor_col": 15
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 82,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24405,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:13.520587+00:00"
+  },
+  {
+   "index": 73,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 6,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 18,
+    "anchor_col": 17
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 107,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 25118,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:13.698851+00:00"
+  },
+  {
+   "index": 74,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 3,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 13,
+    "anchor_col": 0
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 0,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "trivial",
+    "budgetReasons": [
+     "one_legal_move"
+    ],
+    "budgetCapMs": 0,
+    "earlyStopReason": "one_legal_move",
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 22496,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:13.760325+00:00"
+  },
+  {
+   "index": 75,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": true,
+   "reason": "no_moves",
+   "move": null,
+   "stats": {},
+   "at": "2026-09-08T05:31:13.768541+00:00"
+  },
+  {
+   "index": 76,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 4,
+    "orientation": 1,
+    "engine_orientation": 1,
+    "anchor_row": 8,
+    "anchor_col": 4
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 83,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24488,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:13.902617+00:00"
+  },
+  {
+   "index": 77,
+   "player": "BLUE",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 9,
+    "orientation": 2,
+    "engine_orientation": 2,
+    "anchor_row": 4,
+    "anchor_col": 17
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 70,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 25188,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:14.021445+00:00"
+  },
+  {
+   "index": 78,
+   "player": "YELLOW",
+   "is_human": false,
+   "is_pass": true,
+   "reason": "no_moves",
+   "move": null,
+   "stats": {},
+   "at": "2026-09-08T05:31:14.027651+00:00"
+  },
+  {
+   "index": 79,
+   "player": "GREEN",
+   "is_human": false,
+   "is_pass": true,
+   "reason": "no_moves",
+   "move": null,
+   "stats": {},
+   "at": "2026-09-08T05:31:14.035621+00:00"
+  },
+  {
+   "index": 80,
+   "player": "RED",
+   "is_human": false,
+   "is_pass": false,
+   "move": {
+    "piece_id": 1,
+    "orientation": 0,
+    "engine_orientation": 0,
+    "anchor_row": 9,
+    "anchor_col": 14
+   },
+   "stats": {
+    "timeBudgetMs": 10000,
+    "timeSpentMs": 101,
+    "nodesEvaluated": 0,
+    "maxDepthReached": 0,
+    "engine": "pentobi",
+    "pentobiVersion": "30.3",
+    "adapterVersion": "pentobi_v1",
+    "level": 7,
+    "budgetTier": "normal",
+    "budgetReasons": [],
+    "budgetCapMs": 10000,
+    "earlyStopReason": null,
+    "fallback": null,
+    "fallbackDetail": null,
+    "gameBudget": {
+     "level": 7,
+     "capMs": 10000,
+     "gameBudgetMs": null,
+     "gameSpentMs": 24589,
+     "gameRemainingMs": null
+    },
+    "iterations_run": 0,
+    "topMoves": []
+   },
+   "at": "2026-09-08T05:31:14.175298+00:00"
+  }
+ ],
+ "fallbacks": [],
+ "result": {
+  "scores": {
+   "RED": 109,
+   "BLUE": 86,
+   "YELLOW": 79,
+   "GREEN": 62
+  },
+  "ranks": {
+   "RED": 1,
+   "BLUE": 2,
+   "YELLOW": 3,
+   "GREEN": 4
+  },
+  "winner": "RED",
+  "human_first_place": false
+ }
+}

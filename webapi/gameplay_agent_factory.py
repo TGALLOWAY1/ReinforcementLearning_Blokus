@@ -4,6 +4,7 @@ Factory helpers for deploy-mode gameplay agent adapters.
 
 from __future__ import annotations
 
+import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -16,6 +17,10 @@ from mcts.champion_profile import (
 )
 from mcts.mcts_agent import MCTSAgent
 from agents.gameplay_protocol import GameplayAgentProtocol
+from agents.greedy_agent import GreedyAgent
+from agents import pentobi_agent as _pentobi
+from agents.pentobi_agent import PENTOBI_VERSION, PentobiAgent
+from agents.time_budget import DEFAULT_CAP_MS, DEFAULT_FLOOR_LEVEL, PentobiMoveBudget
 from engine.board import Board, Player
 from engine.move_generator import Move
 from schemas.game_state import AgentType
@@ -202,6 +207,109 @@ def _decision_stats(decision: BudgetDecision) -> Dict[str, Any]:
     }
 
 
+class PentobiGameplayAdapter:
+    """Pentobi (GTP) served natively behind the web gameplay loop (M4, D-024).
+
+    The strength knob is Pentobi's level; this adapter adds what the human
+    protocol needs around it: a hard per-move cap enforced by a watchdog, a
+    deterministic fallback move (the greedy baseline) when the engine times out
+    or errors, no search when only one move exists, and an optional per-game
+    budget (see :class:`agents.time_budget.PentobiMoveBudget`). Every decision
+    is reported in the stats dict so the UI and the game log can attribute it::
+
+        engine, pentobiVersion, adapterVersion, level, timeBudgetMs, timeSpentMs,
+        budgetTier, budgetReasons, budgetCapMs, fallback, fallbackDetail, gameBudget
+
+    The same ``PentobiAgent`` (same level, same seed) is what the arena builds,
+    so the served agent reproduces the measured one move for move.
+    """
+
+    profile_name = "pentobi"
+
+    def __init__(self, level: int, seed: Optional[int] = None, *, cap_ms: int = DEFAULT_CAP_MS,
+                 game_budget_ms: Optional[int] = None, floor_level: int = DEFAULT_FLOOR_LEVEL,
+                 binary: Optional[str] = None, use_book: bool = False) -> None:
+        self.budget = PentobiMoveBudget(level=level, cap_ms=cap_ms, game_budget_ms=game_budget_ms,
+                                        floor_level=min(int(floor_level), int(level)))
+        self.agent = PentobiAgent(level=int(level), seed=seed, binary=binary, use_book=use_book)
+        self.fallback_agent = GreedyAgent(seed=0)
+        self._engine_version: Optional[str] = None
+
+    def close(self) -> None:
+        self.agent.close()
+
+    def choose_move(
+        self,
+        board: Board,
+        player: Player,
+        legal_moves: List[Move],
+        budget_ms: int,
+    ) -> Tuple[Optional[Move], Dict[str, Any]]:
+        start = time.perf_counter()
+        decision = self.budget.decide(legal_move_count=len(legal_moves),
+                                      pieces_left=21 - len(board.player_pieces_used[player]))
+        cap_ms = min(decision.cap_ms, max(int(budget_ms), 1)) if decision.search else 0
+        fallback: Optional[str] = None
+        detail: Optional[str] = None
+        move: Optional[Move]
+        if not legal_moves:
+            move = None
+        elif not decision.search:
+            move = legal_moves[0]
+        else:
+            if decision.level != self.agent.level:
+                self.agent.set_level(decision.level)
+            move, fallback, detail = self._search_with_watchdog(board, player, legal_moves, cap_ms)
+        elapsed_ms = int((time.perf_counter() - start) * 1000)
+        self.budget.record(elapsed_ms)
+        stats: Dict[str, Any] = {
+            "engine": "pentobi",
+            "pentobiVersion": self._engine_version,
+            "adapterVersion": PENTOBI_VERSION,
+            "level": decision.level,
+            "timeBudgetMs": cap_ms,
+            "timeSpentMs": elapsed_ms,
+            "budgetTier": decision.tier,
+            "budgetReasons": list(decision.reasons),
+            "budgetCapMs": cap_ms,
+            "earlyStopReason": decision.reasons[0] if not decision.search and decision.reasons else None,
+            "fallback": fallback,
+            "fallbackDetail": detail,
+            "gameBudget": self.budget.snapshot(),
+            "nodesEvaluated": 0,
+            "iterations_run": 0,
+            "maxDepthReached": 0,
+            "topMoves": [],
+        }
+        return move, stats
+
+    def _search_with_watchdog(self, board: Board, player: Player, legal_moves: List[Move],
+                              cap_ms: int) -> Tuple[Move, Optional[str], Optional[str]]:
+        result: Dict[str, Any] = {}
+
+        def run() -> None:
+            try:
+                result["move"] = self.agent.select_action(board, player, legal_moves)
+                if self._engine_version is None and self.agent._engine is not None:
+                    self._engine_version = self.agent._engine.version()
+            except Exception as exc:  # engine error: reported, never fatal to the game
+                result["error"] = exc
+
+        worker = threading.Thread(target=run, daemon=True, name="pentobi-genmove")
+        worker.start()
+        worker.join(timeout=cap_ms / 1000.0)
+        if worker.is_alive():
+            self.agent.abort()
+            return self.fallback_agent.select_action(board, player, legal_moves), "timeout", (
+                f"pentobi level {self.agent.level} exceeded the {cap_ms} ms cap; played the greedy move")
+        if "error" in result or result.get("move") is None:
+            self.agent.abort()
+            err = result.get("error")
+            return self.fallback_agent.select_action(board, player, legal_moves), "engine_error", (
+                f"{type(err).__name__}: {err}" if err is not None else "engine returned no move")
+        return result["move"], None, None
+
+
 def build_deploy_gameplay_agent(
     agent_type: AgentType,
     agent_config: Optional[Dict[str, Any]] = None,
@@ -234,6 +342,21 @@ def build_deploy_gameplay_agent(
             seed=cfg.get("seed"),
         )
         return _MCTSGameplayAdapter(agent)
+    if agent_type == AgentType.PENTOBI:
+        if _pentobi.find_binary(cfg.get("binary")) is None:
+            raise ValueError(
+                "pentobi-gtp is not installed on this backend (build it per "
+                "docs/agent-strength-rebuild/PENTOBI.md or set $PENTOBI_GTP)."
+            )
+        return PentobiGameplayAdapter(
+            level=int(cfg.get("level", 3)),
+            seed=cfg.get("seed"),
+            cap_ms=int(cfg.get("time_budget_ms", DEFAULT_CAP_MS)),
+            game_budget_ms=cfg.get("game_budget_ms"),
+            floor_level=int(cfg.get("floor_level", DEFAULT_FLOOR_LEVEL)),
+            binary=cfg.get("binary"),
+            use_book=bool(cfg.get("use_book", False)),
+        )
     raise ValueError(f"Unsupported deploy agent type: {agent_type}")
 
 

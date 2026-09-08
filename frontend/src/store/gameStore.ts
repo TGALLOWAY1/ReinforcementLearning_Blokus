@@ -4,6 +4,10 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ENABLE_DEBUG_UI } from '../constants/gameConstants';
 import { SearchTraceV1 } from '../types/mcts';
 import BlokusWorker from './blokusWorker?worker';
+import { createBackendGame, deleteBackendGame, isBackendConfig, postAdvanceTurn, postMove, postPass } from './backendTransport';
+
+/** Where a game runs: the in-browser Pyodide worker, or the FastAPI backend (natively served agents). */
+export type GameTransport = 'worker' | 'backend';
 
 // Types
 export interface Position {
@@ -44,6 +48,19 @@ export interface GameState {
   winner: string | null;
   scoring_mode?: string;
   legal_moves: LegalMove[];
+  /** Orientation index space of legal_moves/last_move ('engine' or 'frontend'); backend games use 'frontend'. */
+  orientation_space?: 'engine' | 'frontend';
+  /** Last placed move as reported by the backend transport (absent in worker games). */
+  last_move?: {
+    player: string;
+    piece_id: number;
+    orientation: number;
+    engine_orientation?: number;
+    anchor_row: number;
+    anchor_col: number;
+    is_human?: boolean;
+    stats?: Record<string, any>;
+  } | null;
   created_at: string;
   updated_at: string;
   players?: Array<{
@@ -203,8 +220,12 @@ interface GameStore {
   analysisModeEnabled: boolean;
   /** Set when the current game is a "Play the Champion" game; powers the banner. */
   championMeta: ChampionMetadata | null;
+  /** Transport of the current game (see GameTransport). */
+  transport: GameTransport;
 
   connect: (gameId: string) => Promise<void>;
+  /** Advance exactly one agent turn (used by the Step button while paused). */
+  advanceTurn: () => void;
   disconnect: () => void;
   togglePause: () => void;
   setAnalysisModeEnabled: (enabled: boolean) => void;
@@ -231,6 +252,15 @@ let workerInstance: Worker | null = null;
 let initResolver: ((val: string) => void) | null = null;
 let moveResolver: ((val: MoveResponse) => void) | null = null;
 let isWorkerReady = false;
+/**
+ * Bumped whenever a game starts or is loaded/disconnected. Async replies (a
+ * worker message, a backend response) carry the generation they were issued
+ * under and are dropped if the game has changed meanwhile, so a late reply from
+ * a previous game can never clobber the current one.
+ */
+let gameGeneration = 0;
+const nextGeneration = () => { gameGeneration += 1; return gameGeneration; };
+const isCurrent = (generation: number) => generation === gameGeneration;
 
 function setupWorker() {
   if (workerInstance) return workerInstance;
@@ -245,6 +275,7 @@ function setupWorker() {
       isWorkerReady = true;
       useGameStore.getState().addLog("WebWorker & Pyodide Ready", "INFO");
     } else if (data.type === 'state_update') {
+      if (useGameStore.getState().transport !== 'worker') return; // stale: a backend game took over
       useGameStore.getState().setGameState(data.state);
       if (initResolver) {
         initResolver(data.state.game_id);
@@ -253,6 +284,7 @@ function setupWorker() {
       triggerAgentTurnIfNeeded();
     } else if (data.type === 'move_response') {
       const resp = data.response;
+      if (useGameStore.getState().transport !== 'worker') return; // stale reply from a replaced worker game
       useGameStore.getState().setGameState(resp.game_state);
       useGameStore.setState({ isAdvancingTurn: false, pendingPlacement: null });
       if (moveResolver) {
@@ -270,6 +302,49 @@ function setupWorker() {
   return workerInstance;
 }
 
+function describeLastMove(gameState: GameState, previous: GameState | null): string | null {
+  const last = gameState.last_move as
+    | { player?: string; is_human?: boolean; stats?: { level?: number; timeSpentMs?: number; fallback?: string | null; engine?: string } }
+    | null
+    | undefined;
+  if (!last || last.is_human) return null;
+  // A pass leaves last_move untouched: only describe a move when a piece was placed.
+  if (previous && previous.move_count === gameState.move_count) return null;
+  const stats = last.stats || {};
+  const who = stats.engine === 'pentobi' && stats.level != null ? `${last.player} (Pentobi L${stats.level})` : `${last.player}`;
+  const secs = stats.timeSpentMs != null ? `${(stats.timeSpentMs / 1000).toFixed(1)} s` : '';
+  const fallback = stats.fallback ? ` — FALLBACK: ${stats.fallback}` : '';
+  return `${who} moved${secs ? ` in ${secs}` : ''}${fallback}`;
+}
+
+async function runBackendAgentTurn(): Promise<void> {
+  const store = useGameStore.getState();
+  const gameId = store.gameState?.game_id;
+  if (!gameId) return;
+  const generation = gameGeneration;
+  const before = store.gameState;
+  useGameStore.setState({ isAdvancingTurn: true });
+  try {
+    const resp = await postAdvanceTurn<GameState>(gameId);
+    if (!isCurrent(generation)) return; // the game changed while the backend was thinking
+    if (resp.game_state) {
+      useGameStore.getState().setGameState(resp.game_state);
+      const line = describeLastMove(resp.game_state, before);
+      if (line) useGameStore.getState().addLog(line, line.includes('FALLBACK') ? 'WARN' : 'INFO');
+    }
+    if (!resp.success) useGameStore.getState().addLog(`Backend: ${resp.message}`, 'WARN');
+  } catch (err) {
+    if (!isCurrent(generation)) return;
+    const message = err instanceof Error ? err.message : String(err);
+    useGameStore.getState().setError(message);
+    useGameStore.getState().addLog(`Backend error: ${message}. The AI turn was not completed: use Pause, then Step, to retry.`, 'ERROR');
+    useGameStore.setState({ isAdvancingTurn: false });
+    return;
+  }
+  useGameStore.setState({ isAdvancingTurn: false });
+  triggerAgentTurnIfNeeded();
+}
+
 function triggerAgentTurnIfNeeded() {
   const state = useGameStore.getState();
   const gameState = state.gameState;
@@ -279,6 +354,10 @@ function triggerAgentTurnIfNeeded() {
   const pConf = gameState.players?.find(p => p.player === currentPlayer);
 
   if (pConf && pConf.agent_type !== 'human' && !state.isAdvancingTurn) {
+    if (state.transport === 'backend') {
+      void runBackendAgentTurn();
+      return;
+    }
     useGameStore.setState({ isAdvancingTurn: true });
     const enableDiagnostics = state.analysisModeEnabled || false;
     workerInstance?.postMessage({ type: 'advance_turn', enableDiagnostics });
@@ -303,6 +382,19 @@ export const useGameStore = create<GameStore>()(
     boardOverlay: null,
     analysisModeEnabled: false,
     championMeta: null,
+    transport: 'worker',
+
+    advanceTurn: () => {
+      const state = get();
+      if (state.isAdvancingTurn) return;
+      if (state.transport === 'backend') {
+        void runBackendAgentTurn();
+        return;
+      }
+      if (!workerInstance) return;
+      set({ isAdvancingTurn: true });
+      workerInstance.postMessage({ type: 'advance_turn' });
+    },
 
     setAnalysisModeEnabled: (enabled: boolean) => {
       set({ analysisModeEnabled: enabled });
@@ -312,7 +404,8 @@ export const useGameStore = create<GameStore>()(
       // With Pyodide, state is local. If we reload the page, state is gone.
       // So connect only works if we already just created the game locally in this session.
       set({ connectionStatus: 'connected', error: null, isAdvancingTurn: false, isPaused: false });
-      get().addLog(`Connected to local Pyodide game ${gameId}`, 'INFO');
+      const where = get().transport === 'backend' ? 'backend-served' : 'local Pyodide';
+      get().addLog(`Connected to ${where} game ${gameId}`, 'INFO');
       triggerAgentTurnIfNeeded();
     },
 
@@ -325,6 +418,7 @@ export const useGameStore = create<GameStore>()(
     },
 
     disconnect: () => {
+      nextGeneration();
       set({
         connectionStatus: 'disconnected',
         pollIntervalId: null,
@@ -333,6 +427,7 @@ export const useGameStore = create<GameStore>()(
         isAdvancingTurn: false,
         isPaused: false,
         pendingPlacement: null,
+        transport: 'worker',
       });
     },
 
@@ -357,6 +452,23 @@ export const useGameStore = create<GameStore>()(
     },
 
     passTurn: async (): Promise<MoveResponse> => {
+      if (get().transport === 'backend') {
+        const gameState = get().gameState;
+        if (!gameState) return { success: false, message: 'No game', game_over: false };
+        const generation = gameGeneration;
+        try {
+          const resp = await postPass<GameState>(gameState.game_id, gameState.current_player);
+          if (!isCurrent(generation)) return { success: false, message: 'Game changed', game_over: false };
+          if (resp.game_state) get().setGameState(resp.game_state);
+          set({ isAdvancingTurn: false, pendingPlacement: null });
+          triggerAgentTurnIfNeeded();
+          return { success: resp.success, message: resp.message, game_over: Boolean(resp.game_state?.game_over), game_state: resp.game_state };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (isCurrent(generation)) set({ pendingPlacement: null });
+          return { success: false, message, game_over: false };
+        }
+      }
       return new Promise((resolve) => {
         moveResolver = resolve;
         if (!workerInstance) setupWorker();
@@ -365,6 +477,23 @@ export const useGameStore = create<GameStore>()(
     },
 
     makeMove: async (move: MoveRequest): Promise<MoveResponse> => {
+      if (get().transport === 'backend') {
+        const gameState = get().gameState;
+        if (!gameState) return { success: false, message: 'No game', game_over: false };
+        const generation = gameGeneration;
+        try {
+          const resp = await postMove<GameState>(gameState.game_id, move);
+          if (!isCurrent(generation)) return { success: false, message: 'Game changed', game_over: false };
+          if (resp.game_state) get().setGameState(resp.game_state);
+          set({ isAdvancingTurn: false, pendingPlacement: null });
+          triggerAgentTurnIfNeeded();
+          return { success: resp.success, message: resp.message, game_over: Boolean(resp.game_state?.game_over), game_state: resp.game_state };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (isCurrent(generation)) set({ pendingPlacement: null });
+          return { success: false, message, game_over: false };
+        }
+      }
       return new Promise((resolve) => {
         moveResolver = resolve;
         if (!workerInstance) setupWorker();
@@ -381,6 +510,22 @@ export const useGameStore = create<GameStore>()(
     },
 
     createGame: async (config: any): Promise<string> => {
+      const previous = get().gameState;
+      const previousTransport = get().transport;
+      nextGeneration();
+      set({ isAdvancingTurn: false, pendingPlacement: null });
+      if (previousTransport === 'backend' && previous && !previous.game_over) {
+        // Release the abandoned game's engine processes; best effort.
+        void deleteBackendGame(previous.game_id).catch(() => undefined);
+      }
+      if (isBackendConfig(config)) {
+        const created = await createBackendGame<GameState>(config);
+        set({ transport: 'backend', error: null });
+        get().setGameState(created.game_state);
+        get().addLog(`Backend game ${created.game_id} created`, 'INFO');
+        return created.game_id;
+      }
+      set({ transport: 'worker' });
       setupWorker(); // Ensure worker is running
 
       const waitForWorker = async () => {
@@ -460,6 +605,8 @@ export const useGameStore = create<GameStore>()(
     },
 
     loadGame: async (history: GameHistoryEntry[]) => {
+      nextGeneration();
+      set({ transport: 'worker', isAdvancingTurn: false, pendingPlacement: null });
       setupWorker();
       const waitForWorker = async () => {
         while (!isWorkerReady) {

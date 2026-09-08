@@ -6,6 +6,7 @@ MongoDB Module: webapi.db.mongo (provides centralized MongoDB connection)
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import time
@@ -61,9 +62,16 @@ from agents.champion import (
     champion_browser_config,
     load_champion_metadata,
 )
+from agents import pentobi_agent as _pentobi
+from engine.orientation_map import engine_to_frontend, frontend_to_engine
+from webapi.game_log import GameLogWriter, resolve_log_dir
 from webapi.deploy_validation import (
     DEPLOY_TIME_BUDGET_CAP_MS,
+    PENTOBI_MAX_LEVEL,
+    PENTOBI_MIN_LEVEL,
+    PENTOBI_TIME_CAP_MS,
     normalize_deploy_game_config,
+    normalize_pentobi_agent_config,
 )
 from webapi.gameplay_agent_factory import (
     build_deploy_gameplay_agent,
@@ -110,6 +118,11 @@ def _resolve_scoring_mode(config: GameConfig, app_profile: str) -> ScoringMode:
     return ScoringMode.HOUSE
 
 
+# Games with no activity for this long are dropped and their agents (engine
+# processes) released when the next game is created.
+IDLE_GAME_SECONDS = 2 * 3600
+
+
 class GameManager:
     """Manages active games and their state."""
 
@@ -118,6 +131,99 @@ class GameManager:
         self.games: Dict[str, Dict[str, Any]] = {}
         self.agent_instances: Dict[str, Any] = {}
         self._strategy_loggers: Dict[str, Any] = {}  # game_id -> StrategyLogger
+        self._game_log_writers: Dict[str, GameLogWriter] = {}  # log dir -> writer
+
+    @property
+    def game_log(self) -> Optional[GameLogWriter]:
+        """Per-game JSON log for the human protocol (webapi/game_log.py), or None.
+
+        Resolved from ``GAME_LOG_DIR`` / the app profile on each access so the
+        profile switch in ``create_app`` and test environments are honoured.
+        """
+        log_dir = resolve_log_dir(self.app_profile)
+        if log_dir is None:
+            return None
+        key = str(log_dir)
+        if key not in self._game_log_writers:
+            self._game_log_writers[key] = GameLogWriter(log_dir)
+        return self._game_log_writers[key]
+
+    def close_game_agents(self, game_id: str) -> None:
+        """Release agent resources (e.g. Pentobi engine processes) for a game."""
+        agents = self.agent_instances.get(game_id, {})
+        for agent in agents.values():
+            close = getattr(agent, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception as exc:  # pragma: no cover - best effort
+                    logger.warning(f"Agent close failed for {game_id}: {exc}")
+
+    def delete_game(self, game_id: str) -> None:
+        """Forget a game and release its agents (abandoned games hold engine processes)."""
+        if game_id not in self.games:
+            raise HTTPException(status_code=404, detail="Game not found")
+        self.close_game_agents(game_id)
+        self.games.pop(game_id, None)
+        self.agent_instances.pop(game_id, None)
+        self._strategy_loggers.pop(game_id, None)
+
+    def evict_idle_games(self, max_idle_seconds: float = IDLE_GAME_SECONDS) -> List[str]:
+        """Drop games with no activity for ``max_idle_seconds`` and close their agents."""
+        now = datetime.now()
+        evicted = []
+        for game_id, game_data in list(self.games.items()):
+            updated = game_data.get('updated_at') or game_data.get('created_at') or now
+            if (now - updated).total_seconds() > max_idle_seconds:
+                self.delete_game(game_id)
+                evicted.append(game_id)
+        if evicted:
+            logger.info(f"Evicted {len(evicted)} idle game(s): {evicted}")
+        return evicted
+
+    def close_all_games(self) -> None:
+        """Release every game's agents (used when the app is rebuilt)."""
+        for game_id in list(self.agent_instances):
+            self.close_game_agents(game_id)
+
+    def _translate_orientation_out(self, game_data: Dict[str, Any], piece_id: int, engine_orientation: int) -> int:
+        if game_data.get('orientation_space') == 'frontend':
+            return engine_to_frontend(piece_id, engine_orientation)
+        return int(engine_orientation)
+
+    def _translate_orientation_in(self, game_data: Dict[str, Any], piece_id: int, orientation: int) -> int:
+        if game_data.get('orientation_space') == 'frontend':
+            return frontend_to_engine(piece_id, orientation)
+        return int(orientation)
+
+    def _log_move(self, game_id: str, player_name: str, last_move: Dict[str, Any], stats: Dict[str, Any],
+                  *, is_human: bool) -> None:
+        """Append a placed move to the per-game JSON log; never fatal to the game."""
+        game_log = self.game_log
+        if game_log is None:
+            return
+        try:
+            game_log.record_move(game_id, player=player_name, is_human=is_human,
+                                 move={k: last_move[k] for k in ("piece_id", "orientation", "engine_orientation",
+                                                                 "anchor_row", "anchor_col")},
+                                 stats=stats)
+        except Exception as exc:
+            logger.warning(f"Game log record_move failed for {game_id}: {exc}")
+
+    def _set_last_move(self, game_data: Dict[str, Any], player_name: str, move: EngineMove,
+                       stats: Dict[str, Any], is_human: bool) -> Dict[str, Any]:
+        last_move = {
+            "player": player_name,
+            "piece_id": move.piece_id,
+            "orientation": self._translate_orientation_out(game_data, move.piece_id, move.orientation),
+            "engine_orientation": move.orientation,
+            "anchor_row": move.anchor_row,
+            "anchor_col": move.anchor_col,
+            "is_human": is_human,
+            "stats": stats,
+        }
+        game_data['last_move'] = last_move
+        return last_move
 
     def create_game(self, config: GameConfig) -> str:
         """Create a new game."""
@@ -125,6 +231,7 @@ class GameManager:
 
         if game_id in self.games:
             raise HTTPException(status_code=400, detail="Game ID already exists")
+        self.evict_idle_games()
 
         # Resolve scoring mode (explicit config wins; otherwise profile default).
         scoring_mode = _resolve_scoring_mode(config, self.app_profile)
@@ -146,10 +253,28 @@ class GameManager:
             'last_turn_player': game.get_current_player(),
             'winner': None,
             'configured_players': {self._convert_player(player_cfg.player) for player_cfg in config.players},
+            'orientation_space': config.orientation_space,
+            'last_move': None,
         }
 
         # Initialize agent instances
-        self._initialize_agents(game_id, config)
+        try:
+            self._initialize_agents(game_id, config)
+        except Exception:
+            self.games.pop(game_id, None)
+            raise
+
+        game_log = self.game_log
+        if game_log is not None:
+            try:
+                game_log.start(
+                    game_id,
+                    players=[p.dict() for p in config.players],
+                    scoring_mode=scoring_mode.value,
+                    meta={"app_profile": self.app_profile, "orientation_space": config.orientation_space},
+                )
+            except Exception as exc:
+                logger.warning(f"Game log start failed for {game_id}: {exc}")
 
         # Start game if auto_start is True
         if config.auto_start:
@@ -232,6 +357,15 @@ class GameManager:
                     enable_search_trace=bool(cfg.get('enable_search_trace', False)),
                     search_trace_sample_rate=int(cfg.get('search_trace_sample_rate', 10)),
                 )
+            elif agent_type == AgentType.PENTOBI:
+                # Natively served Pentobi engine (M4, D-024); same factory and the
+                # same request validation as deploy (level, seed, 10 s cap; never a
+                # client-supplied binary).
+                player_config.agent_config = normalize_pentobi_agent_config(agent_config)
+                try:
+                    agents[player] = build_deploy_gameplay_agent(agent_type, player_config.agent_config)
+                except ValueError as exc:
+                    raise HTTPException(status_code=400, detail=str(exc))
             elif agent_type == AgentType.HUMAN:
                 agents[player] = None  # Human players don't need agents
             else:
@@ -457,14 +591,8 @@ class GameManager:
                 game_data['last_search_trace'] = stats.get('searchTrace')
                 game_data['last_mcts_stats'] = stats
                 # Prepare move information for broadcast
-                last_move = {
-                    "piece_id": move.piece_id,
-                    "orientation": move.orientation,
-                    "anchor_row": move.anchor_row,
-                    "anchor_col": move.anchor_col,
-                    "player": player_name,
-                    "stats": stats,
-                }
+                last_move = self._set_last_move(game_data, player_name, move, stats, is_human=False)
+                self._log_move(game_id, player_name, last_move, stats, is_human=False)
                 seq = game_data.get("_event_sequence", 0)
                 game_data["_event_sequence"] = seq + 1
                 game_data['move_records'].append({
@@ -517,6 +645,12 @@ class GameManager:
             "move": None,
             "stats": {},
         })
+        game_log = self.game_log
+        if game_log is not None:
+            try:
+                game_log.record_pass(game_id, player=player_name, is_human=(agent_type == "human"), reason=reason)
+            except Exception as exc:
+                logger.warning(f"Game log record_pass failed for {game_id}: {exc}")
 
     def _init_strategy_logger(self, game_id: str) -> None:
         """Create StrategyLogger for game if enabled. Call on_reset."""
@@ -591,9 +725,25 @@ class GameManager:
         game_data['updated_at'] = datetime.now()
         winner = game.board.get_winner()
         game_data['winner'] = self._convert_player_back(winner).value if winner else None
+        game_log = self.game_log
+        if game_log is not None:
+            try:
+                game_log.finish(
+                    game_id,
+                    scores={player.name: int(game.get_score(player)) for player in EnginePlayer},
+                    winner=game_data['winner'],
+                    status=GameStatus.FINISHED.value,
+                )
+            except Exception as exc:
+                logger.warning(f"Game log finish failed for {game_id}: {exc}")
+        self.close_game_agents(game_id)
 
+        if not _mongo_ready:
+            return
         try:
             db = get_database()
+            if inspect.isawaitable(db):  # webapi.db.mongo.get_database is async
+                db = await db
             game_doc = {
                 "game_id": game_id,
                 "created_at": game_data['created_at'],
@@ -629,8 +779,21 @@ class GameManager:
 
         # Convert move - MoveRequest has move data nested under 'move' field
         move_data = move_request.move
-        engine_move = EngineMove(move_data.piece_id, move_data.orientation, move_data.anchor_row, move_data.anchor_col)
-        player = self._convert_player(move_request.player)
+        engine_orientation = self._translate_orientation_in(game_data, move_data.piece_id, move_data.orientation)
+        engine_move = EngineMove(move_data.piece_id, engine_orientation, move_data.anchor_row, move_data.anchor_col)
+        player = self._convert_player(move_request.player) if move_request.player else game.get_current_player()
+        if self.agent_instances.get(game_id, {}).get(player) is not None:
+            return MoveResponse(
+                success=False,
+                message=f"{player.name} is played by an agent; only human seats accept client moves",
+                game_state=self._get_game_state(game_id)
+            )
+        if game.get_current_player() != player:
+            return MoveResponse(
+                success=False,
+                message=f"Not your turn ({game.get_current_player().name} to move)",
+                game_state=self._get_game_state(game_id)
+            )
 
         state_before = game.get_board_copy()
         turn_index = game.get_move_count()
@@ -640,6 +803,31 @@ class GameManager:
         if success:
             self._log_step(game_id, turn_index, player.value, state_before, engine_move, game.board)
             game_data['updated_at'] = datetime.now()
+            player_name = self._convert_player_back(player).value
+            agent = self.agent_instances.get(game_id, {}).get(player)
+            is_human = agent is None
+            stats = {"timeSpentMs": int((time.perf_counter() - game_data.get('last_turn_started_at', time.perf_counter())) * 1000)}
+            last_move = self._set_last_move(game_data, player_name, engine_move, stats, is_human=is_human)
+            seq = game_data.get("_event_sequence", 0)
+            game_data["_event_sequence"] = seq + 1
+            game_data['move_records'].append({
+                "sequenceIndex": seq,
+                "moveIndex": game.get_move_count(),
+                "roundIndex": seq // 4,
+                "positionInRound": seq % 4,
+                "seatIndex": player.value - 1,
+                "player": player_name,
+                "agentType": "human" if is_human else type(agent).__name__,
+                "isHuman": is_human,
+                "move": last_move,
+                "stats": stats,
+                "telemetry": game.game_history[-1].get("telemetry") if game.game_history else None,
+            })
+            self._log_move(game_id, player_name, last_move, stats, is_human=is_human)
+            game_data['last_turn_started_at'] = time.perf_counter()
+            game_data['last_turn_player'] = game.get_current_player()
+            if game.is_game_over() or self._all_configured_players_blocked(game_data):
+                await self._end_game(game_id)
             return MoveResponse(
                 success=True,
                 message="Move made successfully",
@@ -925,7 +1113,12 @@ class GameManager:
         heatmap = [[0.0 for _ in range(20)] for _ in range(20)]  # Initialize empty heatmap
         if not game.is_game_over():
             engine_moves = game.get_legal_moves()
-            legal_moves = [self._convert_move_back(move) for move in engine_moves]
+            legal_moves = [
+                Move(piece_id=move.piece_id,
+                     orientation=self._translate_orientation_out(game_data, move.piece_id, move.orientation),
+                     anchor_row=move.anchor_row, anchor_col=move.anchor_col)
+                for move in engine_moves
+            ]
 
             # Calculate heatmap: map legal_moves to 20x20 grid (1 = legal, 0 = illegal)
             # OPTIMIZED: Use cached move_generator and cached positions
@@ -968,6 +1161,12 @@ class GameManager:
             "frontierSize": frontier_size,
         }
         mcts_top_moves = game_data.get('last_mcts_top_moves')
+        if mcts_top_moves and game_data.get('orientation_space') == 'frontend':
+            mcts_top_moves = [
+                {**entry, "orientation": engine_to_frontend(int(entry.get("piece_id", 0)), int(entry.get("orientation", 0)))}
+                if isinstance(entry, dict) else entry
+                for entry in mcts_top_moves
+            ]
         mcts_stats = game_data.get('last_mcts_stats')
         search_trace = game_data.get('last_search_trace')
 
@@ -983,6 +1182,8 @@ class GameManager:
             winner=self._convert_player_back(game.winner) if game.winner else None,
             scoring_mode=game_data.get('scoring_mode', ScoringMode.STANDARD),
             legal_moves=legal_moves,
+            orientation_space=game_data.get('orientation_space', 'engine'),
+            last_move=game_data.get('last_move'),
             created_at=game_data['created_at'],
             updated_at=game_data['updated_at'],
             players=[p.dict() for p in game_data['config'].players],
@@ -1016,7 +1217,28 @@ class GameManager:
                 name="Human Player",
                 description="Human player controlled via WebSocket"
             )
-        ]
+        ] + self._pentobi_agent_info()
+
+    def _pentobi_agent_info(self) -> List[AgentInfo]:
+        """Pentobi is listed only when its GTP binary is installed on this backend."""
+        binary = _pentobi.find_binary()
+        if binary is None:
+            return []
+        return [AgentInfo(
+            type=AgentType.PENTOBI,
+            name="Pentobi (served)",
+            description=(
+                "Pentobi 30.3 GTP engine (GPL-3) served natively by the backend; level sets the "
+                f"search size, per-move cap {PENTOBI_TIME_CAP_MS} ms with a deterministic fallback."
+            ),
+            config_schema={
+                "level": {"min": PENTOBI_MIN_LEVEL, "max": PENTOBI_MAX_LEVEL, "default": 3},
+                "time_budget_ms": {"max": PENTOBI_TIME_CAP_MS, "default": PENTOBI_TIME_CAP_MS},
+                "seed": {"type": "int", "optional": True},
+                "game_budget_ms": {"type": "int", "optional": True},
+                "available": True,
+            },
+        )]
 
     def _convert_player(self, player: Player) -> EnginePlayer:
         """Convert schema Player to engine Player."""
@@ -1043,6 +1265,9 @@ class GameManager:
 # Global game manager instance (rebuilt per app profile in create_app)
 APP_PROFILE = get_app_profile()
 _current_app_profile = APP_PROFILE
+# Set once the lifespan ping succeeds; game-end persistence is skipped otherwise
+# so a missing MongoDB never stalls a game end on connect timeouts.
+_mongo_ready = False
 game_manager = GameManager(app_profile=APP_PROFILE)
 
 
@@ -1061,7 +1286,11 @@ async def lifespan(app: FastAPI):
             logger.info("MongoDB connection established")
             try:
                 database = get_database()
+                if inspect.isawaitable(database):
+                    database = await database
                 await database.command("ping")
+                global _mongo_ready
+                _mongo_ready = True
                 logger.info("✅ MongoDB connection validated successfully")
             except Exception as e:
                 logger.error(f"❌ MongoDB connection validation failed: {e}")
@@ -1261,6 +1490,12 @@ async def pass_turn(game_id: str, pass_request: PassRequest):
     return await game_manager._process_human_pass(game_id, player)
 
 
+async def delete_game(game_id: str):
+    """Forget a game and release its agents (e.g. an abandoned Pentobi game)."""
+    game_manager.delete_game(game_id)
+    return {"success": True, "message": "Game deleted"}
+
+
 async def finish_game(game_id: str):
     """Force-finish a game (for smoke tests/admin tooling)."""
     await game_manager.force_finish_game(game_id)
@@ -1273,7 +1508,7 @@ async def get_agents():
     if _current_app_profile == APP_PROFILE_DEPLOY:
         return [
             agent for agent in agents
-            if agent.type in (AgentType.MCTS, AgentType.HUMAN)
+            if agent.type in (AgentType.MCTS, AgentType.HUMAN, AgentType.PENTOBI)
         ]
     return agents
 
@@ -1329,7 +1564,10 @@ async def _replay_to_index(game_id: str, move_index: int) -> tuple:
         else:
             mv = rec.get("move")
             if mv:
-                engine_move = EngineMove(mv["piece_id"], mv["orientation"], mv["anchor_row"], mv["anchor_col"])
+                # move_records carry the API-facing orientation index plus the
+                # engine id (games created with orientation_space="frontend").
+                engine_move = EngineMove(mv["piece_id"], mv.get("engine_orientation", mv["orientation"]),
+                                         mv["anchor_row"], mv["anchor_col"])
                 pl = player_map.get(rec.get("player", ""), EnginePlayerEnum.RED)
                 replay_game.make_move(engine_move, pl)
 
@@ -1839,6 +2077,7 @@ def create_app(
     _current_app_profile = _normalize_profile(profile)
     # Preserve object identity so existing imports (tests/tools) remain valid.
     game_manager.app_profile = _current_app_profile
+    game_manager.close_all_games()
     game_manager.games.clear()
     game_manager.agent_instances.clear()
 
@@ -1865,6 +2104,7 @@ def create_app(
         get_game=get_game,
         make_move=make_move,
         finish_game=finish_game,
+        delete_game=delete_game,
         get_agents=get_agents,
         list_games=list_games,
         advance_turn=advance_turn,

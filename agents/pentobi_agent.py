@@ -201,6 +201,9 @@ class PentobiGtp:
     def showboard(self) -> str:
         return self.send("showboard")
 
+    def version(self) -> str:
+        return self.send("version").strip()
+
     def quit(self) -> None:
         try:
             if self.proc.poll() is None:
@@ -215,6 +218,15 @@ class PentobiGtp:
                 self.proc.wait(timeout=5)
             except Exception:
                 pass
+
+    def kill(self) -> None:
+        """Terminate the engine process immediately (used by the serving watchdog)."""
+        try:
+            if self.proc.poll() is None:
+                self.proc.kill()
+                self.proc.wait(timeout=5)
+        except Exception:
+            pass
 
     def __enter__(self) -> "PentobiGtp":
         return self
@@ -237,7 +249,7 @@ class PentobiAgent:
         self._mirror: Dict[Player, Set[Cells]] = {p: set() for p in Player}
         self._generator = get_shared_generator()
         self.stats: Dict[str, Any] = {"moves": 0, "mismatches": 0, "passes": 0, "resets": 0,
-                                      "total_time_ms": 0.0, "level": self.level}
+                                      "aborts": 0, "total_time_ms": 0.0, "level": self.level}
 
     # lifecycle
     def _ensure_engine(self) -> PentobiGtp:
@@ -252,6 +264,22 @@ class PentobiAgent:
         if self._engine is not None:
             self._engine.quit()
             self._engine = None
+
+    def abort(self) -> None:
+        """Kill a running search. The next select_action starts a fresh engine
+        and replays the board (see _sync), so the agent stays usable."""
+        self.stats["aborts"] += 1
+        if self._engine is not None:
+            self._engine.kill()
+            self._engine = None
+
+    def set_level(self, level: int) -> None:
+        """Change the level; takes effect when the engine is next started."""
+        level = int(level)
+        if level != self.level:
+            self.level = level
+            self.stats["level"] = level
+            self.close()
 
     def __del__(self):  # pragma: no cover - best effort
         try:

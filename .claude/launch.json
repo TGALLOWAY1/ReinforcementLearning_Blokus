@@ -4,13 +4,41 @@
     {
       "name": "frontend-vite",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "frontend"
+      ],
       "port": 3000
     },
     {
       "name": "api-runtime-fastapi",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "uvicorn", "api-runtime.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "api-runtime.app:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "webapi-fastapi",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "webapi.app:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000"
+      ],
       "port": 8000
     }
   ]

@@ -23,6 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "httpx",
     "pytest-asyncio",
     "ruff",
     "mypy",
