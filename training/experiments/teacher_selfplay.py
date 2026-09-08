@@ -396,6 +396,22 @@ def validate(dataset_dir: Path) -> int:
     for where, record in iter_dataset_records(dataset_dir):
             records_seen += 1
             game_ids.add(record["game_id"])
+            # Records carry the engine schema versions they were generated under.
+            # A mismatch (e.g. the pre-2026-09 piece catalogue, board_state_v1 /
+            # move_v1) means piece ids and legal-move sets are not comparable:
+            # report it as a validation error instead of letting from_dict raise.
+            stamped_state = record.get("state_schema_version",
+                                       record["state"].get("schema_version"))
+            stamped_action = record.get("action_schema_version")
+            if stamped_state != STATE_SCHEMA_VERSION or stamped_action != ACTION_SCHEMA_VERSION:
+                errors.append(
+                    f"{where}: schema mismatch — record {stamped_state!r}/{stamped_action!r} "
+                    f"vs engine {STATE_SCHEMA_VERSION!r}/{ACTION_SCHEMA_VERSION!r} "
+                    f"(dataset predates the current piece catalogue)"
+                )
+                if len(errors) > 20:
+                    break
+                continue
             board = Board.from_dict(record["state"])
             regenerated = {move_key(m.to_dict())
                            for m in generator.get_legal_moves(

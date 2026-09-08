@@ -92,7 +92,7 @@ USE_HEURISTIC_ANCHORS = _env_flag("BLOKUS_USE_HEURISTIC_ANCHORS", False)
 # stamped into self-play records (agent-strength rescue Phase 2). Note the
 # browser worker remaps orientation to a frontend index — that mapping is NOT
 # part of this schema.
-ACTION_SCHEMA_VERSION = "move_v1"
+ACTION_SCHEMA_VERSION = "move_v2"  # v2 (2026-09): standard piece set — piece_id 10 is the Z-pentomino
 
 
 class Move:

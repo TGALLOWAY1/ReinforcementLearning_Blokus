@@ -6,6 +6,7 @@ import {
 import { calculateDashboardMetrics, calculateWinProbability, DashboardMetrics } from '../utils/dashboardMetrics';
 
 import { PLAYER_COLORS as GAME_COLORS } from '../constants/gameConstants';
+import { getPieceSize } from '../utils/mobilityMetrics';
 
 const PLAYER_COLORS: Record<number, string> = {
     1: GAME_COLORS.red,    // '#FF4D4D'
@@ -358,14 +359,6 @@ export const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boa
     );
 };
 
-const getPieceSize = (id: number) => {
-    if (!id) return 0;
-    if (id === 1) return 1;
-    if (id === 2) return 2;
-    if (id <= 4) return 3;
-    if (id <= 9) return 4;
-    return 5;
-};
 
 const MoveImpactAnalysis: React.FC<{
     gameHistory: any[],

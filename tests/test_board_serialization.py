@@ -154,4 +154,15 @@ class TestMoveRoundTrip:
                 restored.anchor_row, restored.anchor_col) == (17, 3, 4, 9)
 
     def test_action_schema_version_exists(self):
-        assert ACTION_SCHEMA_VERSION == "move_v1"
+        assert ACTION_SCHEMA_VERSION == "move_v2"
+
+
+def test_from_dict_rejects_pre_standard_piece_set_payloads():
+    """Payloads stamped with the pre-2026-09 schema (piece id 10 = S/Z tetromino)
+    must not deserialize under the standard catalogue."""
+    board = Board()
+    payload = board.to_dict()
+    assert payload["schema_version"] != "board_state_v1"
+    payload["schema_version"] = "board_state_v1"
+    with pytest.raises(ValueError):
+        Board.from_dict(payload)

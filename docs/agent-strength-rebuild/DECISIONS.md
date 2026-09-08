@@ -252,6 +252,106 @@ Format per governing master prompt §21. Statuses: Proposed / Accepted / Superse
 
 ---
 
+## D-018 — Standard 21-piece Blokus set; all prior artifacts invalidated
+
+- **Date:** 2026-09-06
+- **Status:** Accepted
+- **Context:** `DIAGNOSTIC_ASSESSMENT_2026-09-06.md` B1: the engine catalogue had two copies of
+  the S/Z tetromino (ids 9, 10) and no Z-pentomino; 88 squares, not 89. The frontend shipped the
+  same set. Internal sanity numbers (91 orientations, 58 openings/corner) matched by coincidence.
+- **Decision:** piece id 10 = Pentomino Z `[[1,1,0],[0,1,0],[0,1,1]]`; ids 1-9 and 11-21 unchanged.
+  The catalogue is pinned by `tests/test_piece_set_standard.py` (21 distinct free polyominoes,
+  89 squares, 91 orientations), `tests/test_reference_movegen.py` (independent rules-based
+  generator; 0 disagreements on every ply of seeded games + 58 openings per corner with exactly
+  2 Z-pentomino placements) and `tests/test_frontend_piece_catalogue.py` (frontend == engine).
+- **Consequences:** every dataset, weight file, candidate, rating and experiment predating this
+  commit is invalid for the standard game (see `DATA_LINEAGE.md` notice). The state/action
+  schema versions are bumped (`board_state_v2`, `move_v2`) so new records are machine-
+  distinguishable from invalidated ones, and `teacher_selfplay --validate` reports the mismatch
+  explicitly. `engine/advanced_metrics.compute_piece_penalty` now derives tiers from piece size.
+  The browser bundle is rebuilt from this commit; because the previous bundle dated from
+  2026-07-01, the rebuild also ships every engine/MCTS change since then (standard scoring
+  default, monomino bonus, D-014, `sample_legal_moves`, value-model/policy modules) — verified
+  with `scripts/pyodide_smoke.cjs`. No champion is promoted or demoted by this change.
+- **Related:** master plan §4 Phase 2; `DIAGNOSTIC_ASSESSMENT_2026-09-06.md` §6 (first step).
+
+## D-019 — Human-match parameters (user decisions)
+
+- **Date:** 2026-09-06 (answers given as comments on the assessment artifact, timestamped
+  2026-09-07 01:51–01:53 UTC)
+- **Status:** Accepted
+- **Variant / seats:** Classic 4-player 20×20; the human plays exactly one colour; agents play the
+  other three.
+- **Human strength reference:** the user has played roughly 50 games; treat "competent" as an
+  experienced casual player, to be calibrated against Pentobi levels before the 20-game match.
+- **Time control:** hard cap 10 s per AI move; preferred: a dynamic allocation (short on trivial
+  moves, longer on critical ones) under an overall per-game budget. Search budgets for milestone
+  M3+ are sized to this.
+- **Interface:** not yet decided (deferred to milestone M4; judgment call: web frontend with a
+  natively served agent, since the Pyodide path cannot deliver the budget).
+
+## D-020 — Native search core and Pentobi are permitted
+
+- **Date:** 2026-09-06 (user answer "Yes" as a comment on the assessment artifact,
+  2026-09-07 01:53 UTC)
+- **Status:** Accepted
+- **Decision:** the search core may be rewritten in C++/Rust or compiled with numba, and
+  Pentobi's GPL engine may be used as the external yardstick, rules cross-check, and (if the
+  M2 stop-loss triggers) as the search core under a GPL fork.
+- **Consequence:** milestone M2 (≥ 2,000 sims/s) is unblocked; licence review is only needed if
+  Pentobi code is vendored rather than run as a separate GTP process.
+
+---
+
+## D-021 — Protocol v3 is the only evaluation protocol for strength claims
+
+- **Date:** 2026-09-07
+- **Status:** Accepted
+- **Context:** assessment findings B4–B8, M7, M8: evaluations at 25–50 iterations, replayed
+  fixed seeds, moving anchors, Elo carried across eras, decisions on 4–24 games.
+- **Decision:** `training/evaluation/protocol_v3.py` (fresh recorded seed per run, round-robin
+  seats, iteration-pinned single-worker search at serving budgets, paired sign-flip permutation
+  statistics, pre-registered n) is the only protocol for strength claims from M1 on. Two
+  harness gates must pass before any strength claim: clone calibration (EXP-014) and
+  discrimination (EXP-015). The nightly workflow stays frozen until they pass and is rebuilt
+  on this protocol if it ever returns.
+- **Related:** `BENCHMARK_PROTOCOL.md` (v3 entry), `mcts_lab/calibrate.py`.
+
+## D-022 — Pentobi levels are the external strength anchors
+
+- **Date:** 2026-09-07
+- **Status:** Accepted (permitted by D-020)
+- **Decision:** `pentobi-gtp` 30.3 (GTP-only build, no book, one thread, seeded per game) is
+  the fixed external yardstick, via arena agent type `pentobi` at explicit levels; the
+  engine's legal-move generator is cross-checked against `all_legal` in the test suite.
+  Level-to-strength calibration against the repo's agents is measured (EXP-016), never assumed.
+  Build recipe and protocol facts: `PENTOBI.md`.
+
+---
+
+## D-023 — M3 anchors after EXP-016, and the search-core question (PROPOSED — user decision)
+
+- **Date:** 2026-09-07
+- **Status:** Proposed
+- **Context:** under protocol v3 (both gates passed) Pentobi level 3 at ~10 ms/move beats the
+  repo's best configuration (D-016, 250 iterations, ~8 s/move) by 7.6 points per game and the
+  gen140 champion by 16; level 7 (1.2 s/move) beats them by 28-36 (EXP-016). Levels 1-2 (8 ms/move,
+  ~3 and ~30 simulations) are not beaten either: D-016 ties level 1 and loses to level 2 (EXP-016b).
+  Per the pre-registered reading, Pentobi level 3 is the M3 target anchor and `greedy` the baseline.
+- **Options:**
+  (a) **Adopt Pentobi's engine as the search core** (GPL-3, permitted by D-020): the repo keeps
+  its rules engine, harness, UI and human protocol; "the agent" becomes a Pentobi level chosen by
+  the human protocol (M5) plus the dynamic time budget the user asked for. Shortest path to the
+  goal; the home-grown MCTS becomes a research track measured against Pentobi levels.
+  (b) **Build the native core (M2) and heuristics (M3) as planned**, with Pentobi level 3 as the
+  first target: honest but long — the gap is not only speed (level 3 uses ~90 simulations).
+  (c) Both: ship (a) for the human goal now; continue (b) as research with (a) as the yardstick.
+- **Recommendation:** (c), unless the user's goal is specifically a self-built engine, in which
+  case (b) with realistic timelines.
+- **Related:** EXP-016, EXP-016b, assessment §4 M2 stop-loss.
+
+---
+
 ## Open decisions (required before their phases)
 
 | ID (reserved) | Topic | Needed by | Notes |

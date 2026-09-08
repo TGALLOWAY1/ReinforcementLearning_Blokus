@@ -66,7 +66,7 @@ def _piece_size(piece_id: int) -> int:
 # Shared evaluator instance for snapshot se_ feature extraction (default weights; raw features only)
 _SE_EVALUATOR = BlokusStateEvaluator()
 DEFAULT_MAX_TURNS = 2500
-SUPPORTED_SEAT_POLICIES = {"randomized", "round_robin"}
+SUPPORTED_SEAT_POLICIES = {"randomized", "round_robin", "all_permutations"}
 DEFAULT_SNAPSHOT_PLYS = [8, 16, 24, 32, 40, 48, 56, 64]
 
 
@@ -323,6 +323,13 @@ def _seat_assignment_for_game(
     if seat_policy == "round_robin":
         shift = game_index % len(ordered_agents)
         ordered_agents = ordered_agents[shift:] + ordered_agents[:shift]
+    elif seat_policy == "all_permutations":
+        # Cycle through every seating (4! = 24): balances seats AND who-moves-
+        # after-whom, which a cyclic shift does not (protocol v3, EXP-014a).
+        import itertools
+
+        perms = list(itertools.permutations(ordered_agents))
+        ordered_agents = list(perms[game_index % len(perms)])
     else:
         seat_rng = random.Random(stable_hash_int(game_seed, "seat_assignment"))
         seat_rng.shuffle(ordered_agents)
@@ -331,6 +338,13 @@ def _seat_assignment_for_game(
 
 class _ArenaAgentAdapter:
     """Minimal adapter to normalize move selection + per-move telemetry."""
+
+    def close(self) -> None:
+        """Release external resources (subprocesses); default delegates to agent.close()."""
+        agent = getattr(self, "agent", None)
+        closer = getattr(agent, "close", None)
+        if callable(closer):
+            closer()
 
     def choose_move(
         self,
@@ -357,6 +371,14 @@ class _SelectActionAdapter(_ArenaAgentAdapter):
         move = self.agent.select_action(board, player, legal_moves)
         elapsed_ms = (time.perf_counter() - start) * 1000.0
         move_stats: Dict[str, Any] = {"timeSpentMs": elapsed_ms}
+        if not isinstance(self.agent, MCTSAgent) and hasattr(self.agent, "get_action_info"):
+            # Non-MCTS agents (e.g. external engines) report their own counters.
+            try:
+                agent_stats = (self.agent.get_action_info() or {}).get("stats")
+            except Exception:
+                agent_stats = None
+            if isinstance(agent_stats, dict):
+                move_stats["_agent_stats"] = dict(agent_stats)
         if isinstance(self.agent, MCTSAgent):
             info = self.agent.get_action_info()
             mcts_stats = info.get("stats", {})
@@ -456,6 +478,25 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
         if isinstance(weights, Mapping):
             agent.set_weights(dict(weights))
         return _SelectActionAdapter(agent)
+
+    if agent_type == "greedy":
+        # Deterministic argmax of the fixed heuristic (protocol v3 yardstick).
+        from agents.greedy_agent import GreedyAgent
+
+        agent = GreedyAgent(seed=seed)
+        weights = params.get("weights")
+        if isinstance(weights, Mapping):
+            agent.set_weights(dict(weights))
+        return _SelectActionAdapter(agent)
+
+    if agent_type == "pentobi":
+        # External Pentobi GTP engine (anchor opponent / rules cross-check).
+        from agents.pentobi_agent import PentobiAgent
+
+        return _SelectActionAdapter(PentobiAgent(
+            level=int(params.get("level", 5)), seed=seed,
+            binary=params.get("binary"), use_book=bool(params.get("use_book", False)),
+        ))
 
     if agent_type == "challenge_champion_gameplay":
         profile_name = str(params.get("profile", CHALLENGE_CHAMPION_PROFILE))
@@ -734,10 +775,16 @@ def run_single_game(
     start = time.perf_counter()
 
     agent_instances: Dict[str, _ArenaAgentAdapter] = {}
-    for agent_name in set(seat_assignment.values()):
-        config = agent_configs[agent_name]
-        seed = _agent_seed(run_config.seed, game_index, agent_name)
-        agent_instances[agent_name] = build_agent(config, seed=seed)
+    try:
+        for agent_name in set(seat_assignment.values()):
+            config = agent_configs[agent_name]
+            seed = _agent_seed(run_config.seed, game_index, agent_name)
+            agent_instances[agent_name] = build_agent(config, seed=seed)
+    except Exception:
+        # Do not leak external engine processes if a later agent fails to build.
+        for adapter in agent_instances.values():
+            adapter.close()
+        raise
 
     per_agent_stats: Dict[str, Dict[str, Any]] = {
         agent_name: {
@@ -1009,6 +1056,12 @@ def run_single_game(
         "action_schema_version": ACTION_SCHEMA_VERSION,
         "scoring_mode": run_config.scoring_mode,
     }
+    # Release external resources (e.g. pentobi-gtp subprocesses) deterministically.
+    for adapter in agent_instances.values():
+        try:
+            adapter.close()
+        except Exception:  # pragma: no cover - best effort teardown
+            pass
     return record, snapshot_rows
 
 

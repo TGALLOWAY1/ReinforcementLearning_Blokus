@@ -75,9 +75,9 @@
     {
       "player": "RED",
       "action": {
-        "piece_id": 17,
-        "orientation": 2,
-        "anchor_row": 7,
+        "piece_id": 18,
+        "orientation": 1,
+        "anchor_row": 3,
         "anchor_col": 2
       }
     },
@@ -93,91 +93,91 @@
     {
       "player": "YELLOW",
       "action": {
-        "piece_id": 21,
-        "orientation": 7,
-        "anchor_row": 18,
+        "piece_id": 19,
+        "orientation": 2,
+        "anchor_row": 13,
         "anchor_col": 13
       }
     },
     {
       "player": "GREEN",
       "action": {
-        "piece_id": 20,
-        "orientation": 0,
-        "anchor_row": 13,
-        "anchor_col": 2
-      }
-    },
-    {
-      "player": "RED",
-      "action": {
-        "piece_id": 4,
-        "orientation": 2,
-        "anchor_row": 3,
-        "anchor_col": 2
-      }
-    },
-    {
-      "player": "BLUE",
-      "action": {
-        "piece_id": 19,
-        "orientation": 0,
-        "anchor_row": 0,
-        "anchor_col": 15
-      }
-    },
-    {
-      "player": "YELLOW",
-      "action": {
-        "piece_id": 4,
-        "orientation": 0,
+        "piece_id": 8,
+        "orientation": 1,
         "anchor_row": 14,
-        "anchor_col": 17
-      }
-    },
-    {
-      "player": "GREEN",
-      "action": {
-        "piece_id": 2,
-        "orientation": 0,
-        "anchor_row": 19,
         "anchor_col": 5
       }
     },
     {
       "player": "RED",
       "action": {
-        "piece_id": 7,
-        "orientation": 1,
-        "anchor_row": 9,
+        "piece_id": 17,
+        "orientation": 2,
+        "anchor_row": 1,
         "anchor_col": 3
       }
     },
     {
       "player": "BLUE",
       "action": {
-        "piece_id": 11,
-        "orientation": 2,
-        "anchor_row": 3,
+        "piece_id": 5,
+        "orientation": 0,
+        "anchor_row": 10,
         "anchor_col": 14
       }
     },
     {
       "player": "YELLOW",
       "action": {
-        "piece_id": 10,
-        "orientation": 3,
-        "anchor_row": 13,
-        "anchor_col": 14
+        "piece_id": 4,
+        "orientation": 0,
+        "anchor_row": 15,
+        "anchor_col": 13
       }
     },
     {
       "player": "GREEN",
       "action": {
+        "piece_id": 9,
+        "orientation": 2,
+        "anchor_row": 15,
+        "anchor_col": 0
+      }
+    },
+    {
+      "player": "RED",
+      "action": {
+        "piece_id": 7,
+        "orientation": 3,
+        "anchor_row": 6,
+        "anchor_col": 4
+      }
+    },
+    {
+      "player": "BLUE",
+      "action": {
+        "piece_id": 11,
+        "orientation": 5,
+        "anchor_row": 1,
+        "anchor_col": 15
+      }
+    },
+    {
+      "player": "YELLOW",
+      "action": {
         "piece_id": 14,
         "orientation": 1,
         "anchor_row": 12,
-        "anchor_col": 5
+        "anchor_col": 16
+      }
+    },
+    {
+      "player": "GREEN",
+      "action": {
+        "piece_id": 16,
+        "orientation": 1,
+        "anchor_row": 11,
+        "anchor_col": 8
       }
     }
   ],
@@ -185,30 +185,30 @@
     "10": {
       "advanced_metrics": {
         "RED": {
-          "corner_differential": -6.0,
-          "territory_ratio": 0.31843575418994413,
-          "piece_penalty": 28.0,
-          "center_proximity": 6.0,
+          "corner_differential": -7.0,
+          "territory_ratio": 0.29608938547486036,
+          "piece_penalty": 32.0,
+          "center_proximity": 9.0,
           "opponent_adjacency": 0.0
         },
         "BLUE": {
-          "corner_differential": -12.0,
-          "territory_ratio": 0.2709497206703911,
-          "piece_penalty": 34.0,
+          "corner_differential": -11.0,
+          "territory_ratio": 0.25977653631284914,
+          "piece_penalty": 35.0,
           "center_proximity": 8.0,
           "opponent_adjacency": 0.0
         },
         "YELLOW": {
-          "corner_differential": -8.0,
+          "corner_differential": -7.0,
           "territory_ratio": 0.1787709497206704,
-          "piece_penalty": 36.0,
+          "piece_penalty": 37.0,
           "center_proximity": 9.0,
           "opponent_adjacency": 0.0
         },
         "GREEN": {
-          "corner_differential": -10.0,
-          "territory_ratio": 0.16759776536312848,
-          "piece_penalty": 31.0,
+          "corner_differential": -9.0,
+          "territory_ratio": 0.2206703910614525,
+          "piece_penalty": 32.0,
           "center_proximity": 9.0,
           "opponent_adjacency": 0.0
         }
@@ -659,31 +659,31 @@
     "20": {
       "advanced_metrics": {
         "RED": {
-          "corner_differential": -19.0,
-          "territory_ratio": 0.22082018927444794,
-          "piece_penalty": 27.0,
+          "corner_differential": -21.0,
+          "territory_ratio": 0.24203821656050956,
+          "piece_penalty": 26.0,
           "center_proximity": 5.0,
           "opponent_adjacency": 0.0
         },
         "BLUE": {
-          "corner_differential": -23.0,
-          "territory_ratio": 0.24605678233438485,
-          "piece_penalty": 27.0,
-          "center_proximity": 8.0,
+          "corner_differential": -21.0,
+          "territory_ratio": 0.23885350318471338,
+          "piece_penalty": 32.0,
+          "center_proximity": 4.0,
           "opponent_adjacency": 0.0
         },
         "YELLOW": {
           "corner_differential": -17.0,
-          "territory_ratio": 0.1892744479495268,
-          "piece_penalty": 33.0,
-          "center_proximity": 7.0,
+          "territory_ratio": 0.16878980891719744,
+          "piece_penalty": 30.0,
+          "center_proximity": 6.0,
           "opponent_adjacency": 0.0
         },
         "GREEN": {
           "corner_differential": -15.0,
-          "territory_ratio": 0.21766561514195584,
-          "piece_penalty": 24.0,
-          "center_proximity": 3.0,
+          "territory_ratio": 0.2643312101910828,
+          "piece_penalty": 28.0,
+          "center_proximity": 2.0,
           "opponent_adjacency": 0.0
         }
       },
@@ -705,138 +705,6 @@
           false,
           false,
           false,
-          true,
-          true,
-          false,
-          false
-        ],
-        [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          true,
-          false,
-          true
-        ],
-        [
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ],
-        [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ],
-        [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ],
-        [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ],
-        [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
           false,
           false,
           false,
@@ -865,10 +733,120 @@
           true
         ],
         [
+          true,
           false,
           false,
           false,
           true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
           false,
           false,
           false,
@@ -906,7 +884,7 @@
           false,
           false,
           false,
-          false
+          true
         ],
         [
           false,
@@ -1043,52 +1021,6 @@
         [
           false,
           false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ],
-        [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ],
-        [
-          false,
-          false,
-          false,
-          true,
           false,
           false,
           false,
@@ -1104,14 +1036,80 @@
           true,
           false,
           false,
+          false,
+          false,
+          false
+        ],
+        [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
           false
         ],
         [
           false,
           true,
           false,
-          true,
-          true,
           false,
           false,
           false,
@@ -1124,7 +1122,9 @@
           false,
           false,
           false,
-          true,
+          false,
+          false,
+          false,
           false,
           false
         ]

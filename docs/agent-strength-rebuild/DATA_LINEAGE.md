@@ -13,6 +13,20 @@ Rules and inventory for every dataset and model artifact. Governing rules:
 
 ## Era boundaries (already implemented in `training/reporting_era.py`)
 
+> **2026-09-06 — standard piece set (D-018).** Until the `fix/standard-piece-set` change (commit SHA
+> recorded in D-018 once merged) the engine
+> catalogue was NOT the Blokus set: ids 9 and 10 were the same free tetromino (S/Z) and the
+> Z-pentomino was absent (20 distinct shapes, 88 squares, max score 108). Piece id 10 is now
+> the Z-pentomino (5 squares). **Every dataset, weight file, candidate artifact, benchmark
+> number, rating row and experiment result produced before this change is INVALID for the
+> standard game**: recorded inventories, `player_pieces_used`, legal-move sets, policy
+> targets, feature values (piece areas, remaining-area counts) and final scores all assume
+> the old catalogue. The state/action schema versions were bumped to `board_state_v2` /
+> `move_v2` in the same change, so `teacher_selfplay --validate` reports a schema mismatch
+> for every old record (and their recorded legal-action sets no longer regenerate).
+> Nothing below this line is to be loaded by the rebuilt pipeline; keep the files for forensics
+> only. Diagnosis: `DIAGNOSTIC_ASSESSMENT_2026-09-06.md` finding B1.
+
 | Boundary | Run ID | Meaning |
 |---|---|---|
 | maxⁿ backprop fix | `DEBUGGED_BACKPROP_EPOCH_RUN_ID = 20260701T204805Z` (gen 139, commit `732bd9c`) | Anything earlier used the cooperating-opponents search — invalid for strength conclusions |

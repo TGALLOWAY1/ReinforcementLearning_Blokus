@@ -2,6 +2,81 @@
 
 _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 / master prompt §3)._
 
+## Session 2026-09-07 (milestone M1: a measurement that can see — in progress)
+
+- **Built (branch `feat/m1-measurement`, on top of M0):** `training/evaluation/protocol_v3.py`
+  (fresh recorded seed per run, round-robin seats, iteration-pinned single-worker search,
+  process-pool games, paired statistics, clone/discrimination gates) + CLI
+  `python -m mcts_lab.calibrate`; deterministic `greedy` baseline (`agents/greedy_agent.py`);
+  Pentobi 30.3 GTP engine built GUI-free and wired as arena agent type `pentobi`
+  (`agents/pentobi_agent.py`, `PENTOBI.md`); tests for all of it (`test_protocol_v3.py`,
+  `test_greedy_agent.py`, `test_pentobi_agent.py`, `test_calibrate_tables.py`).
+- **M0 closed:** the Pentobi rules cross-check ran — engine legal-move sets equal Pentobi
+  `all_legal` on every ply of 12 seeded games (see EXP-014 session notes for counts).
+- **Harness review (2 reviewers) → fixes landed:** the cyclic round-robin seat policy kept every
+  successor relation fixed (clone always followed the champion) → protocol v3 now cycles all 24
+  seat permutations; the clone rule "p > 0.30" would fail an unbiased harness 30% of the time →
+  replaced by an equivalence test (90% CI within ±4, p > 0.05, n ≥ 240); games are written as
+  they finish with error records for worker failures; errored/truncated games are excluded and
+  fail gates; game-count floors cannot be lowered; Pentobi mismatches raise instead of silently
+  substituting a move; adapters are closed explicitly. The first clone run (cyclic schedule)
+  was allowed to finish as a harness-bias measurement (EXP-014a).
+- **Gate 1 — clone calibration (EXP-014b): PASS.** 240 games, 0 errors: champion − byte-identical
+  clone = +1.76 points, 90% CI [−0.35, +3.87], p = 0.17 (band ±4). Recorded caveat: the margin
+  was small and the first-listed agent led in both clone runs (pooled +1.5 ± 1.1 over 340 games),
+  so claims that hinge on ≤ 2 points per game are not supported; real effects must clear
+  p < 0.01 with a comfortable margin. Measured seat effect: seat 1 scores ≈ +6 points over seat 4
+  for every agent (champion 87.4 → 81.5), confirming why seat balance is mandatory.
+- **Gate 2 — discrimination (EXP-015): PASS.** 120 games, 0 errors: gen140 − serving_v2 +8.2
+  (p < 0.0001), d016_250 − serving_v2 +14.7 (p < 0.0001). Extras: D-016 beats gen140 by 6.5 at
+  equal 250 iterations (p = 0.0002); the served v2 settings tie the deterministic greedy baseline
+  (+1.7, p = 0.12). **M1 gates met — protocol v3 is the measurement from here on.**
+- **EXP-016 (Pentobi calibration): done.** Pentobi L3 (10 ms/move) beats D-016@250 by 7.6 and
+  gen140 by 16 points; L7 (1.2 s/move) by 28-36; all p < 0.0001, 120 games, 0 errors. M3 target
+  anchor = Pentobi level 3 (pre-registered rule). **EXP-016b: levels 1-2 are not beaten either** —
+  D-016@250 ties level 1 (−2.1, p = 0.12; level 1 = ~3 simulations, 8 ms/move) and loses to level 2
+  (−4.2, p = 0.0009); gen140 loses to both by 10-13. M3 baseline anchor = `greedy`; M3 is
+  measured against Pentobi from above. Strategic decision for the user: D-023 (adopt Pentobi's
+  core vs build our own vs both). **M1 complete** (PR #210, stacked on #209).
+- **Next (after D-023):** option (a)/(c): M4 — serve a Pentobi-backed agent natively through the
+  web UI with game logging and the dynamic time budget, then M5 human protocol to pick the level
+  that meets ≥ 70%. Option (b): M2 native core with Pentobi level 3 as the first M3 target.
+- **Next:** EXP-016 — where do gen140 and D-016 sit against Pentobi levels 1/3/5/7 under
+  protocol v3 (calibrates the yardstick before M2/M3 work).
+
+## Session 2026-09-06/07 (diagnostic assessment + milestone M0: standard piece set)
+
+- **Assessment delivered:** `DIAGNOSTIC_ASSESSMENT_2026-09-06.md` — 8 blockers, 10 majors;
+  root cause: no measurement that could see strength (25-50 iteration evaluations, replayed
+  fixed seeds, Elo carried across eras) around an agent whose config changed once; the served
+  agent is a different, unvalidated config on a stale bundle; the engine was not Blokus.
+  Recommendation: path (b) — strong hand-crafted MCTS + endgame search at ≥ 2,000 sims/s,
+  Pentobi as yardstick, logged human protocol. User decisions recorded as D-019/D-020.
+- **M0 (standard game) — catalogue part DONE on this branch, one item outstanding:**
+  piece 10 → Pentomino Z (engine + frontend); `STATE_SCHEMA_VERSION`/`ACTION_SCHEMA_VERSION`
+  bumped to `board_state_v2`/`move_v2` and the teacher-dataset validator now reports the
+  mismatch explicitly; `compute_piece_penalty` derives tiers from piece size (it charged id 10
+  as a tetromino); the advanced-metrics fixture regenerated. New tests:
+  `test_piece_set_standard.py` (incl. penalty tiers), `test_reference_movegen.py` (independent
+  rules-based generator that also recovers inventories from the grid; 519 positions / 89
+  zero-move positions at the default setting, 0 disagreements), `test_frontend_piece_catalogue.py`,
+  `test_teacher_dataset_validator.py`; `mcts_lab.checks` gained a catalogue check (8/8).
+  Bundle: `frontend/public/blokus_core.zip` rebuilt from this commit — note it also carries every
+  engine/MCTS change since the previous build (2026-07-01): standard scoring default, monomino
+  bonus, D-014 root reward baseline, `sample_legal_moves`, and the value-model/policy modules.
+  Pyodide smoke (`node scripts/pyodide_smoke.cjs`, this session): catalogue 21/89/91 inside the
+  bundle, all 8 frontend orientations of piece 10 mapped, 4 seeded games completed (57-61
+  placements), Z-pentomino placed by RED 2× / BLUE 2× / YELLOW 2× / GREEN 1×, bridge scoring
+  mode `standard`, 3 bridge turns advanced. **Outstanding for M0:** the Pentobi rules
+  cross-check (needs Pentobi installed; folded into M1 setup). All prior data and artifacts
+  declared invalid (`DATA_LINEAGE.md`, D-018). Note: `training/rich_features.py` had documented
+  the non-standard 1/1/2/6/11 set as a normaliser footnote since July — the defect was visible
+  and treated as a property of "this engine" rather than a bug.
+- **Nightly loop:** remains frozen. Do not resume before milestone M1 (a measurement that passes
+  the clone-calibration and discrimination gates in the assessment §4).
+- **Next:** M1 — protocol v3 harness (fresh seeds per run, round-robin, serving-budget iteration
+  pins, Pentobi GTP anchors, greedy deterministic baseline) with the calibration test as its gate.
+
 ## Session 2026-07-16 (session 19 — EXP-011: FIRST PHASE 6 CANDIDATE CLEARS THE TRAINING BARS)
 
 - **Current phase:** Phase 6. EXP-011 (shape-aware MLP move scorer, `move_encoding_v1`:

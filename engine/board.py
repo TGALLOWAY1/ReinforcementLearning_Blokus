@@ -33,7 +33,7 @@ MONOMINO_PIECE_ID = 1
 # Version id of the Board.to_dict()/from_dict() state format. Bump on any
 # field/semantic change; stamped into self-play records so datasets can
 # declare which state encoding produced them (agent-strength rescue Phase 2).
-STATE_SCHEMA_VERSION = "board_state_v1"
+STATE_SCHEMA_VERSION = "board_state_v2"  # v2 (2026-09): standard piece set — id 10 is the Z-pentomino
 
 
 @dataclass

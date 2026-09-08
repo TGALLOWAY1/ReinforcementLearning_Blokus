@@ -1,0 +1,771 @@
+{
+  "protocol": "protocol_v3",
+  "label": "clone_exp014b",
+  "seed": 707726340,
+  "seat_policy": "all_permutations",
+  "scoring_mode": "standard",
+  "agents": [
+    {
+      "name": "champion",
+      "type": "mcts",
+      "thinking_time_ms": null,
+      "params": {
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_enabled": false,
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "heuristic_move_ordering": true,
+        "iterations_per_ms": 0.5,
+        "minimax_backup_alpha": 0.0,
+        "num_workers": 1,
+        "parallel_strategy": "root",
+        "rave_enabled": false,
+        "rave_k": 1000,
+        "rollout_cutoff_depth": 12,
+        "rollout_policy": "greedy_sample",
+        "state_eval_weights": {
+          "accessible_corners": 0.243,
+          "center_proximity": 0.0,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "reachable_empty_squares": 0.081,
+          "remaining_piece_area": -0.0295,
+          "squares_placed": 0.0295,
+          "territory_enclosure_area": 0.0
+        },
+        "use_transposition_table": true,
+        "iterations": 250
+      }
+    },
+    {
+      "name": "champion_clone",
+      "type": "mcts",
+      "thinking_time_ms": null,
+      "params": {
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_enabled": false,
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "heuristic_move_ordering": true,
+        "iterations_per_ms": 0.5,
+        "minimax_backup_alpha": 0.0,
+        "num_workers": 1,
+        "parallel_strategy": "root",
+        "rave_enabled": false,
+        "rave_k": 1000,
+        "rollout_cutoff_depth": 12,
+        "rollout_policy": "greedy_sample",
+        "state_eval_weights": {
+          "accessible_corners": 0.243,
+          "center_proximity": 0.0,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "reachable_empty_squares": 0.081,
+          "remaining_piece_area": -0.0295,
+          "squares_placed": 0.0295,
+          "territory_enclosure_area": 0.0
+        },
+        "use_transposition_table": true,
+        "iterations": 250
+      }
+    },
+    {
+      "name": "greedy",
+      "type": "greedy",
+      "thinking_time_ms": null,
+      "params": {}
+    },
+    {
+      "name": "random",
+      "type": "random",
+      "thinking_time_ms": null,
+      "params": {}
+    }
+  ],
+  "completed_games": 240,
+  "excluded_games": 0,
+  "excluded_reasons": {},
+  "leaderboard": [
+    {
+      "name": "champion",
+      "games_played": 240,
+      "win_rate": 0.46458333333333335,
+      "win_rate_ci_lower": 0.40253801187392996,
+      "win_rate_ci_upper": 0.527744597820232,
+      "outright_wins": 103,
+      "shared_wins": 17,
+      "avg_score": 83.64583333333333,
+      "trueskill_mu": 57.22779216429421,
+      "trueskill_sigma": 5.656596326954594,
+      "trueskill_conservative": 40.258003183430425,
+      "avg_rank": 1.725,
+      "games": 240
+    },
+    {
+      "name": "champion_clone",
+      "games_played": 240,
+      "win_rate": 0.3875,
+      "win_rate_ci_lower": 0.3280974586094397,
+      "win_rate_ci_upper": 0.45044730159554575,
+      "outright_wins": 84,
+      "shared_wins": 18,
+      "avg_score": 81.88333333333334,
+      "trueskill_mu": 44.034220129503744,
+      "trueskill_sigma": 5.587247267908864,
+      "trueskill_conservative": 27.272478325777154,
+      "avg_rank": 1.8166666666666667,
+      "games": 240
+    },
+    {
+      "name": "greedy",
+      "games_played": 240,
+      "win_rate": 0.14791666666666667,
+      "win_rate_ci_lower": 0.10855897445953377,
+      "win_rate_ci_upper": 0.19836814544125425,
+      "outright_wins": 29,
+      "shared_wins": 13,
+      "avg_score": 75.375,
+      "trueskill_mu": 34.91967868310377,
+      "trueskill_sigma": 5.541926055182126,
+      "trueskill_conservative": 18.29390051755739,
+      "avg_rank": 2.283333333333333,
+      "games": 240
+    },
+    {
+      "name": "random",
+      "games_played": 240,
+      "win_rate": 0.0,
+      "win_rate_ci_lower": 0.0,
+      "win_rate_ci_upper": 0.015754489799935698,
+      "outright_wins": 0,
+      "shared_wins": 0,
+      "avg_score": 53.329166666666666,
+      "trueskill_mu": -39.29825258098015,
+      "trueskill_sigma": 6.891628997215249,
+      "trueskill_conservative": -59.9731395726259,
+      "avg_rank": 3.8,
+      "games": 240
+    }
+  ],
+  "pairwise": {
+    "champion vs champion_clone": {
+      "observed_diff": 1.7625,
+      "p_value": 0.1654,
+      "n_games": 240,
+      "sd_diff": 19.857806502217155,
+      "se_diff": 1.2818158979216066,
+      "ci90_low": -0.3460871520810429,
+      "ci90_high": 3.871087152081043,
+      "ci95_low": -0.7498591599263487,
+      "ci95_high": 4.274859159926349
+    },
+    "champion vs greedy": {
+      "observed_diff": 8.270833333333334,
+      "p_value": 0.0,
+      "n_games": 240,
+      "sd_diff": 16.449669126320185,
+      "se_diff": 1.0618215762810064,
+      "ci90_low": 6.524136840351078,
+      "ci90_high": 10.01752982631559,
+      "ci95_low": 6.189663043822561,
+      "ci95_high": 10.352003622844107
+    },
+    "champion vs random": {
+      "observed_diff": 30.316666666666666,
+      "p_value": 0.0,
+      "n_games": 240,
+      "sd_diff": 16.032646262067114,
+      "se_diff": 1.0349028661436754,
+      "ci90_low": 28.61425145186032,
+      "ci90_high": 32.019081881473014,
+      "ci95_low": 28.288257049025063,
+      "ci95_high": 32.34507628430827
+    },
+    "champion_clone vs greedy": {
+      "observed_diff": 6.508333333333334,
+      "p_value": 0.0,
+      "n_games": 240,
+      "sd_diff": 15.84812639340408,
+      "se_diff": 1.0229921598374034,
+      "ci90_low": 4.825511230400805,
+      "ci90_high": 8.191155436265863,
+      "ci95_low": 4.503268700052023,
+      "ci95_high": 8.513397966614644
+    },
+    "champion_clone vs random": {
+      "observed_diff": 28.554166666666667,
+      "p_value": 0.0,
+      "n_games": 240,
+      "sd_diff": 14.153565399876857,
+      "se_diff": 0.9136087180530098,
+      "ci90_low": 27.051280325469467,
+      "ci90_high": 30.057053007863868,
+      "ci95_low": 26.763493579282766,
+      "ci95_high": 30.344839754050568
+    },
+    "greedy vs random": {
+      "observed_diff": 22.045833333333334,
+      "p_value": 0.0,
+      "n_games": 240,
+      "sd_diff": 11.626419170734051,
+      "se_diff": 0.7504821304046604,
+      "ci90_low": 20.81129022881767,
+      "ci90_high": 23.280376437849,
+      "ci95_low": 20.5748883577402,
+      "ci95_high": 23.51677830892647
+    }
+  },
+  "seat_counts": {
+    "champion": [
+      60,
+      60,
+      60,
+      60
+    ],
+    "champion_clone": [
+      60,
+      60,
+      60,
+      60
+    ],
+    "greedy": [
+      60,
+      60,
+      60,
+      60
+    ],
+    "random": [
+      60,
+      60,
+      60,
+      60
+    ]
+  },
+  "first_place_by_seat": {
+    "champion": [
+      41,
+      28,
+      29,
+      22
+    ],
+    "champion_clone": [
+      33,
+      27,
+      21,
+      21
+    ],
+    "greedy": [
+      13,
+      10,
+      10,
+      9
+    ],
+    "random": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "move_time_ms": {
+    "champion": {
+      "mean": 5932.267872125271,
+      "max": 21521.095991134644,
+      "moves": 4545
+    },
+    "champion_clone": {
+      "mean": 5987.742984077955,
+      "max": 20659.51895713806,
+      "moves": 4506
+    },
+    "greedy": {
+      "mean": 32.49241092818212,
+      "max": 231.13474999991013,
+      "moves": 4191
+    },
+    "random": {
+      "mean": 0.016598636620411885,
+      "max": 0.09395899996889057,
+      "moves": 3195
+    }
+  },
+  "avg_simulations_per_move": {
+    "champion": 250.0,
+    "champion_clone": 250.0,
+    "greedy": null,
+    "random": null
+  },
+  "pooled_summary": {
+    "run_id": "gauntlet_pooled",
+    "seed": 707726340,
+    "seat_policy": "all_permutations",
+    "num_games": 240,
+    "completed_games": 240,
+    "error_games": 0,
+    "run_config": {
+      "protocol": "protocol_v3",
+      "label": "clone_exp014b"
+    },
+    "win_stats": {
+      "champion": {
+        "games_played": 240.0,
+        "outright_wins": 103.0,
+        "shared_wins": 17.0,
+        "win_points": 111.5,
+        "win_rate": 0.46458333333333335
+      },
+      "champion_clone": {
+        "games_played": 240.0,
+        "outright_wins": 84.0,
+        "shared_wins": 18.0,
+        "win_points": 93.0,
+        "win_rate": 0.3875
+      },
+      "greedy": {
+        "games_played": 240.0,
+        "outright_wins": 29.0,
+        "shared_wins": 13.0,
+        "win_points": 35.5,
+        "win_rate": 0.14791666666666667
+      },
+      "random": {
+        "games_played": 240.0,
+        "outright_wins": 0.0,
+        "shared_wins": 0.0,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    },
+    "wins_by_seat": {
+      "champion": {
+        "0": {
+          "games": 60,
+          "win_points": 38.0,
+          "win_rate": 0.6333333333333333
+        },
+        "1": {
+          "games": 60,
+          "win_points": 26.5,
+          "win_rate": 0.44166666666666665
+        },
+        "2": {
+          "games": 60,
+          "win_points": 26.0,
+          "win_rate": 0.43333333333333335
+        },
+        "3": {
+          "games": 60,
+          "win_points": 21.0,
+          "win_rate": 0.35
+        }
+      },
+      "champion_clone": {
+        "0": {
+          "games": 60,
+          "win_points": 31.0,
+          "win_rate": 0.5166666666666667
+        },
+        "1": {
+          "games": 60,
+          "win_points": 24.0,
+          "win_rate": 0.4
+        },
+        "2": {
+          "games": 60,
+          "win_points": 19.0,
+          "win_rate": 0.31666666666666665
+        },
+        "3": {
+          "games": 60,
+          "win_points": 19.0,
+          "win_rate": 0.31666666666666665
+        }
+      },
+      "greedy": {
+        "0": {
+          "games": 60,
+          "win_points": 10.0,
+          "win_rate": 0.16666666666666666
+        },
+        "1": {
+          "games": 60,
+          "win_points": 9.0,
+          "win_rate": 0.15
+        },
+        "2": {
+          "games": 60,
+          "win_points": 8.5,
+          "win_rate": 0.14166666666666666
+        },
+        "3": {
+          "games": 60,
+          "win_points": 8.0,
+          "win_rate": 0.13333333333333333
+        }
+      },
+      "random": {
+        "0": {
+          "games": 60,
+          "win_points": 0.0,
+          "win_rate": 0.0
+        },
+        "1": {
+          "games": 60,
+          "win_points": 0.0,
+          "win_rate": 0.0
+        },
+        "2": {
+          "games": 60,
+          "win_points": 0.0,
+          "win_rate": 0.0
+        },
+        "3": {
+          "games": 60,
+          "win_points": 0.0,
+          "win_rate": 0.0
+        }
+      }
+    },
+    "score_stats": {
+      "champion": {
+        "count": 240,
+        "mean": 83.64583333333333,
+        "median": 81.0,
+        "std": 13.022239924025705,
+        "p25": 75.0,
+        "p75": 85.0,
+        "min": 57.0,
+        "max": 109.0
+      },
+      "champion_clone": {
+        "count": 240,
+        "mean": 81.88333333333334,
+        "median": 80.0,
+        "std": 11.57668874170081,
+        "p25": 75.0,
+        "p75": 85.0,
+        "min": 51.0,
+        "max": 109.0
+      },
+      "greedy": {
+        "count": 240,
+        "mean": 75.375,
+        "median": 74.5,
+        "std": 8.57376084341055,
+        "p25": 71.0,
+        "p75": 81.0,
+        "min": 53.0,
+        "max": 109.0
+      },
+      "random": {
+        "count": 240,
+        "mean": 53.329166666666666,
+        "median": 53.0,
+        "std": 7.2119680142724505,
+        "p25": 48.0,
+        "p75": 58.0,
+        "min": 37.0,
+        "max": 73.0
+      }
+    },
+    "pairwise_matchups": {
+      "champion__vs__champion_clone": {
+        "agent_a": "champion",
+        "agent_b": "champion_clone",
+        "a_beats_b": 117,
+        "b_beats_a": 111,
+        "tie": 12,
+        "total": 240
+      },
+      "champion__vs__greedy": {
+        "agent_a": "champion",
+        "agent_b": "greedy",
+        "a_beats_b": 164,
+        "b_beats_a": 67,
+        "tie": 9,
+        "total": 240
+      },
+      "champion__vs__random": {
+        "agent_a": "champion",
+        "agent_b": "random",
+        "a_beats_b": 237,
+        "b_beats_a": 3,
+        "tie": 0,
+        "total": 240
+      },
+      "champion_clone__vs__greedy": {
+        "agent_a": "champion_clone",
+        "agent_b": "greedy",
+        "a_beats_b": 147,
+        "b_beats_a": 81,
+        "tie": 12,
+        "total": 240
+      },
+      "champion_clone__vs__random": {
+        "agent_a": "champion_clone",
+        "agent_b": "random",
+        "a_beats_b": 236,
+        "b_beats_a": 4,
+        "tie": 0,
+        "total": 240
+      },
+      "greedy__vs__random": {
+        "agent_a": "greedy",
+        "agent_b": "random",
+        "a_beats_b": 232,
+        "b_beats_a": 8,
+        "tie": 0,
+        "total": 240
+      }
+    },
+    "pairwise_total_comparisons": 1440,
+    "time_sim_efficiency": {
+      "champion": {
+        "moves": 4545.0,
+        "total_time_ms": 26962157.478809357,
+        "avg_time_ms_per_move": 5932.267872125271,
+        "move_time_ms_p50": 4960.776805877686,
+        "move_time_ms_p95": 12394.132089614868,
+        "move_time_ms_max": 21521.095991134644,
+        "configured_thinking_time_ms": null,
+        "avg_budget_utilization": null,
+        "total_simulations": 1136250.0,
+        "avg_simulations_per_move": 250.0,
+        "simulations_per_second": 42.142399060350584,
+        "win_rate_per_second": 0.07831462492048484,
+        "score_per_second": 14.100144352275633
+      },
+      "champion_clone": {
+        "moves": 4506.0,
+        "total_time_ms": 26980769.886255264,
+        "avg_time_ms_per_move": 5987.742984077955,
+        "move_time_ms_p50": 4985.177993774414,
+        "move_time_ms_p95": 12466.000854969025,
+        "move_time_ms_max": 20659.51895713806,
+        "configured_thinking_time_ms": null,
+        "avg_budget_utilization": null,
+        "total_simulations": 1126500.0,
+        "avg_simulations_per_move": 250.0,
+        "simulations_per_second": 41.75195907118535,
+        "win_rate_per_second": 0.0647155365603373,
+        "score_per_second": 13.675158327782242
+      },
+      "greedy": {
+        "moves": 4191.0,
+        "total_time_ms": 136175.69420001123,
+        "avg_time_ms_per_move": 32.49241092818211,
+        "move_time_ms_p50": 12.418000000252505,
+        "move_time_ms_p95": 105.11677149952448,
+        "move_time_ms_max": 231.13474999991013,
+        "configured_thinking_time_ms": null,
+        "avg_budget_utilization": null,
+        "total_simulations": null,
+        "avg_simulations_per_move": null,
+        "simulations_per_second": null,
+        "win_rate_per_second": 4.5523450689333735,
+        "score_per_second": 2319.7724590705557
+      },
+      "random": {
+        "moves": 3195.0,
+        "total_time_ms": 53.03264400221597,
+        "avg_time_ms_per_move": 0.016598636620411885,
+        "move_time_ms_p50": 0.015541999800916528,
+        "move_time_ms_p95": 0.02226229962616343,
+        "move_time_ms_max": 0.09395899996889057,
+        "configured_thinking_time_ms": null,
+        "avg_budget_utilization": null,
+        "total_simulations": null,
+        "avg_simulations_per_move": null,
+        "simulations_per_second": null,
+        "win_rate_per_second": 0.0,
+        "score_per_second": 3212864.278327899
+      }
+    },
+    "game_duration_sec": {
+      "count": 240,
+      "mean": 256.1847290426959,
+      "median": 250.67877770799987,
+      "std": 31.140311279587976,
+      "p25": 233.5610062390001,
+      "p75": 276.12115506200007,
+      "min": 200.69490062500063,
+      "max": 340.6502372920004
+    },
+    "trueskill_ratings": {
+      "leaderboard": [
+        {
+          "mu": 57.22779216429421,
+          "sigma": 5.656596326954594,
+          "conservative": 40.258003183430425,
+          "games_played": 240,
+          "agent_id": "champion",
+          "rank": 1
+        },
+        {
+          "mu": 44.034220129503744,
+          "sigma": 5.587247267908864,
+          "conservative": 27.272478325777154,
+          "games_played": 240,
+          "agent_id": "champion_clone",
+          "rank": 2
+        },
+        {
+          "mu": 34.91967868310377,
+          "sigma": 5.541926055182126,
+          "conservative": 18.29390051755739,
+          "games_played": 240,
+          "agent_id": "greedy",
+          "rank": 3
+        },
+        {
+          "mu": -39.29825258098015,
+          "sigma": 6.891628997215249,
+          "conservative": -59.9731395726259,
+          "games_played": 240,
+          "agent_id": "random",
+          "rank": 4
+        }
+      ],
+      "converged": false
+    },
+    "score_margins": {
+      "mean_margin": 38.6,
+      "median_margin": 36.0,
+      "std_margin": 14.01,
+      "min_margin": 7.0,
+      "max_margin": 72.0,
+      "n_games": 240
+    },
+    "score_by_seat_position": {
+      "champion": {
+        "P1": {
+          "mean": 87.38,
+          "std": 12.57,
+          "se": 1.62,
+          "n": 60
+        },
+        "P2": {
+          "mean": 83.77,
+          "std": 13.95,
+          "se": 1.8,
+          "n": 60
+        },
+        "P3": {
+          "mean": 81.93,
+          "std": 12.54,
+          "se": 1.62,
+          "n": 60
+        },
+        "P4": {
+          "mean": 81.5,
+          "std": 12.58,
+          "se": 1.62,
+          "n": 60
+        }
+      },
+      "champion_clone": {
+        "P1": {
+          "mean": 84.27,
+          "std": 11.75,
+          "se": 1.52,
+          "n": 60
+        },
+        "P2": {
+          "mean": 82.93,
+          "std": 12.42,
+          "se": 1.6,
+          "n": 60
+        },
+        "P3": {
+          "mean": 80.92,
+          "std": 10.28,
+          "se": 1.33,
+          "n": 60
+        },
+        "P4": {
+          "mean": 79.42,
+          "std": 11.55,
+          "se": 1.49,
+          "n": 60
+        }
+      },
+      "greedy": {
+        "P1": {
+          "mean": 75.95,
+          "std": 8.19,
+          "se": 1.06,
+          "n": 60
+        },
+        "P2": {
+          "mean": 77.0,
+          "std": 8.0,
+          "se": 1.03,
+          "n": 60
+        },
+        "P3": {
+          "mean": 74.4,
+          "std": 9.12,
+          "se": 1.18,
+          "n": 60
+        },
+        "P4": {
+          "mean": 74.15,
+          "std": 8.9,
+          "se": 1.15,
+          "n": 60
+        }
+      },
+      "random": {
+        "P1": {
+          "mean": 54.77,
+          "std": 6.6,
+          "se": 0.85,
+          "n": 60
+        },
+        "P2": {
+          "mean": 53.95,
+          "std": 7.78,
+          "se": 1.0,
+          "n": 60
+        },
+        "P3": {
+          "mean": 53.1,
+          "std": 6.93,
+          "se": 0.89,
+          "n": 60
+        },
+        "P4": {
+          "mean": 51.5,
+          "std": 7.31,
+          "se": 0.94,
+          "n": 60
+        }
+      }
+    }
+  },
+  "gate": {
+    "name": "clone",
+    "passed": true,
+    "checks": {
+      "enough_games": true,
+      "ci90_within_band": true,
+      "not_significant": true,
+      "no_errored_games": true
+    },
+    "observed_diff": 1.7625,
+    "ci90": [
+      -0.3460871520810429,
+      3.871087152081043
+    ],
+    "p_value": 0.1654,
+    "n_games": 240,
+    "excluded_games": 0,
+    "thresholds": {
+      "band": 4.0,
+      "min_p": 0.05,
+      "min_games": 240
+    }
+  }
+}
