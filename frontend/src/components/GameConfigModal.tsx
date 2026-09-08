@@ -22,6 +22,7 @@ import {
   type ChampionMetadata,
 } from '../utils/championConfig';
 import { ChampionCard } from './ChampionCard';
+import { PentobiCard } from './PentobiCard';
 
 interface GameConfigModalProps {
   isOpen: boolean;
@@ -445,6 +446,11 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             />
           </div>
 
+          {/* Human protocol: natively served Pentobi (M4/M5) */}
+          <div className="mb-4">
+            <PentobiCard isCreating={isCreating} onPlay={(config) => startFromConfig(config)} />
+          </div>
+
           {/* Mode tabs */}
           <div className="flex mb-4 rounded-lg overflow-hidden border border-charcoal-700">
             <button
@@ -674,6 +680,11 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
               isCreating={isCreating}
               onPlay={startPlayTheChampion}
             />
+          </div>
+
+          {/* Human protocol: natively served Pentobi (M4/M5) */}
+          <div className="mb-6">
+            <PentobiCard isCreating={isCreating} onPlay={(config) => startFromConfig(config)} />
           </div>
 
           <div className="mb-6 rounded-lg border border-neon-green/30 bg-neon-green/5 p-4">

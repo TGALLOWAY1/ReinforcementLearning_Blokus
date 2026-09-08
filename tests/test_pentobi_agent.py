@@ -178,3 +178,44 @@ def test_agent_recovers_when_the_board_goes_backwards():
     assert mv2 is not None
     assert agent.get_action_info()["stats"]["resets"] == 1
     agent.close()
+
+
+# --- serving hooks (M4): hard abort and level change -------------------------
+@needs_binary
+def test_kill_terminates_the_engine_process_immediately():
+    eng = pa.PentobiGtp(level=1, seed=1)
+    eng.set_game_classic()
+    assert eng.proc.poll() is None
+    eng.kill()
+    assert eng.proc.poll() is not None
+
+
+@needs_binary
+def test_abort_restarts_the_engine_and_replays_the_board_on_the_next_move():
+    agent = pa.PentobiAgent(level=1, seed=7)
+    board = Board()
+    legal = GEN.get_legal_moves(board, Player.RED)
+    first = agent.select_action(board, Player.RED, legal)
+    board.place_piece(first.get_positions(GEN.piece_orientations_cache[first.piece_id]), Player.RED, first.piece_id)
+    agent.abort()
+    assert agent._engine is None
+    assert agent.stats["aborts"] == 1
+    legal = GEN.get_legal_moves(board, Player.BLUE)
+    second = agent.select_action(board, Player.BLUE, legal)
+    assert second in legal
+    # the restarted engine mirrors RED's piece, so it can answer for BLUE
+    assert len(agent._mirror[Player.RED]) == 1
+    agent.close()
+
+
+@needs_binary
+def test_set_level_takes_effect_on_the_next_engine_start():
+    agent = pa.PentobiAgent(level=1, seed=3)
+    agent._ensure_engine()
+    assert "--level" in agent._engine.args and agent._engine.args[agent._engine.args.index("--level") + 1] == "1"
+    agent.set_level(3)
+    assert agent._engine is None and agent.level == 3
+    agent._ensure_engine()
+    assert agent._engine.args[agent._engine.args.index("--level") + 1] == "3"
+    assert agent.get_action_info()["name"] == "Pentobi L3"
+    agent.close()

@@ -26,6 +26,7 @@ export const Play: React.FC = () => {
     isPaused,
     togglePause,
     setPendingPlacement,
+    transport,
   } = useGameStore();
 
   const [isMakingMove, setIsMakingMove] = useState(false);
@@ -37,6 +38,11 @@ export const Play: React.FC = () => {
   const [showPieceTray, setShowPieceTray] = useState(true);
   // Which player's pieces the tray displays — locked to human player by default, never auto-follows
   const [viewingPlayer, setViewingPlayer] = useState<string | null>(null);
+  // A new game may seat the human on a different colour (Play Pentobi card): re-lock the tray.
+  const currentGameId = gameState?.game_id ?? null;
+  useEffect(() => {
+    setViewingPlayer(null);
+  }, [currentGameId]);
   const isTelemetryOpen = useGameStore(s => s.activeRightTab === 'telemetry');
   const boardOverlay = useGameStore(s => s.boardOverlay);
 
@@ -322,6 +328,7 @@ export const Play: React.FC = () => {
           <div className="w-full mb-4 bg-charcoal-800 border border-charcoal-700 p-4 flex items-center justify-between">
             <div className="text-gray-200">Game finished. Winner: <span className="font-semibold">{gameState.winner || 'None'}</span></div>
             <div className="space-x-2 flex">
+              {transport !== 'backend' && (
               <button
                 onClick={saveGame}
                 className="bg-charcoal-700 text-gray-200 px-4 py-2 rounded hover:bg-charcoal-600 transition-colors"
@@ -329,6 +336,7 @@ export const Play: React.FC = () => {
               >
                 Save Game
               </button>
+              )}
               {!IS_DEPLOY_PROFILE && (
                 <>
                   <button
@@ -390,6 +398,7 @@ export const Play: React.FC = () => {
               )}
             </div>
             <div className="flex items-center space-x-2">
+              {transport !== 'backend' && (
               <button
                 onClick={saveGame}
                 data-testid="critical-ui-save"
@@ -400,6 +409,7 @@ export const Play: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
               </button>
+              )}
 
               {/* Pause/Resume Toggle + Step */}
               {!gameState.game_over && (
@@ -425,13 +435,8 @@ export const Play: React.FC = () => {
                   {isPaused && !isHumanPlayer && (
                     <button
                       onClick={() => {
-                        const store = useGameStore.getState();
-                        // Special step mode: forcefully tell the worker to advance exactly one turn
-                        const worker = (window as any)._blokusWorkerInstance;
-                        if (worker && !store.isAdvancingTurn) {
-                          useGameStore.setState({ isAdvancingTurn: true });
-                          worker.postMessage({ type: 'advance_turn' });
-                        }
+                        // Step mode: advance exactly one agent turn on whichever transport runs the game
+                        useGameStore.getState().advanceTurn();
                       }}
                       className="p-2 text-neon-blue hover:text-neon-blue/80 transition-colors flex items-center gap-1"
                       title="Step Forward One Turn"

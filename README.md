@@ -28,7 +28,8 @@ workflow. Everything below reflects the post-audit state.
   `docs/agent-strength-rebuild/DIAGNOSTIC_ASSESSMENT_2026-09-06.md` pass.
 - **Web demo** (`frontend/` + `webapi/`) — React UI playing against the
   champion in-browser via Pyodide (`scripts/build_browser_core.sh` bundles the
-  Python core), plus a FastAPI backend for research/analysis views.
+  Python core), plus a FastAPI backend for research/analysis views and for
+  natively served agents (Pentobi, the human-protocol opponent — see below).
 
 ## Quick start
 
@@ -72,6 +73,26 @@ bash scripts/build_browser_core.sh   # bundle engine+mcts+agents for Pyodide
 python run_server.py                 # FastAPI backend on :8000
 cd frontend && npm install && npm run dev
 ```
+
+### Play against Pentobi (the human protocol, milestones M4/M5)
+
+The strongest opponent the lab can serve is Pentobi's engine (GPL-3), run
+natively by the backend with a 10 s cap per AI move
+(`docs/agent-strength-rebuild/DECISIONS.md` D-024). Build it once per machine
+(`docs/agent-strength-rebuild/PENTOBI.md`), start the backend and frontend as
+above, open the Play page and use the **Play Pentobi** card: pick the level and
+your colour (rotate seats between games). Every game is logged to
+`data/human_games/` (`GAME_LOG_DIR` overrides). Summarise the record against
+the pre-registered gate (Pentobi takes first place in ≥ 70% of 20 seat-rotated
+games, a tie for first counting against it, and no agent loss attributable to
+a fallback, timeout or error) with:
+
+```bash
+python -m mcts_lab.human_games
+```
+
+Serving parity and latency evidence: `python scripts/m4_serving_gate.py`
+(report in `training/reports/m4_serving_gate/`).
 
 ## The improvement loop
 

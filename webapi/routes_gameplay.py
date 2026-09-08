@@ -24,6 +24,7 @@ def register_gameplay_routes(
     get_game: AsyncHandler,
     make_move: AsyncHandler,
     finish_game: AsyncHandler,
+    delete_game: AsyncHandler,
     get_agents: AsyncHandler,
     list_games: AsyncHandler,
     advance_turn: AsyncHandler,
@@ -39,6 +40,7 @@ def register_gameplay_routes(
     app.add_api_route("/api/games/{game_id}/move", make_move, methods=["POST"], response_model=MoveResponse)
     app.add_api_route("/api/games/{game_id}/pass", pass_turn, methods=["POST"], response_model=MoveResponse)
     app.add_api_route("/api/games/{game_id}/finish", finish_game, methods=["POST"])
+    app.add_api_route("/api/games/{game_id}", delete_game, methods=["DELETE"])
     app.add_api_route("/api/agents", get_agents, methods=["GET"], response_model=List[AgentInfo])
     # Champion metadata is deploy-safe (read-only registry metadata) and powers the
     # public "Play the Champion" demo's opponent banner.

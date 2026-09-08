@@ -8,6 +8,7 @@ websockets
 openskill
 joblib
 pytest
+httpx  # fastapi.testclient
 pytest-asyncio
 ruff
 mypy

@@ -4,7 +4,7 @@ Game state schemas
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -23,6 +23,8 @@ class AgentType(str, Enum):
     HEURISTIC = "heuristic"
     MCTS = "mcts"
     HUMAN = "human"
+    # External Pentobi GTP engine served natively by the backend (M4, D-024).
+    PENTOBI = "pentobi"
 
 
 class GameStatus(str, Enum):
@@ -79,6 +81,15 @@ class GameConfig(BaseModel):
             "play, house for the research profile)."
         ),
     )
+    orientation_space: Literal["engine", "frontend"] = Field(
+        default="engine",
+        description=(
+            "Orientation index space used in this game's API payloads. 'engine' "
+            "(default) uses the engine's canonical orientation ids; 'frontend' "
+            "uses the web UI's 0-7 rotation/flip indices (translated server-side "
+            "via engine.orientation_map, exactly as the Pyodide bridge does)."
+        ),
+    )
 
 
 class GameState(BaseModel):
@@ -97,6 +108,13 @@ class GameState(BaseModel):
         description="Scoring rule set in effect for this game ('standard' or 'house')",
     )
     legal_moves: List[Move] = Field(description="Available legal moves for current player")
+    orientation_space: Literal["engine", "frontend"] = Field(
+        default="engine", description="Orientation index space of legal_moves, last_move and mcts_top_moves"
+    )
+    last_move: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Last placed move (player, piece_id, orientation, anchor_row, anchor_col, engine_orientation, stats)",
+    )
     created_at: datetime
     updated_at: datetime
     players: Optional[List[PlayerConfig]] = None

@@ -1,0 +1,117 @@
+{
+ "gate": "M4 serving parity",
+ "cap_ms": 10000,
+ "gate_max_move_ms": 8000,
+ "seed": 20260908,
+ "parity": [
+  {
+   "level": 3,
+   "seed": 20260908,
+   "positions": 50,
+   "mismatches": 0,
+   "served_ms": {
+    "n": 50,
+    "mean": 7.2,
+    "p90": 11.8,
+    "p99": 13.6,
+    "max": 42.9
+   },
+   "arena_ms": {
+    "n": 50,
+    "mean": 7.2,
+    "p90": 11.6,
+    "p99": 14.1,
+    "max": 43.3
+   },
+   "pass": true
+  },
+  {
+   "level": 7,
+   "seed": 20260908,
+   "positions": 50,
+   "mismatches": 0,
+   "served_ms": {
+    "n": 50,
+    "mean": 765.4,
+    "p90": 1612.4,
+    "p99": 2482.2,
+    "max": 3131.0
+   },
+   "arena_ms": {
+    "n": 50,
+    "mean": 766.2,
+    "p90": 1616.3,
+    "p99": 2433.6,
+    "max": 3151.3
+   },
+   "pass": true
+  }
+ ],
+ "latency": [
+  {
+   "level": 3,
+   "seed": 20260908,
+   "moves": 68,
+   "passes": 8,
+   "game_seconds": 32.0,
+   "search_ms": {
+    "n": 68,
+    "mean": 8.5,
+    "p90": 18,
+    "p99": 45,
+    "max": 45
+   },
+   "turn_ms": {
+    "n": 76,
+    "mean": 420.7,
+    "p90": 836.1,
+    "p99": 1004.4,
+    "max": 1010.9
+   },
+   "fallbacks": 0,
+   "over_cap": 0,
+   "over_gate": 0,
+   "scores": {
+    "RED": 73,
+    "BLUE": 70,
+    "YELLOW": 69,
+    "GREEN": 80
+   },
+   "game_log": "/Users/tjgalloway/Programming Projects 2025/MCTS_Laboratory/training/reports/m4_serving_gate/game_logs/m4_latency_l3.json",
+   "pass": true
+  },
+  {
+   "level": 7,
+   "seed": 20260908,
+   "moves": 75,
+   "passes": 6,
+   "game_seconds": 130.5,
+   "search_ms": {
+    "n": 75,
+    "mean": 1252.9,
+    "p90": 2647,
+    "p99": 3596,
+    "max": 4385
+   },
+   "turn_ms": {
+    "n": 81,
+    "mean": 1611.5,
+    "p90": 3547.7,
+    "p99": 4530.1,
+    "max": 5327.8
+   },
+   "fallbacks": 0,
+   "over_cap": 0,
+   "over_gate": 0,
+   "scores": {
+    "RED": 109,
+    "BLUE": 86,
+    "YELLOW": 79,
+    "GREEN": 62
+   },
+   "game_log": "/Users/tjgalloway/Programming Projects 2025/MCTS_Laboratory/training/reports/m4_serving_gate/game_logs/m4_latency_l7.json",
+   "pass": true
+  }
+ ],
+ "pass": true
+}

@@ -2,7 +2,47 @@
 
 _Update at the start and end of every session (protocol in `MASTER_PLAN.md` §6 / master prompt §3)._
 
-## Session 2026-09-07 (milestone M1: a measurement that can see — in progress)
+## Session 2026-09-08 (milestone M4: Pentobi served natively through the web UI — done)
+
+- **Decision D-023 → accepted as (c) (user: "proceed with the next milestone" after the
+  recommendation); M4 executes its serving half (D-024).** Branch
+  `feat/m4-pentobi-serving`, stacked on `fix/standard-piece-set` (M0 PR #209 still open; M1 PR
+  #210 merged into it).
+- **Built:** backend agent type `pentobi` (`webapi/gameplay_agent_factory.py::PentobiGameplayAdapter`
+  = the arena's `PentobiAgent`, same level/seed) with the D-019 time control (`agents/time_budget.py`:
+  10 s cap + watchdog + deterministic greedy fallback, no search on one-move positions, optional
+  per-game budget → floor level); deploy validation for `pentobi` seats; `GET /api/agents` lists
+  Pentobi only when the binary exists; per-game JSON logs (`webapi/game_log.py`, default
+  `data/human_games/`); backend orientation translation (`engine/orientation_map.py`,
+  `GameConfig.orientation_space`); `last_move` in the game state; agents closed at game end;
+  `python -m mcts_lab.human_games` (M5 summary + gate). Frontend: backend transport
+  (`frontend/src/store/backendTransport.ts`), "Play Pentobi" card (level + colour), step button
+  works on both transports. Also fixed: game-end persistence never awaited the async Mongo
+  accessor (warning at every game end); it now awaits and is skipped when Mongo is unavailable.
+- **Gate (M4):** served = arena on 50/50 positions at levels 3 and 7; full-game whole-turn
+  latency under 8 s (level 7: max 5.3 s, p99 4.5 s) with 0 fallbacks (`training/reports/m4_serving_gate/report.json`). Manual
+  browser check performed (game created, three served seats moved, human move via the UI, log
+  written with orientation translation visible); the test game's log was not retained.
+- **Measured:** Pentobi per-move wall time per level (`training/reports/m4_serving_gate/level_timings.json`,
+  provenance in D-024): levels 3 and 7 pass the latency gate; levels 1-6 are far below it; level 8
+  (one game: 1.9 s mean, 8.6 s max) exceeds the 8 s gate and was not gated; level 9 does not fit
+  the 10 s cap (9.4 s mean, 54 s max).
+- **Adversarial review (4 lanes) → fixed:** M5 summary scored the gate from the human's side
+  (now the agent's: Pentobi first place ≥ 70%, ties against the agent, forfeited AI turns count);
+  Pentobi seat validation (seed, cap, no client binary) now applies in the research profile too;
+  the per-game budget stepped down only after forcing a timeout at the boundary; replay used the
+  translated orientation; client moves were accepted for agent seats and out of turn; engines of
+  abandoned games were never released (idle eviction + `DELETE /api/games/{id}`); stale async
+  replies could clobber a new game in the store; `loadGame` kept the backend transport; seat
+  labels in the card followed the wrong order; docs overclaimed level 8 and "every web game".
+- **Next — M5 (human protocol):** play 20 seat-rotated games at a chosen level via the Play
+  Pentobi card (start at level 5-7 and adjust after 5 games); read
+  `python -m mcts_lab.human_games`; record the level at which Pentobi takes first place in
+  ≥ 70% of games with no agent loss attributable to a fallback/timeout in DECISIONS (closes
+  D-009 for the human-facing agent).
+  Research track (option (c)): M2/M3 against Pentobi levels under protocol v3.
+
+## Session 2026-09-07 (milestone M1: a measurement that can see — done)
 
 - **Built (branch `feat/m1-measurement`, on top of M0):** `training/evaluation/protocol_v3.py`
   (fresh recorded seed per run, round-robin seats, iteration-pinned single-worker search,

@@ -13,6 +13,12 @@ from mcts.champion_profile import CHALLENGE_CHAMPION_PROFILE, load_challenge_cha
 from schemas.game_state import AgentType, GameConfig, PlayerConfig
 
 DEPLOY_TIME_BUDGET_CAP_MS = 30000
+# Human-protocol cap for the natively served Pentobi agent (D-019: 10 s per AI
+# move). Pentobi's level sets the search size; the cap is enforced by the
+# serving adapter's watchdog with a deterministic fallback move.
+PENTOBI_TIME_CAP_MS = 10000
+PENTOBI_MIN_LEVEL = 1
+PENTOBI_MAX_LEVEL = 9
 # Default per-move budget for registry-backed champion opponents in the public
 # "Play the Champion" demo. Kept modest so the demo stays responsive; callers
 # may override up to the deploy cap.
@@ -52,6 +58,65 @@ def _normalize_time_budget_ms(raw: object) -> int:
     return budget
 
 
+def normalize_pentobi_agent_config(raw: object) -> Dict[str, object]:
+    """Validate one Pentobi seat's request config (both profiles use this).
+
+    Only ``level``, ``seed``, ``time_budget_ms``, ``game_budget_ms`` and
+    ``floor_level`` are taken from the request; the engine binary and opening
+    book are server-side settings and are never accepted from a client.
+    """
+    raw = dict(raw or {})
+    try:
+        level = int(raw.get("level", 3))
+    except (TypeError, ValueError):
+        raise _bad_request("Invalid Pentobi level. 'level' must be an integer.")
+    if not PENTOBI_MIN_LEVEL <= level <= PENTOBI_MAX_LEVEL:
+        raise _bad_request(
+            f"Invalid Pentobi level {level}. Allowed range: {PENTOBI_MIN_LEVEL}-{PENTOBI_MAX_LEVEL}."
+        )
+    normalized: Dict[str, object] = {"level": level}
+    if raw.get("seed") is not None:
+        try:
+            normalized["seed"] = int(raw["seed"])
+        except (TypeError, ValueError):
+            raise _bad_request("Invalid Pentobi seed. 'seed' must be an integer.")
+    if raw.get("game_budget_ms") is not None:
+        try:
+            game_budget_ms = int(raw["game_budget_ms"])
+        except (TypeError, ValueError):
+            raise _bad_request("Invalid 'game_budget_ms'. Must be a positive integer.")
+        if game_budget_ms <= 0:
+            raise _bad_request("Invalid 'game_budget_ms'. Must be a positive integer.")
+        normalized["game_budget_ms"] = game_budget_ms
+    if raw.get("floor_level") is not None:
+        try:
+            floor_level = int(raw["floor_level"])
+        except (TypeError, ValueError):
+            raise _bad_request("Invalid 'floor_level'. Must be an integer between 1 and the level.")
+        if not PENTOBI_MIN_LEVEL <= floor_level <= level:
+            raise _bad_request("Invalid 'floor_level'. Must be an integer between 1 and the level.")
+        normalized["floor_level"] = floor_level
+    budget_ms = _normalize_time_budget_ms(raw.get("time_budget_ms", PENTOBI_TIME_CAP_MS))
+    if budget_ms > PENTOBI_TIME_CAP_MS:
+        raise _bad_request(
+            f"time_budget_ms={budget_ms} exceeds the Pentobi per-move cap ({PENTOBI_TIME_CAP_MS}ms)."
+        )
+    normalized["time_budget_ms"] = budget_ms
+    return normalized
+
+
+def _normalize_pentobi_config(config: GameConfig, human_players, pentobi_players) -> GameConfig:
+    if len(human_players) != 1 or len(pentobi_players) != 3:
+        raise _bad_request(
+            "Deploy mode with Pentobi requires exactly 1 human player and 3 pentobi players."
+        )
+    for player_cfg in pentobi_players:
+        player_cfg.agent_config = normalize_pentobi_agent_config(player_cfg.agent_config)
+    human_cfg: PlayerConfig = human_players[0]
+    human_cfg.agent_config = dict(human_cfg.agent_config or {})
+    return config
+
+
 def normalize_deploy_game_config(config: GameConfig) -> GameConfig:
     """
     Validate and normalize a create-game payload for APP_PROFILE=deploy.
@@ -61,6 +126,7 @@ def normalize_deploy_game_config(config: GameConfig) -> GameConfig:
     - Exactly 1 human + 3 mcts
     - MCTS must use either exactly one easy/medium/hard difficulty each, or all
       three MCTS players must use the challenge champion profile
+    - Pentobi games: exactly 1 human + 3 pentobi seats, level 1-9, per-move cap <= 10 s
     - Non-deploy agent types are rejected
     - MCTS budgets are normalized from preset or validated against deploy cap
     """
@@ -69,16 +135,24 @@ def normalize_deploy_game_config(config: GameConfig) -> GameConfig:
 
     human_players = []
     mcts_players = []
+    pentobi_players = []
 
     for player_cfg in config.players:
         if player_cfg.agent_type == AgentType.HUMAN:
             human_players.append(player_cfg)
         elif player_cfg.agent_type == AgentType.MCTS:
             mcts_players.append(player_cfg)
+        elif player_cfg.agent_type == AgentType.PENTOBI:
+            pentobi_players.append(player_cfg)
         else:
             raise _bad_request(
-                "Deploy mode only supports agent_type values: 'human' and 'mcts'."
+                "Deploy mode only supports agent_type values: 'human', 'mcts' and 'pentobi'."
             )
+
+    if pentobi_players:
+        if mcts_players:
+            raise _bad_request("Deploy mode cannot mix pentobi and mcts players.")
+        return _normalize_pentobi_config(config, human_players, pentobi_players)
 
     if len(human_players) != 1 or len(mcts_players) != 3:
         raise _bad_request(

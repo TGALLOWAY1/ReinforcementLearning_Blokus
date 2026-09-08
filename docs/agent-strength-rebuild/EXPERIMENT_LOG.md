@@ -61,6 +61,27 @@ Artifacts:
   (adopt Pentobi's engine core) and it is a strategic decision for the user (see D-023).
 - **Artifacts:** `training/reports/protocol_v3/pentobi_exp016/{report.json,games.jsonl,run_config.json}`
 
+## M4 gate note — serving parity and latency (2026-09-08)
+
+Not an experiment: the pre-registered M4 gate (assessment §4: "served agent reproduces the arena
+agent's move on 50 positions; per-move latency ≤ 8 s"), run with `python scripts/m4_serving_gate.py
+--levels 3,7 --positions 50` (seed 20260908, one thread) on branch `feat/m4-pentobi-serving`.
+
+- **Parity:** served `PentobiGameplayAdapter` vs arena `build_agent(type="pentobi")`, same level and
+  seed, 50 positions each at levels 3 and 7: **0 mismatches, 0 fallbacks** (search time per move
+  matched within 1%: L3 7.2 vs 7.2 ms mean; L7 765 vs 766 ms).
+- **Latency (full 4-seat game through the web `GameManager`):** level 3, 68 moves: search mean 8.5 ms
+  (max 45 ms), whole turn incl. move application/telemetry mean 0.42 s (max 1.01 s); level 7, 75
+  moves: search mean 1.25 s (p99 3.6 s, max 4.4 s), whole turn mean 1.6 s (p99 4.5 s, **max 5.3 s**);
+  0 fallbacks, 0 turns over the 8 s gate → **PASS**.
+- **Per-level move time** (`training/reports/m4_serving_gate/level_timings.json`; L1-3, L7 from
+  EXP-016/016b, L4-6, L8, L9 from one self-play game each): levels 1-7 fit the cap comfortably;
+  level 8's one-game maximum (8.6 s) exceeds the 8 s gate and was not gated; level 9 does not fit
+  (mean 9.4 s, p90 27 s, max 54 s).
+- **Artifacts:** `training/reports/m4_serving_gate/{report.json,game_logs/m4_latency_l3.json,
+  game_logs/m4_latency_l7.json}` (the two game logs are also examples of the `human_game_log_v1`
+  record format).
+
 ## EXP-016b — Pentobi levels 1 and 2 (locating the baseline anchor)
 
 - **Experiment ID:** EXP-016b

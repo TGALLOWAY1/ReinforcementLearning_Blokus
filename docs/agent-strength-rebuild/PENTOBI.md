@@ -53,3 +53,30 @@ level 7 ≈ 0.6 s (opening) to 1.9 s (midgame); level 9 ≈ 11–40 s.
   games (skipped when the binary is absent; `BLOKUS_PENTOBI_GAMES` scales it).
 - Strength of each level relative to the repo's agents is measured, not
   assumed: see EXPERIMENT_LOG.md (EXP-016) once run.
+
+## Served natively in the web UI (M4, D-024)
+
+- Backend agent type `pentobi` (`webapi/gameplay_agent_factory.py::PentobiGameplayAdapter`)
+  wraps the same `PentobiAgent` the arena builds (same level, same seed), so the agent a human
+  plays is the agent protocol v3 measured. Parity: `tests/test_pentobi_gameplay_adapter.py`
+  (50 positions) and `python scripts/m4_serving_gate.py --levels 3,7` →
+  `training/reports/m4_serving_gate/report.json` (parity on 50 positions per level, full-game
+  whole-turn latency, fallbacks).
+- Time control: level = search size; hard per-move cap (10 s, `time_budget_ms`) enforced by a
+  watchdog with a deterministic greedy fallback (`fallback: timeout` in the move stats and game
+  log); one legal move → no search; optional `game_budget_ms` steps the level down to
+  `floor_level` once spent (`agents/time_budget.py`). `GET /api/agents` lists `pentobi` only
+  when the binary is installed on the backend (`agents.pentobi_agent.find_binary`: `$PENTOBI_GTP`,
+  `pentobi-gtp` on `PATH`, `~/.local/bin/pentobi-gtp`, `~/.local/opt/pentobi/bin/pentobi-gtp`);
+  a request can never supply the binary path.
+- Frontend: "Play Pentobi (served by the backend)" card in the game-setup modal (level, your
+  colour); the game runs over the REST routes (`frontend/src/store/backendTransport.ts`) with
+  `orientation_space: "frontend"` so orientation indices match the Pyodide path.
+- Every backend-served game is logged (`webapi/game_log.py`, default `data/human_games/` in the
+  research profile); `python -m mcts_lab.human_games` summarises them against the M5 gate (agent
+  first place ≥ 70%). Abandoned games are evicted after two idle hours or via
+  `DELETE /api/games/{id}`, releasing their engine processes.
+- Measured per-move wall time per level (one thread, this Mac):
+  `training/reports/m4_serving_gate/level_timings.json`, provenance and reading in D-024 §3
+  (levels 3 and 7 gated; level 8 not gated; level 9 does not fit the cap).
+
