@@ -1,0 +1,747 @@
+{
+  "protocol": "protocol_v3",
+  "label": "pentobi_exp016b",
+  "seed": 1209255502,
+  "seat_policy": "all_permutations",
+  "scoring_mode": "standard",
+  "agents": [
+    {
+      "name": "gen140",
+      "type": "mcts",
+      "thinking_time_ms": null,
+      "params": {
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_enabled": false,
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "heuristic_move_ordering": true,
+        "iterations_per_ms": 0.5,
+        "minimax_backup_alpha": 0.0,
+        "num_workers": 1,
+        "parallel_strategy": "root",
+        "rave_enabled": false,
+        "rave_k": 1000,
+        "rollout_cutoff_depth": 12,
+        "rollout_policy": "greedy_sample",
+        "state_eval_weights": {
+          "accessible_corners": 0.243,
+          "center_proximity": 0.0,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "reachable_empty_squares": 0.081,
+          "remaining_piece_area": -0.0295,
+          "squares_placed": 0.0295,
+          "territory_enclosure_area": 0.0
+        },
+        "use_transposition_table": true,
+        "iterations": 250
+      }
+    },
+    {
+      "name": "d016_250",
+      "type": "mcts",
+      "thinking_time_ms": null,
+      "params": {
+        "deterministic_time_budget": false,
+        "rollout_policy": "greedy_sample",
+        "greedy_sample_size": 12,
+        "rollout_cutoff_depth": 12,
+        "heuristic_move_ordering": true,
+        "exploration_constant": 1.414,
+        "use_transposition_table": true,
+        "num_workers": 1,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "iterations": 250,
+        "value_model_path": "/Users/tjgalloway/Programming Projects 2025/MCTS_Laboratory/training/artifacts/value_models/v2/value_v2_v2_mixed.joblib",
+        "parallel_strategy": "root"
+      }
+    },
+    {
+      "name": "pentobi_l1",
+      "type": "pentobi",
+      "thinking_time_ms": null,
+      "params": {
+        "level": 1,
+        "use_book": false
+      }
+    },
+    {
+      "name": "pentobi_l2",
+      "type": "pentobi",
+      "thinking_time_ms": null,
+      "params": {
+        "level": 2,
+        "use_book": false
+      }
+    }
+  ],
+  "completed_games": 120,
+  "excluded_games": 0,
+  "excluded_reasons": {},
+  "leaderboard": [
+    {
+      "name": "d016_250",
+      "games_played": 120,
+      "win_rate": 0.20833333333333334,
+      "win_rate_ci_lower": 0.14528341433799086,
+      "win_rate_ci_upper": 0.28947841044463474,
+      "outright_wins": 23,
+      "shared_wins": 4,
+      "avg_score": 75.66666666666667,
+      "trueskill_mu": 26.148890655104697,
+      "trueskill_sigma": 6.063176445436847,
+      "trueskill_conservative": 7.959361318794155,
+      "avg_rank": 2.441666666666667,
+      "games": 120
+    },
+    {
+      "name": "gen140",
+      "games_played": 120,
+      "win_rate": 0.10416666666666667,
+      "win_rate_ci_lower": 0.06125986378779616,
+      "win_rate_ci_upper": 0.1716311841314814,
+      "outright_wins": 12,
+      "shared_wins": 1,
+      "avg_score": 67.30833333333334,
+      "trueskill_mu": -0.5488734205401178,
+      "trueskill_sigma": 6.257281208898927,
+      "trueskill_conservative": -19.3207170472369,
+      "avg_rank": 3.1333333333333333,
+      "games": 120
+    },
+    {
+      "name": "pentobi_l1",
+      "games_played": 120,
+      "win_rate": 0.29583333333333334,
+      "win_rate_ci_lower": 0.22153086075772405,
+      "win_rate_ci_upper": 0.3828024165901139,
+      "outright_wins": 34,
+      "shared_wins": 3,
+      "avg_score": 77.74166666666666,
+      "trueskill_mu": 30.84803275869418,
+      "trueskill_sigma": 6.036938323242276,
+      "trueskill_conservative": 12.737217788967353,
+      "avg_rank": 2.2083333333333335,
+      "games": 120
+    },
+    {
+      "name": "pentobi_l2",
+      "games_played": 120,
+      "win_rate": 0.39166666666666666,
+      "win_rate_ci_lower": 0.30899055515182583,
+      "win_rate_ci_upper": 0.4810638369102923,
+      "outright_wins": 44,
+      "shared_wins": 6,
+      "avg_score": 79.89166666666667,
+      "trueskill_mu": 43.08404210737171,
+      "trueskill_sigma": 6.148372594201478,
+      "trueskill_conservative": 24.638924324767274,
+      "avg_rank": 1.8166666666666667,
+      "games": 120
+    }
+  ],
+  "pairwise": {
+    "gen140 vs d016_250": {
+      "observed_diff": -8.358333333333333,
+      "p_value": 0.0,
+      "n_games": 120,
+      "sd_diff": 14.428494120213337,
+      "se_diff": 1.3171352834119168,
+      "ci90_low": -10.525020874545936,
+      "ci90_high": -6.191645792120729,
+      "ci95_low": -10.93991848882069,
+      "ci95_high": -5.776748177845976
+    },
+    "gen140 vs pentobi_l1": {
+      "observed_diff": -10.433333333333334,
+      "p_value": 0.0,
+      "n_games": 120,
+      "sd_diff": 15.057722736376913,
+      "se_diff": 1.3745757345620084,
+      "ci90_low": -12.694510416687837,
+      "ci90_high": -8.17215624997883,
+      "ci95_low": -13.12750177307487,
+      "ci95_high": -7.739164893591797
+    },
+    "gen140 vs pentobi_l2": {
+      "observed_diff": -12.583333333333334,
+      "p_value": 0.0,
+      "n_games": 120,
+      "sd_diff": 12.814502900769796,
+      "se_diff": 1.1697987169945003,
+      "ci90_low": -14.507652222789288,
+      "ci90_high": -10.65901444387738,
+      "ci95_low": -14.876138818642556,
+      "ci95_high": -10.290527848024112
+    },
+    "d016_250 vs pentobi_l1": {
+      "observed_diff": -2.075,
+      "p_value": 0.1195,
+      "n_games": 120,
+      "sd_diff": 14.19975292719128,
+      "se_diff": 1.2962541648704462,
+      "ci90_low": -4.207338101211884,
+      "ci90_high": 0.057338101211883874,
+      "ci95_low": -4.615658163146074,
+      "ci95_high": 0.46565816314607433
+    },
+    "d016_250 vs pentobi_l2": {
+      "observed_diff": -4.225,
+      "p_value": 0.0009,
+      "n_games": 120,
+      "sd_diff": 13.300320650712324,
+      "se_diff": 1.2141476070744883,
+      "ci90_low": -6.222272813637533,
+      "ci90_high": -2.2277271863624666,
+      "ci95_low": -6.604729309865997,
+      "ci95_high": -1.8452706901340026
+    },
+    "pentobi_l1 vs pentobi_l2": {
+      "observed_diff": -2.15,
+      "p_value": 0.0899,
+      "n_games": 120,
+      "sd_diff": 13.356551912510827,
+      "se_diff": 1.219280795495158,
+      "ci90_low": -4.155716908589535,
+      "ci90_high": -0.1442830914104647,
+      "ci95_low": -4.53979035917051,
+      "ci95_high": 0.23979035917050995
+    }
+  },
+  "seat_counts": {
+    "gen140": [
+      30,
+      30,
+      30,
+      30
+    ],
+    "d016_250": [
+      30,
+      30,
+      30,
+      30
+    ],
+    "pentobi_l1": [
+      30,
+      30,
+      30,
+      30
+    ],
+    "pentobi_l2": [
+      30,
+      30,
+      30,
+      30
+    ]
+  },
+  "first_place_by_seat": {
+    "gen140": [
+      6,
+      3,
+      2,
+      2
+    ],
+    "d016_250": [
+      6,
+      13,
+      8,
+      0
+    ],
+    "pentobi_l1": [
+      9,
+      12,
+      9,
+      7
+    ],
+    "pentobi_l2": [
+      15,
+      15,
+      10,
+      10
+    ]
+  },
+  "move_time_ms": {
+    "gen140": {
+      "mean": 5466.0426482073535,
+      "max": 20047.493934631348,
+      "moves": 1906
+    },
+    "d016_250": {
+      "mean": 7997.32125079302,
+      "max": 17937.646865844727,
+      "moves": 2133
+    },
+    "pentobi_l1": {
+      "mean": 7.631416643090697,
+      "max": 56.69783399980588,
+      "moves": 2135
+    },
+    "pentobi_l2": {
+      "mean": 8.236114989611593,
+      "max": 71.59033300013107,
+      "moves": 2214
+    }
+  },
+  "avg_simulations_per_move": {
+    "gen140": 250.0,
+    "d016_250": 250.0,
+    "pentobi_l1": null,
+    "pentobi_l2": null
+  },
+  "pooled_summary": {
+    "run_id": "gauntlet_pooled",
+    "seed": 1209255502,
+    "seat_policy": "all_permutations",
+    "num_games": 120,
+    "completed_games": 120,
+    "error_games": 0,
+    "run_config": {
+      "protocol": "protocol_v3",
+      "label": "pentobi_exp016b"
+    },
+    "win_stats": {
+      "d016_250": {
+        "games_played": 120.0,
+        "outright_wins": 23.0,
+        "shared_wins": 4.0,
+        "win_points": 25.0,
+        "win_rate": 0.20833333333333334
+      },
+      "gen140": {
+        "games_played": 120.0,
+        "outright_wins": 12.0,
+        "shared_wins": 1.0,
+        "win_points": 12.5,
+        "win_rate": 0.10416666666666667
+      },
+      "pentobi_l1": {
+        "games_played": 120.0,
+        "outright_wins": 34.0,
+        "shared_wins": 3.0,
+        "win_points": 35.5,
+        "win_rate": 0.29583333333333334
+      },
+      "pentobi_l2": {
+        "games_played": 120.0,
+        "outright_wins": 44.0,
+        "shared_wins": 6.0,
+        "win_points": 47.0,
+        "win_rate": 0.39166666666666666
+      }
+    },
+    "wins_by_seat": {
+      "d016_250": {
+        "0": {
+          "games": 30,
+          "win_points": 5.0,
+          "win_rate": 0.16666666666666666
+        },
+        "1": {
+          "games": 30,
+          "win_points": 12.5,
+          "win_rate": 0.4166666666666667
+        },
+        "2": {
+          "games": 30,
+          "win_points": 7.5,
+          "win_rate": 0.25
+        },
+        "3": {
+          "games": 30,
+          "win_points": 0.0,
+          "win_rate": 0.0
+        }
+      },
+      "gen140": {
+        "0": {
+          "games": 30,
+          "win_points": 6.0,
+          "win_rate": 0.2
+        },
+        "1": {
+          "games": 30,
+          "win_points": 3.0,
+          "win_rate": 0.1
+        },
+        "2": {
+          "games": 30,
+          "win_points": 1.5,
+          "win_rate": 0.05
+        },
+        "3": {
+          "games": 30,
+          "win_points": 2.0,
+          "win_rate": 0.06666666666666667
+        }
+      },
+      "pentobi_l1": {
+        "0": {
+          "games": 30,
+          "win_points": 9.0,
+          "win_rate": 0.3
+        },
+        "1": {
+          "games": 30,
+          "win_points": 11.0,
+          "win_rate": 0.36666666666666664
+        },
+        "2": {
+          "games": 30,
+          "win_points": 9.0,
+          "win_rate": 0.3
+        },
+        "3": {
+          "games": 30,
+          "win_points": 6.5,
+          "win_rate": 0.21666666666666667
+        }
+      },
+      "pentobi_l2": {
+        "0": {
+          "games": 30,
+          "win_points": 14.0,
+          "win_rate": 0.4666666666666667
+        },
+        "1": {
+          "games": 30,
+          "win_points": 14.5,
+          "win_rate": 0.48333333333333334
+        },
+        "2": {
+          "games": 30,
+          "win_points": 9.5,
+          "win_rate": 0.31666666666666665
+        },
+        "3": {
+          "games": 30,
+          "win_points": 9.0,
+          "win_rate": 0.3
+        }
+      }
+    },
+    "score_stats": {
+      "d016_250": {
+        "count": 120,
+        "mean": 75.66666666666667,
+        "median": 75.0,
+        "std": 9.92751507455696,
+        "p25": 70.0,
+        "p75": 80.25,
+        "min": 54.0,
+        "max": 109.0
+      },
+      "gen140": {
+        "count": 120,
+        "mean": 67.30833333333334,
+        "median": 67.0,
+        "std": 9.152227263835227,
+        "p25": 60.0,
+        "p75": 74.0,
+        "min": 42.0,
+        "max": 86.0
+      },
+      "pentobi_l1": {
+        "count": 120,
+        "mean": 77.74166666666666,
+        "median": 76.5,
+        "std": 9.494292876366423,
+        "p25": 72.0,
+        "p75": 82.0,
+        "min": 48.0,
+        "max": 109.0
+      },
+      "pentobi_l2": {
+        "count": 120,
+        "mean": 79.89166666666667,
+        "median": 80.0,
+        "std": 7.60679064316147,
+        "p25": 77.0,
+        "p75": 84.25,
+        "min": 61.0,
+        "max": 109.0
+      }
+    },
+    "pairwise_matchups": {
+      "d016_250__vs__gen140": {
+        "agent_a": "d016_250",
+        "agent_b": "gen140",
+        "a_beats_b": 82,
+        "b_beats_a": 34,
+        "tie": 4,
+        "total": 120
+      },
+      "d016_250__vs__pentobi_l1": {
+        "agent_a": "d016_250",
+        "agent_b": "pentobi_l1",
+        "a_beats_b": 49,
+        "b_beats_a": 70,
+        "tie": 1,
+        "total": 120
+      },
+      "d016_250__vs__pentobi_l2": {
+        "agent_a": "d016_250",
+        "agent_b": "pentobi_l2",
+        "a_beats_b": 39,
+        "b_beats_a": 76,
+        "tie": 5,
+        "total": 120
+      },
+      "gen140__vs__pentobi_l1": {
+        "agent_a": "gen140",
+        "agent_b": "pentobi_l1",
+        "a_beats_b": 30,
+        "b_beats_a": 89,
+        "tie": 1,
+        "total": 120
+      },
+      "gen140__vs__pentobi_l2": {
+        "agent_a": "gen140",
+        "agent_b": "pentobi_l2",
+        "a_beats_b": 21,
+        "b_beats_a": 96,
+        "tie": 3,
+        "total": 120
+      },
+      "pentobi_l1__vs__pentobi_l2": {
+        "agent_a": "pentobi_l1",
+        "agent_b": "pentobi_l2",
+        "a_beats_b": 39,
+        "b_beats_a": 71,
+        "tie": 10,
+        "total": 120
+      }
+    },
+    "pairwise_total_comparisons": 720,
+    "time_sim_efficiency": {
+      "d016_250": {
+        "moves": 2133.0,
+        "total_time_ms": 17058286.227941513,
+        "avg_time_ms_per_move": 7997.32125079302,
+        "move_time_ms_p50": 7396.436929702759,
+        "move_time_ms_p95": 15295.22943496704,
+        "move_time_ms_max": 17937.646865844727,
+        "configured_thinking_time_ms": null,
+        "avg_budget_utilization": null,
+        "total_simulations": 533250.0,
+        "avg_simulations_per_move": 250.0,
+        "simulations_per_second": 31.26046736902182,
+        "win_rate_per_second": 0.02605038947418485,
+        "score_per_second": 9.461501457023939
+      },
+      "gen140": {
+        "moves": 1906.0,
+        "total_time_ms": 10418277.287483215,
+        "avg_time_ms_per_move": 5466.0426482073535,
+        "move_time_ms_p50": 4664.851546287537,
+        "move_time_ms_p95": 10228.040277957916,
+        "move_time_ms_max": 20047.493934631348,
+        "configured_thinking_time_ms": null,
+        "avg_budget_utilization": null,
+        "total_simulations": 476500.0,
+        "avg_simulations_per_move": 250.0,
+        "simulations_per_second": 45.73692817453412,
+        "win_rate_per_second": 0.019057053406055884,
+        "score_per_second": 12.31390562885707
+      },
+      "pentobi_l1": {
+        "moves": 2135.0,
+        "total_time_ms": 16293.074532998638,
+        "avg_time_ms_per_move": 7.631416643090697,
+        "move_time_ms_p50": 3.9563750000013442,
+        "move_time_ms_p95": 41.37495809977736,
+        "move_time_ms_max": 56.69783399980588,
+        "configured_thinking_time_ms": null,
+        "avg_budget_utilization": null,
+        "total_simulations": null,
+        "avg_simulations_per_move": null,
+        "simulations_per_second": null,
+        "win_rate_per_second": 38.76519225315444,
+        "score_per_second": 10187.055733230358
+      },
+      "pentobi_l2": {
+        "moves": 2214.0,
+        "total_time_ms": 18234.75858700007,
+        "avg_time_ms_per_move": 8.236114989611593,
+        "move_time_ms_p50": 4.124874500121223,
+        "move_time_ms_p95": 43.35694385005126,
+        "move_time_ms_max": 71.59033300013107,
+        "configured_thinking_time_ms": null,
+        "avg_budget_utilization": null,
+        "total_simulations": null,
+        "avg_simulations_per_move": null,
+        "simulations_per_second": null,
+        "win_rate_per_second": 47.554783676610285,
+        "score_per_second": 9700.164066120484
+      }
+    },
+    "game_duration_sec": {
+      "count": 120,
+      "mean": 265.4407490406083,
+      "median": 266.58378970800004,
+      "std": 16.272607565530055,
+      "p25": 256.1295957712501,
+      "p75": 276.2878824684999,
+      "min": 212.11689370800013,
+      "max": 313.57688583300023
+    },
+    "trueskill_ratings": {
+      "leaderboard": [
+        {
+          "mu": 43.08404210737171,
+          "sigma": 6.148372594201478,
+          "conservative": 24.638924324767274,
+          "games_played": 120,
+          "agent_id": "pentobi_l2",
+          "rank": 1
+        },
+        {
+          "mu": 30.84803275869418,
+          "sigma": 6.036938323242276,
+          "conservative": 12.737217788967353,
+          "games_played": 120,
+          "agent_id": "pentobi_l1",
+          "rank": 2
+        },
+        {
+          "mu": 26.148890655104697,
+          "sigma": 6.063176445436847,
+          "conservative": 7.959361318794155,
+          "games_played": 120,
+          "agent_id": "d016_250",
+          "rank": 3
+        },
+        {
+          "mu": -0.5488734205401178,
+          "sigma": 6.257281208898927,
+          "conservative": -19.3207170472369,
+          "games_played": 120,
+          "agent_id": "gen140",
+          "rank": 4
+        }
+      ],
+      "converged": true
+    },
+    "score_margins": {
+      "mean_margin": 22.44,
+      "median_margin": 20.0,
+      "std_margin": 12.05,
+      "min_margin": 3.0,
+      "max_margin": 62.0,
+      "n_games": 120
+    },
+    "score_by_seat_position": {
+      "gen140": {
+        "P1": {
+          "mean": 70.47,
+          "std": 8.64,
+          "se": 1.58,
+          "n": 30
+        },
+        "P2": {
+          "mean": 68.27,
+          "std": 9.73,
+          "se": 1.78,
+          "n": 30
+        },
+        "P3": {
+          "mean": 67.2,
+          "std": 7.99,
+          "se": 1.46,
+          "n": 30
+        },
+        "P4": {
+          "mean": 63.3,
+          "std": 9.24,
+          "se": 1.69,
+          "n": 30
+        }
+      },
+      "d016_250": {
+        "P1": {
+          "mean": 76.07,
+          "std": 6.39,
+          "se": 1.17,
+          "n": 30
+        },
+        "P2": {
+          "mean": 81.5,
+          "std": 10.94,
+          "se": 2.0,
+          "n": 30
+        },
+        "P3": {
+          "mean": 74.6,
+          "std": 10.8,
+          "se": 1.97,
+          "n": 30
+        },
+        "P4": {
+          "mean": 70.5,
+          "std": 8.15,
+          "se": 1.49,
+          "n": 30
+        }
+      },
+      "pentobi_l1": {
+        "P1": {
+          "mean": 77.07,
+          "std": 6.27,
+          "se": 1.15,
+          "n": 30
+        },
+        "P2": {
+          "mean": 80.77,
+          "std": 11.08,
+          "se": 2.02,
+          "n": 30
+        },
+        "P3": {
+          "mean": 77.43,
+          "std": 10.34,
+          "se": 1.89,
+          "n": 30
+        },
+        "P4": {
+          "mean": 75.7,
+          "std": 9.47,
+          "se": 1.73,
+          "n": 30
+        }
+      },
+      "pentobi_l2": {
+        "P1": {
+          "mean": 81.13,
+          "std": 7.06,
+          "se": 1.29,
+          "n": 30
+        },
+        "P2": {
+          "mean": 80.23,
+          "std": 7.12,
+          "se": 1.3,
+          "n": 30
+        },
+        "P3": {
+          "mean": 79.4,
+          "std": 6.96,
+          "se": 1.27,
+          "n": 30
+        },
+        "P4": {
+          "mean": 78.8,
+          "std": 9.35,
+          "se": 1.71,
+          "n": 30
+        }
+      }
+    }
+  },
+  "gate": {
+    "name": "pentobi-low",
+    "passed": true,
+    "note": "calibration table \u2014 report only, no pass/fail"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "agents": [
+    {
+      "name": "gen140",
+      "type": "mcts",
+      "thinking_time_ms": null,
+      "params": {
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_enabled": false,
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "heuristic_move_ordering": true,
+        "iterations_per_ms": 0.5,
+        "minimax_backup_alpha": 0.0,
+        "num_workers": 1,
+        "parallel_strategy": "root",
+        "rave_enabled": false,
+        "rave_k": 1000,
+        "rollout_cutoff_depth": 12,
+        "rollout_policy": "greedy_sample",
+        "state_eval_weights": {
+          "accessible_corners": 0.243,
+          "center_proximity": 0.0,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "reachable_empty_squares": 0.081,
+          "remaining_piece_area": -0.0295,
+          "squares_placed": 0.0295,
+          "territory_enclosure_area": 0.0
+        },
+        "use_transposition_table": true,
+        "iterations": 250
+      }
+    },
+    {
+      "name": "d016_250",
+      "type": "mcts",
+      "thinking_time_ms": null,
+      "params": {
+        "deterministic_time_budget": false,
+        "rollout_policy": "greedy_sample",
+        "greedy_sample_size": 12,
+        "rollout_cutoff_depth": 12,
+        "heuristic_move_ordering": true,
+        "exploration_constant": 1.414,
+        "use_transposition_table": true,
+        "num_workers": 1,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "iterations": 250,
+        "value_model_path": "/Users/tjgalloway/Programming Projects 2025/MCTS_Laboratory/training/artifacts/value_models/v2/value_v2_v2_mixed.joblib",
+        "parallel_strategy": "root"
+      }
+    },
+    {
+      "name": "pentobi_l3",
+      "type": "pentobi",
+      "thinking_time_ms": null,
+      "params": {
+        "level": 3,
+        "use_book": false
+      }
+    },
+    {
+      "name": "pentobi_l7",
+      "type": "pentobi",
+      "thinking_time_ms": null,
+      "params": {
+        "level": 7,
+        "use_book": false
+      }
+    }
+  ],
+  "num_games": 120,
+  "seed": 1732817614,
+  "seat_policy": "all_permutations",
+  "output_root": "/Users/tjgalloway/Programming Projects 2025/MCTS_Laboratory/training/reports/protocol_v3/pentobi_exp016",
+  "max_turns": 2500,
+  "notes": "",
+  "snapshots": {
+    "enabled": false,
+    "strategy": "fixed_ply",
+    "checkpoints": [
+      8,
+      16,
+      24,
+      32,
+      40,
+      48,
+      56,
+      64
+    ]
+  },
+  "scoring_mode": "standard",
+  "run_id": "pentobi_exp016",
+  "protocol": "protocol_v3",
+  "created_at": "2026-09-07T21:28:51+00:00|pid51001|70d88e",
+  "workers": 8
+}

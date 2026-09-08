@@ -24,6 +24,188 @@ Artifacts:
 
 ---
 
+## EXP-016 — Pentobi level calibration under protocol v3
+
+- **Experiment ID:** EXP-016
+- **Date:** 2026-09-07 (pre-registered; launched after EXP-014/015)
+- **Commit:** branch `feat/m1-measurement`
+- **Hypothesis / question:** where do the gen140 champion config and the D-016 config (both
+  250 pinned iterations, one worker) sit relative to Pentobi levels 3 and 7 (no book, one
+  thread, seeded per game)? This calibrates the external yardstick; there is no pass/fail.
+- **Table:** [gen140, d016_250, pentobi_l3, pentobi_l7]; protocol v3; 120 games (5 permutation
+  cycles); 8 workers; fresh recorded seed.
+- **Pre-registered reading:** report first-place rate, average rank, mean score and every
+  paired score difference with p-values. The Pentobi level that the current best config beats
+  at p < 0.01 (if any) becomes the M3 baseline anchor; the first level it loses to at p < 0.01
+  becomes the M3 target anchor. If gen140 loses to level 3 decisively, M3's gate is re-stated
+  against level 3 rather than level 3-5.
+- **Reproduce:** commit 6356c3e, `python -m mcts_lab.calibrate pentobi --games 120 --workers 8
+  --seed 1732817614 --label pentobi_exp016`
+- **Result (120/120 games, 0 errors, 0 Pentobi mismatches):**
+  | agent | 1st% | avg rank | mean score | s/move |
+  |---|---|---|---|---|
+  | pentobi_l7 | 91.2% | 1.07 | 99.0 | 1.20 |
+  | pentobi_l3 | 7.5% | 2.16 | 78.8 | 0.01 |
+  | d016_250 | 1.2% | 2.99 | 71.2 | 8.35 |
+  | gen140 | 0.0% | 3.57 | 62.7 | 5.67 |
+  Paired: gen140 − pentobi_l3 = **−16.1** [−18.0, −14.2]; d016_250 − pentobi_l3 = **−7.6**
+  [−9.3, −5.9]; gen140 − pentobi_l7 = −36.3; d016_250 − pentobi_l7 = −27.8; d016_250 − gen140
+  = +8.5 [+6.5, +10.4]; all p < 0.0001.
+- **Reading (pre-registered rule applied):** the current best config loses decisively to the
+  weakest level tested, so the **M3 target anchor is Pentobi level 3** (as pre-registered for
+  this outcome) and the M3 baseline anchor is not yet located (levels 1-2 untested → EXP-016b).
+  Pentobi level 3 spends ~10 ms per move (≈ 90 simulations scaled by move number) and still
+  beats an 8-second, 250-iteration Python search by 7.6 points per game; level 7 (1.2 s/move)
+  beats it by 28. The repo's search is not merely slow — per simulation it is far weaker than
+  Pentobi's. This is the strongest evidence yet for the assessment's M2 stop-loss branch
+  (adopt Pentobi's engine core) and it is a strategic decision for the user (see D-023).
+- **Artifacts:** `training/reports/protocol_v3/pentobi_exp016/{report.json,games.jsonl,run_config.json}`
+
+## EXP-016b — Pentobi levels 1 and 2 (locating the baseline anchor)
+
+- **Experiment ID:** EXP-016b
+- **Date:** 2026-09-07 (pre-registered; launched immediately after EXP-016)
+- **Commit:** branch `feat/m1-measurement`
+- **Question:** does the repo's best config (d016_250) or the champion (gen140) beat Pentobi at
+  level 1 (~3 simulations) or level 2 (~30 simulations) at p < 0.01? Whichever level is beaten
+  becomes the M3 baseline anchor; if neither, the baseline anchor is the deterministic greedy
+  agent and M3 is measured purely against Pentobi levels from above.
+- **Table:** [gen140, d016_250, pentobi_l1, pentobi_l2]; protocol v3; 120 games; 8 workers.
+- **Reproduce:** commit dab8bd4, `python -m mcts_lab.calibrate pentobi-low --games 120 --workers 8
+  --seed 1209255502 --label pentobi_exp016b`
+- **Result (120/120 games, 0 errors):** first place pentobi_l2 39.2%, pentobi_l1 29.6%, d016_250
+  20.8%, gen140 10.4%; mean rank 1.82 / 2.21 / 2.44 / 3.13. Paired: d016_250 − pentobi_l1 =
+  **−2.1** [−4.2, +0.1], p = 0.12 (parity); d016_250 − pentobi_l2 = **−4.2** [−6.2, −2.2],
+  p = 0.0009; gen140 − pentobi_l1 = −10.4, gen140 − pentobi_l2 = −12.6 (p < 0.0001);
+  d016_250 − gen140 = +8.4 (p < 0.0001, replicating EXP-015/016). Pentobi levels 1-2 spend
+  8 ms per move (about 3 and 30 simulations).
+- **Reading (pre-registered rule applied):** no Pentobi level is beaten at p < 0.01, so the M3
+  baseline anchor is the deterministic `greedy` agent and M3 is measured against Pentobi levels
+  from above (target: level 3, per EXP-016). The repo's best search at 250 iterations and 8 s per
+  move is at parity with Pentobi's 3-simulation level 1, i.e. roughly with Pentobi's move prior
+  alone; the champion is 10 points below it. Pentobi level ordering is monotone as expected
+  (L1 < L2 by 2.2, p = 0.09; L2 < L3 and L3 < L7 decisively in EXP-016).
+- **Artifacts:** `training/reports/protocol_v3/pentobi_exp016b/{report.json,games.jsonl,run_config.json}`
+
+
+## M0 closure note — Pentobi rules cross-check (2026-09-07)
+
+Engine legal-move sets vs Pentobi 30.3 `all_legal` on every ply of 12 seeded games (6 random-agent,
+6 heuristic-agent): **860 positions (100 with no legal move), 130,000 placements compared, 0
+disagreements** (19 s). Together with the in-repo independent reference (519 positions) and
+the earlier auditor references (1,103 positions), the corrected engine agrees with three
+independent implementations of the rules. Test: `tests/test_pentobi_agent.py::test_engine_legal_moves_match_pentobi_all_legal`
+(default 3 games; `BLOKUS_PENTOBI_GAMES=12` reproduces the numbers above).
+
+## EXP-015 — M1 discrimination gate (protocol v3)
+
+- **Experiment ID:** EXP-015
+- **Date:** 2026-09-07 (pre-registered; launched after EXP-014 reports)
+- **Commit:** branch `feat/m1-measurement` (on top of `fix/standard-piece-set`, standard piece set)
+- **Hypothesis:** under protocol v3 the harness separates agents known to differ:
+  the gen140 champion config and the D-016 config (both pinned to 250 iterations, one
+  worker) beat the served registry-v2 config (250 iterations, one worker) on paired
+  per-game score.
+- **Independent variable:** agent configuration (4-seat table: gen140, serving_v2,
+  d016_250, greedy).
+- **Controlled variables:** protocol v3 (fresh run seed recorded in the report, all 24 seat
+  permutations, standard scoring, iteration-pinned single-worker search, paired sign-flip
+  permutation test with stat seed 20260907), 120 games (5 permutation cycles), 8 worker
+  processes. Note: `serving_v2` is the registry-v2 search settings at 250 iterations in ONE
+  worker; production runs 2 root workers × 125 iterations (same total, split trees).
+- **Pre-registered decision rule:** PASS iff both pairs (gen140 > serving_v2) and
+  (d016_250 > serving_v2) show a positive mean paired score difference with p < 0.01 over
+  ≥ 120 games and no game errored. gen140 vs d016_250 is reported but NOT part of the gate
+  (they may be equal). FAIL → the harness cannot see known differences at n = 120;
+  investigate before any strength work (assessment §4 stop-loss).
+- **Reproduce:** commit a394a79, `python -m mcts_lab.calibrate discrimination --games 120
+  --workers 8 --seed 1712991924 --label discrimination_exp015`
+- **Result (120/120 games, 0 errors): PASS.** Pre-registered pairs: gen140 − serving_v2 =
+  +8.17 [90% CI +5.5, +10.8], p=0.0000; d016_250 − serving_v2 = +14.67 [90% CI +12.1, +17.3], p=0.0000.
+  First place: d016_250 50.4%, gen140 35.4%, serving_v2 11.7%, greedy 2.5%; mean rank 1.68 /
+  2.02 / 2.75 / 3.06. Per-move cost at 250 iterations under 8-way contention: d016 7.0 s,
+  gen140 5.6 s, serving_v2 5.8 s.
+- **Informative (not part of the gate):** at an EQUAL 250-iteration budget the D-016 config
+  beats gen140 by 6.50 points (p = 0.0002; 90% CI +3.6 to +9.4) — the first
+  sound-protocol evidence that the value-model leaf is stronger than rollouts at equal
+  iterations (EXP-006a had parity at n = 20). And the served registry-v2 search settings are
+  indistinguishable from the deterministic greedy baseline (+1.71 [90% CI -0.1, +3.5], p=0.1243):
+  the configuration a human currently faces plays at one-ply-greedy level.
+- **Interpretation:** the harness separates known-different agents by 8-15 points at p < 0.0001
+  with n = 120; together with EXP-014b the M1 gates are met and protocol v3 is the measurement
+  for all further work. D-016's edge over gen140 is a strength finding to carry into M3.
+- **Artifacts:** `training/reports/protocol_v3/discrimination_exp015/{report.json,games.jsonl,run_config.json}`
+
+## EXP-014b — M1 clone-calibration gate (protocol v3, all-permutation schedule)
+
+- **Experiment ID:** EXP-014b
+- **Date:** 2026-09-07 (pre-registered after the harness review; launched when EXP-014a finished)
+- **Commit:** branch `feat/m1-measurement` (post-review harness: 24-permutation seat schedule,
+  equivalence gate, incremental game records)
+- **Hypothesis:** with seats AND successor relations balanced, a byte-identical clone of the
+  champion is statistically equivalent to it.
+- **Table:** [champion, champion_clone, greedy, random]; all MCTS at 250 pinned iterations, one
+  worker; 240 games (10 cycles of the 24 permutations); 8 worker processes; fresh recorded seed.
+- **Pre-registered decision rule:** PASS iff the 90% CI of the champion − clone paired score
+  difference lies within ±4 points AND p > 0.05 AND no game errored/truncated AND n ≥ 240.
+  Expected under an unbiased harness (sd ≈ 15-18): pass probability ≥ 93%; a 4-point bias passes
+  ≤ 5%. FAIL → the harness still manufactures differences; diagnose with the per-permutation
+  breakdown before any strength claim (assessment §4 stop-loss).
+- **Reproduce:** commit fcbbf01, `python -m mcts_lab.calibrate clone --games 240 --workers 8
+  --seed 707726340 --label clone_exp014b`
+- **Result (240/240 games, 0 errors, 8 workers): PASS.** champion − clone = **+1.76 points**,
+  90% CI **[−0.35, +3.87]**, p = 0.165. First place 46.5% / 38.8% / greedy 14.8% / random 0%;
+  mean rank 1.73 / 1.82 / 2.28 / 3.80. Champion vs greedy +8.27 (p < 0.0001), clone vs greedy
+  +6.51 (p < 0.0001), greedy vs random +22.1. Champion 5.9 s per move mean at 250 iterations
+  under 8-way contention.
+- **Caveat recorded:** the band was met with little margin (upper bound 3.87 vs 4.0), and the
+  agent listed first scored higher in both clone runs (EXP-014a +0.78, EXP-014b +1.76; pooled
+  340 games ≈ +1.5 ± 1.05). Not significant, but a residual bias of 1-2 points cannot be
+  excluded. Consequence: any future strength claim that hinges on ≤ 2 points per game is not
+  supported by this protocol; claims must clear the discrimination threshold (p < 0.01) with
+  effects well above that band. If a later result sits in the 1-3 point range, re-run the clone
+  gate with the agent order swapped before believing it.
+- **Artifacts:** `training/reports/protocol_v3/clone_exp014b/{report.json,games.jsonl,run_config.json}`
+
+## EXP-014a — clone contrast under the cyclic round-robin schedule (harness-bias measurement)
+
+_Originally pre-registered as EXP-014 with the cyclic `round_robin` seat policy and a
+"|Δ| < 3, p > 0.30" rule. The harness review (2026-09-07) showed that schedule keeps every
+successor relation fixed (champion always followed by the clone, always preceded by random)
+and that the rule fails an unbiased harness 30% of the time. The run was allowed to finish and
+is recorded as a measurement of that confound; it is NOT the M1 gate._
+
+
+- **Experiment ID:** EXP-014
+- **Date:** 2026-09-07 (pre-registered before launch)
+- **Commit:** branch `feat/m1-measurement` (on top of `fix/standard-piece-set`)
+- **Hypothesis:** under protocol v3 an agent byte-identical to the champion, differing
+  only in name (hence RNG stream and seat rotation phase), is statistically
+  indistinguishable from the champion. The pre-rescue screen measured such a clone at
+  −82 Elo / 9-10 head-to-head (assessment B5); this is the calibration test of the harness.
+- **Independent variable:** none (champion vs its clone); 4-seat table
+  [champion, champion_clone, greedy, random], all MCTS at 250 pinned iterations, one worker.
+- **Controlled variables:** 100 games; cyclic round_robin seats; fresh run seed 1886604495.
+- **Original decision rule (superseded, see above):** |mean paired score difference| < 3 AND
+  p > 0.30 over ≥ 100 games.
+- **Reproduce:** commit c12c73c, `python -m mcts_lab.calibrate clone --games 100 --workers 8
+  --seed 1886604495`
+- **Result (100/100 games, 8 workers, 61 min):** champion − clone = **+0.78 points, p = 0.68**
+  (old rule: PASS). First place: champion 49.0%, clone 39.5%, greedy 11.5%, random 0%; mean
+  rank 1.65 / 1.74 / 2.40 / 3.76. Champion vs greedy +10.24 (p < 0.0001); greedy vs random
+  +19.6 (p < 0.0001). Champion at 250 pinned iterations: 6.1 s per move mean under 8-way
+  contention. Paired-difference sd (for sizing EXP-014b): champion − clone **19.4** (se 1.94 at
+  n = 100); champion − greedy 19.0; greedy − random 12.7; per-agent score sd 13.4 / 11.8 / 10.2 /
+  7.0. Seat effect is real: champion mean score by seat 1→4 = 85.2 / 85.3 / 82.5 / 81.5. With
+  sd 19.4 the EXP-014b design (n = 240, band ±4, 90% CI) passes an unbiased harness ≈ 88% of
+  the time and a 4-point bias ≈ 5%. An early read at 22 games had shown the clone +7 points
+  ahead — it regressed to +0.8 at 100, a reminder that n = 20 reads mean nothing.
+- **Interpretation:** under the cyclic schedule no confound larger than ~3 points is visible at
+  n = 100 (SE ≈ 1.5). That does not rescue the schedule — its successor relations are fixed by
+  construction — but it bounds the effect. The M1 gate proper is EXP-014b (all permutations,
+  equivalence rule, n = 240).
+- **Artifacts:** `training/reports/protocol_v3/clone_exp014/{report.json,games.jsonl,run_config.json}`
+
 ## EXP-013 — Phase 6: prior-calibration fix (flattened MLP prior) vs baseline
 
 - **Experiment ID:** EXP-013
